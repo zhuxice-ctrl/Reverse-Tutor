@@ -1,10 +1,10 @@
 {
   "versionCode": 1,
   "versionName": "0.11.0",
-  "apkUrl": "",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.11.0/Back_Teacher-v0.11.0-debug.apk",
   "publishedAt": "2026-05-14",
   "releaseNotes": [
     "Initial local APK/PWA build.",
-    "Replace apkUrl with the GitHub Release APK download URL when publishing."
+    "Mobile drawer, theme switching, LLM config, and update checking are included."
   ]
 }
