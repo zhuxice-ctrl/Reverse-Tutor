@@ -1,10 +1,14 @@
 {
-  "versionCode": 1,
-  "versionName": "0.11.0",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.11.0/Back_Teacher-v0.11.0-debug.apk",
-  "publishedAt": "2026-05-14",
+  "versionCode": 2,
+  "versionName": "0.12.0",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.12.0/Back_Teacher-v0.12.0-debug.apk",
+  "publishedAt": "2026-05-15",
   "releaseNotes": [
-    "Initial local APK/PWA build.",
-    "Mobile drawer, theme switching, LLM config, and update checking are included."
+    "Upgrade knowledge mastery into an interactive memory graph with node details.",
+    "Persist LLM configuration locally and restore it when the app resumes.",
+    "Add local Word/PDF source import for anchors.",
+    "Use the built-in GitHub latest.json update feed by default.",
+    "Refresh PWA and Android app icons.",
+    "Allow Android HTTP and mixed-content access for local/self-hosted LLM endpoints."
   ]
 }

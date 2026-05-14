@@ -14,7 +14,7 @@
 - **OpenAI 兼容接口**：支持 DeepSeek、Qwen、Moonshot、自部署 vLLM、Ollama 等兼容接口。
 - **Web + 移动端**：提供桌面 Web UI、移动 PWA，并可用 Capacitor 打包 APK。
 - **本地数据**：服务端使用 SQLite，移动 PWA 使用 IndexedDB。
-- **检查更新**：移动端可配置 `latest.json` 更新源，手动或启动时检查新版 APK。
+- **检查更新**：移动端内置 GitHub `latest.json` 更新源，手动或启动时检查新版 APK。
 
 ## 项目结构
 
@@ -100,8 +100,9 @@ mobile/android/app/build/outputs/apk/debug/app-debug.apk
 
 1. 在 GitHub Releases 上传新版 APK。
 2. 提供一个公网可访问的 `latest.json`。
-3. 在应用设置页填写这个 `latest.json` 地址。
-4. 应用可手动检查，也可启动时自动检查。
+3. 默认更新源已经内置到应用中，用户无需手动填写。
+4. 高级用户仍可在应用设置页改成自己的 `latest.json` 地址。
+5. 应用可手动检查，也可启动时自动检查。
 
 `latest.json` 示例：
 
@@ -125,6 +126,12 @@ mobile/android/app/build/outputs/apk/debug/app-debug.apk
 - 安卓侧载 APK 不能静默自动安装，只能提示用户下载并手动安装。
 
 模板文件在 [static/app/latest.json](static/app/latest.json)。
+
+当前默认更新源：
+
+```text
+https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json
+```
 
 ## 版本更新管理
 

@@ -8,12 +8,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="反转家教">
 <link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <title>反转家教</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 
 <style>
   :root {
@@ -74,6 +76,7 @@
   .pill-correction { background:#b45309; color:#fde68a; }
   .pill-checkpoint { background:#0e7490; color:#a5f3fc; }
   .pill-constraint { background:#525252; color:#d4d4d4; }
+  .pill-source { background:#155e75; color:#cffafe; }
   .md pre { background:var(--panel-3); padding:8px; border-radius:6px; overflow-x:auto; font-size:12px; }
   .md code { background:var(--panel-3); padding:1px 4px; border-radius:3px; font-size:12px; }
   .md p { margin: 4px 0; }
@@ -90,6 +93,106 @@
     background-attachment: local;
   }
   #chat > * { position: relative; z-index: 1; }
+  .knowledge-graph {
+    position: relative;
+    height: min(68vh, 540px);
+    min-height: 380px;
+    overflow: hidden;
+    touch-action: none;
+    border-radius: 10px;
+    background:
+      radial-gradient(circle at 56% 38%, color-mix(in srgb, var(--warn) 7%, transparent), transparent 36%),
+      radial-gradient(circle at 40% 58%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 44%),
+      linear-gradient(var(--chat-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--chat-line) 1px, transparent 1px),
+      var(--chat-bg);
+    background-size: auto, auto, 28px 28px, 28px 28px, auto;
+  }
+  .knowledge-graph canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  .knowledge-graph canvas:active { cursor: grabbing; }
+  .graph-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--muted);
+    opacity: .7;
+    pointer-events: none;
+    transition: opacity .6s ease;
+  }
+  .graph-hint.fade { opacity: 0; }
+  .graph-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: rgba(0,0,0,.32);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .28s cubic-bezier(.32,.72,0,1);
+  }
+  .graph-sheet-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .graph-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 71;
+    max-height: 78vh;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -14px 48px rgba(0,0,0,.22);
+    transform: translateY(100%);
+    transition: transform .32s cubic-bezier(.32,.72,0,1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .graph-sheet.show {
+    transform: translateY(0);
+  }
+  .graph-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .graph-sheet-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 16px 20px;
+  }
+  .graph-sheet .mastery-ring {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .graph-sheet .mastery-ring svg { position: absolute; inset: -2px; }
+  .graph-sheet .mastery-ring .ring-label {
+    font-size: 14px; font-weight: 700;
+    color: var(--text);
+  }
+  .graph-sheet .sheet-section {
+    border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+    padding-top: 10px;
+    margin-top: 10px;
+  }
   .bg-neutral-950, .bg-neutral-900 { background-color: var(--panel) !important; }
   .bg-neutral-800 { background-color: var(--panel-3) !important; }
   .bg-neutral-800\/95 { background-color: color-mix(in srgb, var(--panel-3) 95%, transparent) !important; }
@@ -105,7 +208,13 @@
   .text-emerald-400 { color: var(--accent) !important; }
   .text-amber-400 { color: var(--warn) !important; }
   .theme-choice.active { background: var(--accent) !important; color: #f8f4ed !important; border-color: var(--accent) !important; }
-  #message-popup { background: var(--panel); color: var(--text); border-color: var(--line); }
+  #message-popup {
+    top: calc(env(safe-area-inset-top) + 72px);
+    bottom: auto;
+    background: var(--panel);
+    color: var(--text);
+    border-color: var(--line);
+  }
   .drawer-overlay {
     position: fixed;
     inset: 0;
@@ -186,9 +295,18 @@
   <section data-view="anchors" class="view flex-1 min-h-0 flex flex-col hidden">
     <div class="px-3 py-2 border-b border-neutral-800 text-xs text-neutral-500">主线锚：会注入到每次 LLM 调用的 system prompt，防漂移</div>
     <div id="anchors-list" class="flex-1 scroll-y px-3 py-2 space-y-1.5"></div>
-    <form id="anchor-form" class="border-t border-neutral-800 p-2 flex gap-2 safe-bottom">
-      <input id="anchor-input" placeholder="补一条新诉求/约定…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
-      <button class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-3 py-2 rounded-lg">加</button>
+    <form id="anchor-form" class="border-t border-neutral-800 p-2 safe-bottom space-y-2">
+      <div class="flex gap-2">
+        <input id="anchor-input" placeholder="补一条新诉求/约定…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+        <button class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-3 py-2 rounded-lg">加</button>
+      </div>
+      <div class="flex gap-2">
+        <label class="flex-1 text-center text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer">
+          导入 Word/PDF
+          <input id="anchor-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple class="hidden">
+        </label>
+        <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">仅本地解析，不上传图片</div>
+      </div>
     </form>
   </section>
 
@@ -197,7 +315,7 @@
     <div class="p-3 space-y-3">
       <div id="insights-summary" class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-1"></div>
       <div>
-        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">知识点掌握度</div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">记忆图谱</div>
         <div id="insights-mastery" class="space-y-2"></div>
       </div>
       <div>
@@ -219,7 +337,7 @@
             <button id="theme-warm" class="theme-choice text-xs px-3 py-2 rounded border border-neutral-700">暖灰浅色</button>
           </div>
           <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
-            <span>AI 回复后弹出消息提示</span>
+            <span>AI 主动消息时弹出提示</span>
             <input id="popup-enabled" type="checkbox" class="accent-emerald-700">
           </label>
         </div>
@@ -264,16 +382,16 @@
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
           <div class="text-[11px] text-neutral-400 leading-relaxed">
             当前版本：<span id="update-current" class="text-neutral-200 font-mono"></span><br>
-            填入 GitHub Release 或自托管的 <span class="font-mono">latest.json</span> 地址后，应用可手动或启动时检查新版 APK。
+            默认使用内置官方 GitHub 更新源；用户不需要填写地址。
           </div>
           <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
             <span>启动时自动检查</span>
             <input id="update-auto" type="checkbox" class="accent-emerald-700">
           </label>
-          <label class="block">
-            <span class="text-xs text-neutral-400">更新源 URL</span>
-            <input id="update-feed" type="url" placeholder="https://.../latest.json" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
-          </label>
+          <input id="update-feed" type="hidden">
+          <div class="text-[11px] text-neutral-500 leading-relaxed">
+            更新源已经内置在应用里，用户不需要手动填写 URL。
+          </div>
           <div id="update-status" class="text-xs text-neutral-500 leading-relaxed"></div>
           <div class="flex gap-2">
             <button id="update-check" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">检查更新</button>
@@ -317,6 +435,13 @@
   </section>
 
 </main>
+
+<!-- ============== 知识图谱节点详情底部弹窗 ============== -->
+<div id="graph-sheet-overlay" class="graph-sheet-overlay"></div>
+<div id="graph-sheet" class="graph-sheet">
+  <div class="graph-sheet-handle"></div>
+  <div id="graph-sheet-body" class="graph-sheet-body"></div>
+</div>
 
 <!-- ============== 底部 tab 栏 ============== -->
 <nav class="bottom-nav bg-neutral-950 border-t border-neutral-800 grid grid-cols-4 safe-bottom">
@@ -385,7 +510,7 @@
 
 <!-- ============== Toast ============== -->
 <div id="toast" class="fixed top-14 left-1/2 -translate-x-1/2 bg-neutral-800/95 border border-neutral-700 text-sm px-3 py-2 rounded-lg shadow-xl hidden z-50"></div>
-<div id="message-popup" class="fixed left-3 right-3 bottom-20 border rounded-xl p-3 shadow-2xl hidden z-50" role="status">
+<div id="message-popup" class="fixed left-3 right-3 border rounded-xl p-3 shadow-2xl hidden z-50" role="status">
   <div class="flex justify-between items-start gap-3">
     <div class="min-w-0">
       <div id="message-popup-title" class="text-xs font-semibold mb-1">学生 AI</div>
@@ -408,10 +533,13 @@ const state = {
   sid: null,
   sessions: [],
   currentTab: 'chat',
+  graphSelected: '',
 };
 
-const APP_VERSION_CODE = 1;
-const APP_VERSION_NAME = '0.11.0';
+const APP_VERSION_CODE = 2;
+const APP_VERSION_NAME = '0.12.0';
+const DEFAULT_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
+const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
 const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
@@ -440,7 +568,49 @@ function updateAutoEnabled() {
 }
 
 function updateFeedUrl() {
-  return (localStorage.getItem(UPDATE_FEED_KEY) || '').trim();
+  return (localStorage.getItem(UPDATE_FEED_KEY) || DEFAULT_UPDATE_FEED_URL).trim();
+}
+
+function normalizeLlmConfig(c = {}) {
+  return {
+    base_url: String(c.base_url || '').trim(),
+    api_key: String(c.api_key || '').trim(),
+    model: String(c.model || '').trim(),
+  };
+}
+
+function loadLlmConfigLocal() {
+  try {
+    const raw = localStorage.getItem(LLM_CONFIG_KEY);
+    return raw ? normalizeLlmConfig(JSON.parse(raw)) : null;
+  } catch (err) {
+    console.warn('llm local config parse failed', err);
+    return null;
+  }
+}
+
+function saveLlmConfigLocal(c) {
+  localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(normalizeLlmConfig(c)));
+}
+
+async function persistLlmConfig(c) {
+  const next = normalizeLlmConfig(c);
+  LLM.set_config(next);
+  saveLlmConfigLocal(next);
+  await DB.kvSet('llm_config', next);
+  return LLM.get_config();
+}
+
+async function restoreLlmConfig() {
+  const dbCfg = await DB.kvGet('llm_config');
+  const localCfg = loadLlmConfigLocal();
+  const next = normalizeLlmConfig(dbCfg || localCfg || {});
+  if (next.base_url || next.api_key || next.model) {
+    LLM.set_config(next);
+    saveLlmConfigLocal(next);
+    if (!dbCfg && localCfg) await DB.kvSet('llm_config', next);
+  }
+  return LLM.get_config();
 }
 
 function appVersionLabel() {
@@ -517,7 +687,7 @@ function renderUpdateSettings() {
 async function checkUpdate(silent=false) {
   const feed = updateFeedUrl();
   if (!feed) {
-    if (!silent) setUpdateStatus('还没有设置更新源 URL。等 GitHub Release 建好后，把 latest.json 地址填进来。', 'warn');
+    if (!silent) setUpdateStatus('还没有设置更新源 URL。', 'warn');
     return null;
   }
   if (!silent) setUpdateStatus('正在检查更新…');
@@ -547,6 +717,7 @@ async function checkUpdate(silent=false) {
 
 function showMessagePopup(title, text, ms=4200) {
   if (!popupEnabled() || !text) return;
+  if (document.visibilityState === 'visible' && state.currentTab === 'chat') return;
   $('#message-popup-title').textContent = title || '学生 AI';
   $('#message-popup-body').textContent = text.replace(/\s+/g, ' ').trim().slice(0, 120);
   $('#message-popup').classList.remove('hidden');
@@ -679,7 +850,7 @@ const DB = (() => {
     }
   }
 
-  return { open, add, put, get, del, all, bySid, delBySid, kvGet, kvSet, exportAll, importAll, wipe };
+return { open, add, put, get, del, all, bySid, delBySid, kvGet, kvSet, exportAll, importAll, wipe };
 })();
 </script>
 <script>
@@ -688,7 +859,13 @@ const LLM = (() => {
   let cfg = { base_url: '', api_key: '', model: '' };
 
   const has_real = () => !!(cfg.base_url && cfg.api_key && cfg.model);
-  const set_config = (c) => { cfg = { ...cfg, ...c }; };
+  const set_config = (c = {}) => {
+    const next = { ...cfg };
+    if ('base_url' in c) next.base_url = String(c.base_url || '').trim();
+    if ('api_key' in c) next.api_key = String(c.api_key || '').trim();
+    if ('model' in c) next.model = String(c.model || '').trim();
+    cfg = next;
+  };
   const get_config = () => ({ ...cfg, has_api_key: !!cfg.api_key, mode: has_real() ? 'live' : 'mock' });
 
   // === Mock：与后端 llm.py 的智能 mock 等价 ===
@@ -785,6 +962,18 @@ const LLM = (() => {
   }
 
   // === OpenAI 兼容真调 ===
+  function network_error(e, url) {
+    const message = e && e.message ? e.message : String(e || 'unknown error');
+    const isHttp = /^http:\/\//i.test(url);
+    const localHint = /\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/i.test(url)
+      ? ' 注意：APK 里的 localhost 指手机本机，不是电脑；电脑上的本地模型请改用同一 Wi-Fi 下的电脑局域网 IP。'
+      : '';
+    const httpHint = isHttp
+      ? ' 当前是 http:// 地址，APK 已允许明文流量；如果仍失败，请确认模型服务允许局域网访问并开启 CORS。'
+      : ' 请确认服务端允许跨域访问，或使用 OpenAI 兼容的代理地址。';
+    return new Error(`LLM 网络请求失败：${message}。请检查 Base URL、手机网络和模型服务状态。${localHint}${httpHint}`);
+  }
+
   async function openai_chat(system, messages, temperature=0.7, max_tokens=900) {
     const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
     const body = {
@@ -795,11 +984,20 @@ const LLM = (() => {
     };
     const headers = { 'Content-Type':'application/json' };
     if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
-    let r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    let r;
+    try {
+      r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    } catch (e) {
+      throw network_error(e, url);
+    }
     if (!r.ok) {
       // 部分 provider 不支持 response_format，去掉再试
       delete body.response_format;
-      r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+      try {
+        r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+      } catch (e) {
+        throw network_error(e, url);
+      }
     }
     if (!r.ok) throw new Error(`LLM ${r.status}: ${await r.text().catch(()=>'')}`);
     const data = await r.json();
@@ -892,6 +1090,7 @@ ${format_actions()}
   "action": {
     "type": "ask|probe|explain_back|persuade|encourage|next|wrap",
     "knowledge_point": "本回合相关的具体知识点（短词组）",
+    "related_kps": ["与本知识点在知识体系上有前置/并列/推导关系的已学知识点，最多3个，没有则[]"],
     "difficulty": 0.0,
     "note": ""
   },
@@ -1199,6 +1398,67 @@ $('#chat-input').addEventListener('keydown', e => {
 });
 
 // --- Anchors ---
+async function addLocalAnchor(kind, content, weight=1.5, extra={}) {
+  return DB.add('anchors', {
+    sid: state.sid,
+    kind,
+    content,
+    weight,
+    created_at: Date.now(),
+    ...extra,
+  });
+}
+
+function compactDocText(text, limit=2800) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= limit) return clean;
+  return clean.slice(0, limit) + `\n\n[已截取前 ${limit} 字，原文较长]`;
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) throw new Error('PDF 解析库未加载');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const parts = [];
+  const maxPages = Math.min(doc.numPages, 20);
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await doc.getPage(i);
+    const text = await page.getTextContent();
+    parts.push(text.items.map(item => item.str || '').join(' '));
+  }
+  if (doc.numPages > maxPages) parts.push(`[PDF 共 ${doc.numPages} 页，已读取前 ${maxPages} 页]`);
+  return parts.join('\n');
+}
+
+async function extractWordText(file) {
+  if (!window.mammoth) throw new Error('Word 解析库未加载');
+  if (!/\.docx$/i.test(file.name)) throw new Error('暂时只支持 .docx，旧 .doc 请先另存为 .docx');
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return result.value || '';
+}
+
+async function importAnchorFiles(files) {
+  if (!state.sid) { toast('先创建会话'); return; }
+  const status = $('#anchor-import-status');
+  const list = Array.from(files || []);
+  if (!list.length) return;
+  let ok = 0;
+  for (const file of list) {
+    try {
+      if (status) status.textContent = `解析中：${file.name}`;
+      const lower = file.name.toLowerCase();
+      const text = lower.endsWith('.pdf') ? await extractPdfText(file) : await extractWordText(file);
+      const content = compactDocText(`[文件：${file.name}]\n${text}`);
+      await addLocalAnchor('source', content, 1.2, { source_name: file.name, source_type: lower.endsWith('.pdf') ? 'pdf' : 'docx' });
+      ok++;
+    } catch (err) {
+      toast(`${file.name} 导入失败：${err.message || err}`, 4200);
+    }
+  }
+  if (status) status.textContent = ok ? `已导入 ${ok} 个文件` : '未导入文件';
+  renderAnchors();
+}
+
 async function renderAnchors() {
   if (!state.sid) { $('#anchors-list').innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10">先创建会话</div>'; return; }
   const anchors = (await DB.bySid('anchors', state.sid)).sort((a,b)=>b.weight-a.weight);
@@ -1220,13 +1480,399 @@ $('#anchor-form').addEventListener('submit', async e => {
   if (!state.sid) { toast('先创建会话'); return; }
   const v = $('#anchor-input').value.trim();
   if (!v) return;
-  await ENGINE.add_anchor ? ENGINE.add_anchor(state.sid, 'requirement', v, 1.5) :
-    DB.add('anchors', { sid: state.sid, kind:'requirement', content: v, weight: 1.5, created_at: Date.now() });
+  await addLocalAnchor('requirement', v, 1.5);
   $('#anchor-input').value = '';
   renderAnchors();
 });
+$('#anchor-file').addEventListener('change', async e => {
+  await importAnchorFiles(e.target.files);
+  e.target.value = '';
+});
 
-// --- Insights ---
+// --- Insights: Obsidian-style Force Graph ---
+const ForceGraph = (() => {
+  let cvs, ctx, box;
+  let nodes = [], links = [], particles = [];
+  let cam = { x:0, y:0, s:1, vx:0, vy:0 };
+  let sel = null, anim = null, settled = false, iter = 0;
+  const REPUL = 1200, ATTR = 0.0018, GRAV = 0.0008, DAMP = 0.92, MAX_IT = 400, ALPHA_MIN = 0.04, COL_PAD = 6;
+  let ts = { down:false, pinch:false, sx:0, sy:0, lx:0, ly:0, moved:false, t0:0, dn:null, sd:0, ss:1 };
+  let _onSelect = null;
+  let _thm = {};
+
+  function readTheme() {
+    const s = getComputedStyle(document.body);
+    const g = n => s.getPropertyValue(n).trim();
+    _thm = { page:g('--page'), panel:g('--panel'), panel2:g('--panel-2'), line:g('--line'),
+      text:g('--text'), muted:g('--muted'), accent:g('--accent'), warn:g('--warn'), chatBg:g('--chat-bg') };
+  }
+
+  function init(container, onSelect) {
+    if (box === container && cvs) { resize(); readTheme(); return; }
+    destroy();
+    box = container;
+    _onSelect = onSelect || null;
+    cvs = document.createElement('canvas');
+    cvs.style.cssText = 'width:100%;height:100%;display:block;touch-action:none;';
+    ctx = cvs.getContext('2d');
+    box.appendChild(cvs);
+    readTheme();
+    resize();
+    cvs.addEventListener('touchstart', onTS, {passive:false});
+    cvs.addEventListener('touchmove', onTM, {passive:false});
+    cvs.addEventListener('touchend', onTE, {passive:false});
+    cvs.addEventListener('mousedown', onMD);
+    cvs.addEventListener('mousemove', onMM);
+    cvs.addEventListener('mouseup', onMU);
+    cvs.addEventListener('wheel', onWh, {passive:false});
+    window.addEventListener('resize', () => { resize(); render(); });
+  }
+
+  function resize() {
+    if (!cvs || !box) return;
+    const dpr = window.devicePixelRatio || 1;
+    const r = box.getBoundingClientRect();
+    cvs.width = r.width * dpr; cvs.height = r.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function W() { return cvs.width / (window.devicePixelRatio||1); }
+  function H() { return cvs.height / (window.devicePixelRatio||1); }
+
+  function setData(nd, lk) {
+    const cx = W()/2, cy = H()/2;
+    nodes = nd.map((n,i) => {
+      const a = (Math.PI*2*i/Math.max(nd.length,1)) - Math.PI/2;
+      const r = n.nodeType==='kp' ? Math.min(W(),H())*.22 : Math.min(W(),H())*.34;
+      return { ...n, x: cx+Math.cos(a)*r+(Math.random()-.5)*30,
+        y: cy+Math.sin(a)*r+(Math.random()-.5)*30,
+        vx:0, vy:0,
+        radius: n.nodeType==='kp' ? Math.max(13,13+(n.level||0)*16) : (n.nodeType==='support'?7:5) };
+    });
+    links = lk.map(l => ({
+      source: nodes.find(n=>n.key===l.a.key),
+      target: nodes.find(n=>n.key===l.b.key),
+      weight: l.weight||1, kind: l.kind||'memory'
+    })).filter(l=>l.source&&l.target);
+    particles = links.slice(0,60).map(l => ({ link:l, t:Math.random(), sp:.002+Math.random()*.003 }));
+    sel = null; settled = false; iter = 0;
+    cam = { x:0, y:0, s:1, vx:0, vy:0 };
+    startAnim();
+  }
+
+  function wake() { settled=false; iter=Math.min(iter, MAX_IT>>1); }
+
+  function tick() {
+    iter++;
+    const alpha = Math.max(ALPHA_MIN, 1 - iter/MAX_IT);
+    // repulsion + collision
+    for (let i=0;i<nodes.length;i++) for (let j=i+1;j<nodes.length;j++) {
+      const dx=nodes[j].x-nodes[i].x, dy=nodes[j].y-nodes[i].y;
+      const d=Math.max(.5,Math.sqrt(dx*dx+dy*dy));
+      const minD=nodes[i].radius+nodes[j].radius+COL_PAD;
+      let f=REPUL*alpha/(d*d);
+      if(d<minD) f+=(minD-d)*0.5;
+      const fx=(dx/d)*f, fy=(dy/d)*f;
+      nodes[i].vx-=fx; nodes[i].vy-=fy; nodes[j].vx+=fx; nodes[j].vy+=fy;
+    }
+    // link attraction
+    for (const l of links) {
+      const dx=l.target.x-l.source.x, dy=l.target.y-l.source.y;
+      const d=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+      const ideal = l.kind==='sequence'?110:55;
+      const f=(d-ideal)*ATTR*alpha*l.weight;
+      const fx=(dx/d)*f, fy=(dy/d)*f;
+      l.source.vx+=fx; l.source.vy+=fy; l.target.vx-=fx; l.target.vy-=fy;
+    }
+    // center gravity + velocity update
+    const cx=W()/2, cy=H()/2;
+    let mv=0;
+    for (const n of nodes) {
+      if (n===ts.dn) continue;
+      n.vx+=(cx-n.x)*GRAV*alpha; n.vy+=(cy-n.y)*GRAV*alpha;
+      n.vx*=DAMP; n.vy*=DAMP; n.x+=n.vx; n.y+=n.vy;
+      mv=Math.max(mv,Math.abs(n.vx),Math.abs(n.vy));
+    }
+    if (iter>60 && mv<.01) settled=true;
+    // camera pan inertia
+    if (Math.abs(cam.vx)>.05||Math.abs(cam.vy)>.05) { cam.x+=cam.vx; cam.y+=cam.vy; cam.vx*=.92; cam.vy*=.92; }
+    else { cam.vx=0; cam.vy=0; }
+  }
+
+  function render() {
+    const w=W(), h=H();
+    ctx.clearRect(0,0,w,h);
+    ctx.save(); ctx.translate(cam.x,cam.y); ctx.scale(cam.s,cam.s);
+    const kpC='224,124,47', memC='217,111,103', supC='79,154,200';
+    // links
+    for (const l of links) {
+      const dim = sel && l.source!==sel && l.target!==sel;
+      ctx.beginPath(); ctx.moveTo(l.source.x,l.source.y); ctx.lineTo(l.target.x,l.target.y);
+      if (l.kind==='related') { ctx.setLineDash([4,4]); ctx.strokeStyle = dim ? 'rgba(79,154,200,.08)' : 'rgba(79,154,200,.42)'; ctx.lineWidth=1.1; }
+      else if (l.kind==='sequence') { ctx.setLineDash([]); ctx.strokeStyle = dim ? 'rgba(95,104,93,.1)' : `rgba(${kpC},.35)`; ctx.lineWidth=1.4; }
+      else { ctx.setLineDash([]); ctx.strokeStyle = dim ? 'rgba(95,104,93,.1)' : 'rgba(95,104,93,.28)'; ctx.lineWidth=.7; }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    // particles
+    for (const p of particles) {
+      p.t=(p.t+p.sp)%1;
+      const l=p.link;
+      if (sel && l.source!==sel && l.target!==sel) continue;
+      const px=l.source.x+(l.target.x-l.source.x)*p.t;
+      const py=l.source.y+(l.target.y-l.source.y)*p.t;
+      ctx.beginPath(); ctx.arc(px,py,1.2,0,Math.PI*2);
+      ctx.fillStyle=l.kind==='sequence'?`rgba(${kpC},.5)`:'rgba(120,160,132,.45)'; ctx.fill();
+    }
+    // nodes
+    const pulse = .5+.5*Math.sin(Date.now()*.003);
+    for (const n of nodes) {
+      const isSel = sel===n;
+      const conn = sel && links.some(l=>(l.source===sel&&l.target===n)||(l.target===sel&&l.source===n));
+      const dim = sel && !isSel && !conn;
+      const c = n.nodeType==='kp'?kpC:(n.nodeType==='support'?supC:memC);
+      // glow
+      if ((isSel || (n.nodeType==='kp' && !dim))) {
+        const g=ctx.createRadialGradient(n.x,n.y,n.radius*.4,n.x,n.y,n.radius*(isSel?3.5:2.5));
+        g.addColorStop(0,`rgba(${c},${isSel?.3+pulse*.1:.12})`);
+        g.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.radius*(isSel?3.5:2.5),0,Math.PI*2);
+        ctx.fillStyle=g; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.radius,0,Math.PI*2);
+      ctx.fillStyle = dim ? `rgba(${c},.15)` : `rgba(${c},${n.nodeType==='kp'?.82:.58})`;
+      ctx.fill();
+      if (isSel) { ctx.strokeStyle=`rgba(${kpC},.9)`; ctx.lineWidth=2.5; }
+      else { ctx.strokeStyle=dim?'rgba(95,104,93,.12)':'rgba(235,230,220,.2)'; ctx.lineWidth=.8; }
+      ctx.stroke();
+      // label
+      if (n.nodeType==='kp' && !dim) {
+        const fs=Math.max(9,n.radius*.6);
+        ctx.font=`${isSel?'bold ':''}${fs}px -apple-system,sans-serif`;
+        ctx.fillStyle=dim?'rgba(235,230,220,.15)':'rgba(235,230,220,.88)';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        const lb=n.kp.length>6?n.kp.slice(0,5)+'…':n.kp;
+        ctx.fillText(lb,n.x,n.y+n.radius+11);
+      }
+    }
+    ctx.restore();
+  }
+
+  function startAnim() { if (anim) return; const loop=()=>{ tick(); render(); anim=requestAnimationFrame(loop); }; anim=requestAnimationFrame(loop); }
+  function stopAnim() { if(anim){cancelAnimationFrame(anim);anim=null;} }
+
+  function hit(sx,sy) {
+    const gx=(sx-cam.x)/cam.s, gy=(sy-cam.y)/cam.s;
+    for (let i=nodes.length-1;i>=0;i--) {
+      const n=nodes[i], dx=gx-n.x, dy=gy-n.y, tr=Math.max(n.radius,16);
+      if (dx*dx+dy*dy<=tr*tr) return n;
+    }
+    return null;
+  }
+  function pos(e) { const r=cvs.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+  function tdist(e) { const dx=e.touches[1].clientX-e.touches[0].clientX, dy=e.touches[1].clientY-e.touches[0].clientY; return Math.sqrt(dx*dx+dy*dy); }
+
+  function onTS(e) { e.preventDefault(); if(e.touches.length===2){ts.pinch=true;ts.sd=tdist(e);ts.ss=cam.s;return;} const p=pos(e); const n=hit(p.x,p.y); ts.down=true;ts.sx=p.x;ts.sy=p.y;ts.lx=p.x;ts.ly=p.y;ts.moved=false;ts.t0=Date.now();ts.dn=n||null; }
+  function onTM(e) { e.preventDefault(); if(ts.pinch&&e.touches.length===2){ const d=tdist(e); const ns=Math.max(.3,Math.min(5,ts.ss*(d/ts.sd))); const r=cvs.getBoundingClientRect(); const cx2=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left; const cy2=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top; const rt=ns/cam.s; cam.x=cx2-(cx2-cam.x)*rt; cam.y=cy2-(cy2-cam.y)*rt; cam.s=ns; render(); return; } if(!ts.down)return; const p=pos(e); const dx=p.x-ts.lx,dy=p.y-ts.ly; if(Math.abs(p.x-ts.sx)>5||Math.abs(p.y-ts.sy)>5) ts.moved=true; if(ts.dn&&ts.moved){const vx=dx/cam.s,vy=dy/cam.s;ts.dn.x+=vx;ts.dn.y+=vy;ts.dn.vx=vx*4;ts.dn.vy=vy*4;render();}else if(!ts.dn){cam.vx=dx;cam.vy=dy;cam.x+=dx;cam.y+=dy;render();} ts.lx=p.x;ts.ly=p.y; }
+  function onTE(e) { if(ts.pinch){ts.pinch=false;return;} const tap=!ts.moved&&(Date.now()-ts.t0<300); if(tap&&ts.dn){sel=ts.dn;render();if(_onSelect)_onSelect(ts.dn);}else if(tap){sel=null;cam.vx=0;cam.vy=0;render();if(_onSelect)_onSelect(null);} if(ts.dn)wake(); ts.down=false;ts.dn=null; }
+  function onMD(e) { const p={x:e.offsetX,y:e.offsetY}; const n=hit(p.x,p.y); ts.down=true;ts.sx=p.x;ts.sy=p.y;ts.lx=p.x;ts.ly=p.y;ts.moved=false;ts.t0=Date.now();ts.dn=n||null; }
+  function onMM(e) { if(!ts.down)return; const p={x:e.offsetX,y:e.offsetY}; const dx=p.x-ts.lx,dy=p.y-ts.ly; if(Math.abs(p.x-ts.sx)>3||Math.abs(p.y-ts.sy)>3)ts.moved=true; if(ts.dn&&ts.moved){const vx=dx/cam.s,vy=dy/cam.s;ts.dn.x+=vx;ts.dn.y+=vy;ts.dn.vx=vx*4;ts.dn.vy=vy*4;render();}else if(!ts.dn){cam.vx=dx;cam.vy=dy;cam.x+=dx;cam.y+=dy;render();} ts.lx=p.x;ts.ly=p.y; }
+  function onMU(e) { const tap=!ts.moved&&(Date.now()-ts.t0<300); if(tap&&ts.dn){sel=ts.dn;render();if(_onSelect)_onSelect(ts.dn);}else if(tap){sel=null;cam.vx=0;cam.vy=0;render();if(_onSelect)_onSelect(null);} if(ts.dn)wake(); ts.down=false;ts.dn=null; }
+  function onWh(e) { e.preventDefault(); const f=e.deltaY>0?.9:1.1; const ns=Math.max(.3,Math.min(5,cam.s*f)); const rt=ns/cam.s; cam.x=e.offsetX-(e.offsetX-cam.x)*rt; cam.y=e.offsetY-(e.offsetY-cam.y)*rt; cam.s=ns; render(); }
+
+  function destroy() { stopAnim(); if(cvs){cvs.remove();cvs=null;} nodes=[];links=[];particles=[];sel=null;box=null; }
+
+  return { init, setData, destroy, resize, readTheme };
+})();
+
+function buildGraphData(masteries, ai) {
+  const kpRows = masteries.slice(0,18);
+  const nodes = [], byKp = new Map();
+  kpRows.forEach((m,i,arr) => {
+    nodes.push({ ...m, key:`kp-${i}`, nodeType:'kp' });
+    byKp.set(m.kp, nodes[nodes.length-1]);
+  });
+  const recentByKp = new Map();
+  ai.slice(-34).forEach((msg,i) => {
+    const kp=(msg.meta||{}).action?.knowledge_point;
+    const parent=byKp.get(kp); if(!parent) return;
+    const count=recentByKp.get(kp)||0; recentByKp.set(kp,count+1);
+    nodes.push({ key:`mem-${i}`, nodeType: count%5===0?'support':'memory', kp, content:msg.content, meta:msg.meta||{} });
+  });
+  const links = [];
+  for (const n of nodes) {
+    if (n.nodeType!=='kp') { const p=byKp.get(n.kp); if(p) links.push({a:p,b:n,weight:1,kind:'memory'}); }
+  }
+  let prev=null;
+  for (const msg of ai) {
+    const kp=(msg.meta||{}).action?.knowledge_point;
+    const node=byKp.get(kp); if(!node) continue;
+    if(prev&&prev!==node) links.push({a:prev,b:node,weight:2,kind:'sequence'});
+    prev=node;
+  }
+  // semantic knowledge relations from LLM related_kps
+  const relSet = new Set();
+  for (const msg of ai) {
+    const act = (msg.meta||{}).action||{};
+    const src = byKp.get(act.knowledge_point);
+    if (!src || !Array.isArray(act.related_kps)) continue;
+    for (const rk of act.related_kps) {
+      const tgt = byKp.get(rk);
+      if (!tgt || tgt===src) continue;
+      const pair = [src.key,tgt.key].sort().join(':');
+      if (relSet.has(pair)) continue;
+      relSet.add(pair);
+      links.push({a:src, b:tgt, weight:1.5, kind:'related'});
+    }
+  }
+  return {nodes,links};
+}
+
+async function showGraphSheet(node) {
+  const overlay=$('#graph-sheet-overlay'), sheet=$('#graph-sheet'), body=$('#graph-sheet-body');
+  if (!node) { hideGraphSheet(); return; }
+
+  // Fetch all messages for this session, sorted chronologically
+  const allMsgs = state.sid ? (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id) : [];
+  const kpName = node.kp || node.meta?.action?.knowledge_point || '';
+
+  // Collect chat pairs related to this knowledge point
+  const pairs = [];
+  for (let i=0;i<allMsgs.length;i++) {
+    const m = allMsgs[i];
+    if (m.role==='assistant' && (m.meta?.action?.knowledge_point||'')===kpName) {
+      const prev = i>0 && allMsgs[i-1].role==='user' ? allMsgs[i-1] : null;
+      pairs.push({ user: prev, ai: m, ev: m.meta?.evaluation||{}, act: m.meta?.action||{} });
+    }
+  }
+
+  // Build summary bullets from pairs
+  const summaryBullets = [];
+  const exampleBullets = [];
+  for (const p of pairs) {
+    const c = (p.ai.content||'').trim();
+    if (!c) continue;
+    // Heuristic: if AI reply contains "?" or "？", treat as example question
+    if (/[?？]/.test(c) && c.length < 120) exampleBullets.push(c);
+    else summaryBullets.push(c);
+  }
+
+  let html='';
+  if (node.nodeType==='kp') {
+    const pct=Math.round((node.level||0)*100);
+    const circ=2*Math.PI*22;
+    const dash=circ*pct/100;
+    // Header: mastery ring + name
+    html=`<div class="flex items-center gap-4 mb-3">
+      <div class="mastery-ring">
+        <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="none" stroke="var(--line)" stroke-width="3" opacity=".3"/><circle cx="24" cy="24" r="22" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 24 24)" style="transition:stroke-dasharray .6s ease"/></svg>
+        <span class="ring-label">${pct}%</span>
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="text-base font-bold">${esc(kpName)}</div>
+        <div class="flex gap-1.5 mt-1 flex-wrap"><span class="pill pill-ask">知识点</span><span class="pill pill-next">${node.attempts||0} 次</span><span class="pill pill-encourage">${pairs.length} 轮对话</span></div>
+      </div>
+    </div>
+    <div class="sheet-section space-y-2 text-xs">
+      <div class="flex justify-between"><span class="text-neutral-500">掌握度</span><span>${(node.level||0).toFixed(2)}</span></div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <div class="flex justify-between"><span class="text-neutral-500">最近正确度</span><span>${Number(node.last_correctness||0).toFixed(2)}</span></div>
+      <div class="flex justify-between"><span class="text-neutral-500">最近深度</span><span>${Number(node.last_depth||0).toFixed(2)}</span></div>
+    </div>`;
+
+    // Knowledge summary
+    if (summaryBullets.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">📝 知识点总结</div><div class="space-y-1.5">`;
+      for (const s of summaryBullets.slice(0,8)) {
+        html+=`<div class="text-xs leading-relaxed" style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--accent-soft);">${esc(s)}</div>`;
+      }
+      html+=`</div></div>`;
+    }
+
+    // Example questions
+    if (exampleBullets.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">💡 例题 / 追问</div><div class="space-y-1.5">`;
+      for (const q of exampleBullets.slice(0,6)) {
+        html+=`<div class="text-xs leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${esc(q)}</div>`;
+      }
+      html+=`</div></div>`;
+    }
+
+    // Chat records
+    if (pairs.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--text-soft)">💬 相关对话记录 <span class="text-neutral-500 font-normal">(${pairs.length} 轮)</span></div><div class="space-y-3">`;
+      for (const p of pairs.slice(-10)) {
+        const actType = p.act.type||'ask';
+        const score = ((Number(p.ev.correctness||0)+Number(p.ev.depth||0))/2).toFixed(2);
+        html+=`<div class="text-xs space-y-1">`;
+        if (p.user) html+=`<div style="color:var(--accent);padding-left:10px;border-left:2px solid var(--accent);">🧑‍🏫 ${esc(p.user.content||'')}</div>`;
+        html+=`<div style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--warn);">🎓 ${esc(p.ai.content||'')}</div>`;
+        html+=`<div class="flex gap-1.5"><span class="pill pill-${actType}">${actType}</span><span class="text-neutral-500" style="font-size:10px">综合 ${score}</span></div>`;
+        html+=`</div>`;
+      }
+      html+=`</div></div>`;
+    }
+
+  } else {
+    // Memory / support node: show this specific conversation round in context
+    const action=node.meta?.action||{}, ev=node.meta?.evaluation||{};
+    // Find the matching pair
+    const pair = pairs.find(p => p.ai.content === node.content) || null;
+
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-${action.type||'ask'}">${esc(action.type||'记忆')}</span>
+      <span class="pill pill-source">${esc(kpName||'片段')}</span>
+    </div>
+    <div class="text-base font-bold mb-2">${esc(action.knowledge_point||kpName||'对话片段')}</div>`;
+
+    // Full conversation pair
+    if (pair && pair.user) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">🧑‍🏫 你的讲解</div>
+        <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(pair.user.content||'')}</div></div>`;
+    }
+    html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">🎓 学生回复</div>
+      <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(node.content||'')}</div></div>`;
+
+    html+=`<div class="sheet-section space-y-1 text-xs">
+      <div class="flex justify-between"><span class="text-neutral-500">正确度</span><span>${Number(ev.correctness||0).toFixed(2)}</span></div>
+      <div class="bar"><div style="width:${Math.round((ev.correctness||0)*100)}%"></div></div>
+      <div class="flex justify-between"><span class="text-neutral-500">深度</span><span>${Number(ev.depth||0).toFixed(2)}</span></div>
+      <div class="bar"><div style="width:${Math.round((ev.depth||0)*100)}%"></div></div>
+    </div>`;
+
+    // Related KP summary context
+    if (summaryBullets.length > 1) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">📝 该知识点其他要点</div><div class="space-y-1.5">`;
+      for (const s of summaryBullets.filter(s=>s!==node.content).slice(0,5)) {
+        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);padding-left:10px;border-left:2px solid var(--accent-soft);">${esc(s)}</div>`;
+      }
+      html+=`</div></div>`;
+    }
+    if (exampleBullets.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">💡 相关例题</div><div class="space-y-1.5">`;
+      for (const q of exampleBullets.slice(0,4)) {
+        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${esc(q)}</div>`;
+      }
+      html+=`</div></div>`;
+    }
+  }
+
+  body.innerHTML=html;
+  body.scrollTop=0;
+  requestAnimationFrame(()=>{ overlay.classList.add('show'); sheet.classList.add('show'); });
+  overlay.onclick = hideGraphSheet;
+  let sy=0,moved=false;
+  const hd=sheet.querySelector('.graph-sheet-handle');
+  if(hd){
+    hd.ontouchstart=e=>{sy=e.touches[0].clientY;moved=false;};
+    hd.ontouchmove=e=>{if(e.touches[0].clientY-sy>40)moved=true;};
+    hd.ontouchend=()=>{if(moved)hideGraphSheet();};
+  }
+}
+function hideGraphSheet() {
+  $('#graph-sheet-overlay').classList.remove('show');
+  $('#graph-sheet').classList.remove('show');
+}
+
 async function renderInsights() {
   const sumDiv = $('#insights-summary');
   const mastDiv = $('#insights-mastery');
@@ -1251,11 +1897,22 @@ async function renderInsights() {
     ${strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最熟</span><span class="text-emerald-400 truncate">${esc(strongest.kp)} · ${strongest.level.toFixed(2)}</span></div>`:''}
     ${weakest && weakest!==strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最弱</span><span class="text-amber-400 truncate">${esc(weakest.kp)} · ${weakest.level.toFixed(2)}</span></div>`:''}
   `;
-  mastDiv.innerHTML = masteries.map(m => `
-    <div>
-      <div class="text-xs flex justify-between"><span class="truncate pr-2">${esc(m.kp)}</span><span class="text-neutral-500">${m.level.toFixed(2)} · ${m.attempts}次</span></div>
-      <div class="bar mt-1"><div style="width:${(m.level*100).toFixed(0)}%"></div></div>
-    </div>`).join('') || '<div class="text-xs text-neutral-500">尚无数据</div>';
+  if (!masteries.length) {
+    ForceGraph.destroy();
+    mastDiv.innerHTML = '<div class="text-xs text-neutral-500">尚无解锁知识点。开始对话后，学生 AI 提到的知识点会出现在这里。</div>';
+  } else {
+    const { nodes, links } = buildGraphData(masteries, ai);
+    if (!mastDiv.querySelector('.knowledge-graph')) {
+      mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点查看详情</div></div>';
+    }
+    const container = $('#knowledge-graph');
+    ForceGraph.init(container, node => {
+      if (node) { state.graphSelected = node.key; showGraphSheet(node); }
+      else { state.graphSelected = ''; hideGraphSheet(); }
+    });
+    ForceGraph.setData(nodes, links);
+    setTimeout(() => { const h = container.querySelector('.graph-hint'); if(h) h.classList.add('fade'); }, 4000);
+  }
   actDiv.innerHTML = Object.entries(actCount).map(([k,v]) =>
     `<span class="pill pill-${k}">${k} ${v}/${total}</span>`).join('') || '<div class="text-xs text-neutral-500">尚无</div>';
 }
@@ -1291,8 +1948,11 @@ async function renderSettings() {
   const cfg = LLM.get_config();
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
-  $('#cfg-key').value = cfg.api_key || '';
-  $('#cfg-status').textContent = cfg.mode === 'live' ? `当前：live (${cfg.model})` : '当前：mock';
+  $('#cfg-key').value = '';
+  $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  $('#cfg-status').textContent = cfg.mode === 'live'
+    ? `当前：live (${cfg.model})，API Key 已保存`
+    : (cfg.has_api_key ? '当前：mock（Base URL / Model 不完整，API Key 已保存）' : '当前：mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
   setPopupEnabled(popupEnabled());
@@ -1300,15 +1960,19 @@ async function renderSettings() {
 }
 
 async function saveLlmConfig() {
+  const existing = LLM.get_config();
+  const keyInput = $('#cfg-key').value.trim();
   const c = {
     base_url: $('#cfg-base').value.trim(),
-    api_key: $('#cfg-key').value.trim(),
+    api_key: keyInput || existing.api_key || '',
     model: $('#cfg-model').value.trim(),
   };
-  LLM.set_config(c);
-  await DB.kvSet('llm_config', c);
-  const cfg = LLM.get_config();
-  $('#cfg-status').textContent = cfg.mode==='live' ? `✅ 已切到 live：${cfg.model}` : '⚠️ 信息不完，仍 mock';
+  const cfg = await persistLlmConfig(c);
+  $('#cfg-key').value = '';
+  $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  $('#cfg-status').textContent = cfg.mode==='live'
+    ? `已切到 live：${cfg.model}`
+    : (cfg.has_api_key ? '信息不完整，仍是 mock；API Key 已保留' : '信息不完整，仍是 mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   refreshHeader();
 }
@@ -1326,13 +1990,28 @@ async function testLlm() {
   }
 }
 async function clearLlm() {
-  LLM.set_config({ base_url:'', api_key:'', model:'' });
-  await DB.kvSet('llm_config', { base_url:'', api_key:'', model:'' });
+  const empty = { base_url:'', api_key:'', model:'' };
+  LLM.set_config(empty);
+  localStorage.removeItem(LLM_CONFIG_KEY);
+  await DB.kvSet('llm_config', empty);
   renderSettings(); refreshHeader();
 }
 $('#cfg-save').addEventListener('click', saveLlmConfig);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
+async function restoreRuntimeConfigOnResume() {
+  try {
+    await restoreLlmConfig();
+    if (state.currentTab === 'settings') renderSettings();
+    refreshHeader();
+  } catch (err) {
+    console.warn('restore runtime config failed', err);
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') restoreRuntimeConfigOnResume();
+});
+window.addEventListener('focus', restoreRuntimeConfigOnResume);
 $('#theme-ink').addEventListener('click', () => applyTheme('ink'));
 $('#theme-warm').addEventListener('click', () => applyTheme('warm'));
 $('#popup-enabled').addEventListener('change', e => setPopupEnabled(e.target.checked));
@@ -1553,13 +2232,15 @@ detectPwaEnv();
   renderUpdateSettings();
   await DB.open();
   // 恢复 LLM 配置
-  const saved = await DB.kvGet('llm_config');
-  if (saved) LLM.set_config(saved);
+  await restoreLlmConfig();
   // 恢复当前 session
-  const sid = await DB.kvGet('current_sid');
-  if (sid && await DB.get('sessions', sid)) {
-    state.sid = sid;
-  } else {
+  if (!state.sid) {
+    const sid = await DB.kvGet('current_sid');
+    if (sid && await DB.get('sessions', sid)) {
+      state.sid = sid;
+    }
+  }
+  if (!state.sid) {
     // 没有 session：自动跳到设置 tab 引导创建
     const allSess = await DB.all('sessions');
     if (!allSess.length) { switchTab('settings'); }

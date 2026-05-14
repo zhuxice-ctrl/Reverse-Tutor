@@ -5,13 +5,14 @@
  *   - LLM API 请求始终 network-only（不缓存）
  *   - 缓存版本随发布更新
  */
-const VERSION = 'rt-mobile-v3';
+const VERSION = 'rt-mobile-v7';
 const SHELL = [
   './',
   './index.html',
   './manifest.json',
-  './icon.svg',
-  './icon-maskable.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable.png',
 ];
 
 self.addEventListener('install', (e) => {

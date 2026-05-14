@@ -3,7 +3,7 @@
   "appName": "反转家教",
   "webDir": "www",
   "android": {
-    "allowMixedContent": false,
+    "allowMixedContent": true,
     "captureInput": true,
     "webContentsDebuggingEnabled": true
   },

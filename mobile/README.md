@@ -47,8 +47,15 @@ Capacitor 官方文档生成 keystore。
 
 1. 在 GitHub Releases 上传新版 APK。
 2. 同时提供一个可公网访问的 `latest.json`，格式参考 `../static/app/latest.json`。
-3. 把 `latest.json` 地址填到应用设置页的「更新源 URL」。
-4. 以后应用可手动检查，或在启动时自动检查。
+3. 默认 GitHub 更新源已经内置到应用中，用户无需手动填写。
+4. 高级用户仍可在应用设置页改成自己的「更新源 URL」。
+5. 以后应用可手动检查，或在启动时自动检查。
+
+当前默认更新源：
+
+```text
+https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json
+```
 
 示例：
 
