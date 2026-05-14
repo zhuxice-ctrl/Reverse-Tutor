@@ -1,0 +1,10 @@
+{
+  "versionCode": 1,
+  "versionName": "0.11.0",
+  "apkUrl": "",
+  "publishedAt": "2026-05-14",
+  "releaseNotes": [
+    "Initial local APK/PWA build.",
+    "Replace apkUrl with the GitHub Release APK download URL when publishing."
+  ]
+}

@@ -1,0 +1,1576 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="反转家教">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>反转家教</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #252927;
+    --panel: #303631;
+    --panel-2: #394039;
+    --panel-3: #465047;
+    --line: #5f685d;
+    --text: #ebe6dc;
+    --text-soft: #d4ccbd;
+    --muted: #aaa193;
+    --accent: #78a084;
+    --accent-hover: #86af93;
+    --accent-soft: #415f4b;
+    --warn: #d0ad70;
+    --chat-bg: #333a34;
+    --chat-line: rgba(231, 224, 213, .10);
+    --chat-mark: rgba(120, 160, 132, .12);
+  }
+  body.theme-warm {
+    color-scheme: light;
+    --page: #c9c0b3;
+    --panel: #d8d0c5;
+    --panel-2: #e4ddd4;
+    --panel-3: #bdb3a6;
+    --line: #a99f91;
+    --text: #28241f;
+    --text-soft: #4f473e;
+    --muted: #766d62;
+    --accent: #567663;
+    --accent-hover: #466755;
+    --accent-soft: #c9dacd;
+    --warn: #8a6a37;
+    --chat-bg: #e7dfd5;
+    --chat-line: rgba(120, 103, 82, .16);
+    --chat-mark: rgba(86, 118, 99, .10);
+  }
+  html, body { height: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
+  body { background: var(--page); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  textarea, input { font-size: 16px; }  /* 防 iOS 自动放大 */
+  .tab-btn.active { color: var(--accent); }
+  .tab-btn.active .tab-dot { background: var(--accent); }
+  .pill { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; }
+  .pill-ask { background:#1e3a8a; color:#bfdbfe; }
+  .pill-probe { background:#581c87; color:#e9d5ff; }
+  .pill-explain_back { background:#92400e; color:#fde68a; }
+  .pill-persuade { background:#9f1239; color:#fecdd3; }
+  .pill-encourage { background:#065f46; color:#a7f3d0; }
+  .pill-next { background:#1f2937; color:#9ca3af; }
+  .pill-wrap { background:#374151; color:#d1d5db; }
+  .pill-onboarding { background:#0369a1; color:#bae6fd; }
+  .pill-initial { background:#7e22ce; color:#e9d5ff; }
+  .pill-requirement { background:#047857; color:#a7f3d0; }
+  .pill-correction { background:#b45309; color:#fde68a; }
+  .pill-checkpoint { background:#0e7490; color:#a5f3fc; }
+  .pill-constraint { background:#525252; color:#d4d4d4; }
+  .md pre { background:var(--panel-3); padding:8px; border-radius:6px; overflow-x:auto; font-size:12px; }
+  .md code { background:var(--panel-3); padding:1px 4px; border-radius:3px; font-size:12px; }
+  .md p { margin: 4px 0; }
+  .md ul, .md ol { padding-left: 18px; margin: 4px 0; }
+  .md blockquote { border-left: 2px solid var(--line); padding-left: 8px; color:var(--muted); }
+  .bar { background:var(--panel-3); height:5px; border-radius:99px; overflow:hidden; }
+  .bar > div { background: linear-gradient(90deg, var(--warn), var(--accent)); height:100%; }
+  #chat {
+    background-color: var(--chat-bg);
+    background-image:
+      linear-gradient(115deg, transparent 0 17%, var(--chat-mark) 17% 17.5%, transparent 17.5% 39%, var(--chat-mark) 39% 39.4%, transparent 39.4%),
+      linear-gradient(0deg, transparent 0 31px, var(--chat-line) 32px, transparent 33px);
+    background-size: 240px 170px, 100% 32px;
+    background-attachment: local;
+  }
+  #chat > * { position: relative; z-index: 1; }
+  .bg-neutral-950, .bg-neutral-900 { background-color: var(--panel) !important; }
+  .bg-neutral-800 { background-color: var(--panel-3) !important; }
+  .bg-neutral-800\/95 { background-color: color-mix(in srgb, var(--panel-3) 95%, transparent) !important; }
+  .bg-black\/80 { background-color: rgba(36,30,24,.56) !important; }
+  .border-neutral-900, .border-neutral-800, .border-neutral-700 { border-color: var(--line) !important; }
+  .text-neutral-200, .text-neutral-300 { color: var(--text) !important; }
+  .text-neutral-400 { color: var(--text-soft) !important; }
+  .text-neutral-500, .text-neutral-600 { color: var(--muted) !important; }
+  .bg-emerald-700 { background-color: var(--accent) !important; color: #f8f4ed !important; }
+  .active\:bg-emerald-800:active { background-color: var(--accent-hover) !important; }
+  .bg-emerald-900\/40 { background-color: var(--accent-soft) !important; }
+  .border-emerald-800 { border-color: #789482 !important; }
+  .text-emerald-400 { color: var(--accent) !important; }
+  .text-amber-400 { color: var(--warn) !important; }
+  .theme-choice.active { background: var(--accent) !important; color: #f8f4ed !important; border-color: var(--accent) !important; }
+  #message-popup { background: var(--panel); color: var(--text); border-color: var(--line); }
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(38, 31, 24, .36);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+  .drawer-panel {
+    width: min(84vw, 340px);
+    height: 100%;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    box-shadow: 18px 0 38px rgba(38,31,24,.24);
+  }
+  body.drawer-open .drawer-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.drawer-open .drawer-panel { transform: translateX(0); }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* iOS notch 友好 */
+  header, .bottom-nav { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+</style>
+</head>
+
+<body class="h-full flex flex-col">
+
+<!-- ============== 顶栏 ============== -->
+<header class="safe-top bg-neutral-950 border-b border-neutral-800 flex items-center px-3 py-2 gap-2">
+  <button id="drawer-open" class="text-neutral-400 text-lg px-2" aria-label="打开会话抽屉">☰</button>
+  <div class="flex-1 min-w-0">
+    <div id="header-title" class="text-sm font-semibold truncate">反转家教</div>
+    <div id="header-sub" class="text-[10px] text-neutral-500 truncate"></div>
+  </div>
+  <div id="header-mode" class="text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60">mock</div>
+</header>
+
+<div id="session-drawer" class="drawer-overlay">
+  <aside class="drawer-panel safe-top flex flex-col" onclick="event.stopPropagation()">
+    <div class="p-3 border-b border-neutral-800 flex items-center justify-between gap-2">
+      <div>
+        <div class="text-sm font-semibold">会话</div>
+        <div class="text-[10px] text-neutral-500">右滑打开会话记录</div>
+      </div>
+      <button id="drawer-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+    </div>
+    <div class="p-3 border-b border-neutral-800">
+      <button id="drawer-new" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2 rounded-lg text-sm font-medium">+ 新建会话</button>
+    </div>
+    <div id="drawer-sess-list" class="flex-1 scroll-y p-3 space-y-2"></div>
+  </aside>
+</div>
+
+<!-- ============== 主内容（按 view 切换）============== -->
+<main id="views" class="flex-1 min-h-0 flex flex-col">
+
+  <!-- 聊天 view -->
+  <section data-view="chat" class="view flex-1 min-h-0 flex flex-col">
+    <div id="chat" class="flex-1 min-h-0 scroll-y px-3 py-3 space-y-2"></div>
+    <div class="border-t border-neutral-800 bg-neutral-950 px-2 py-2 safe-bottom">
+      <div class="flex gap-2 items-end">
+        <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none max-h-32"></textarea>
+        <button id="chat-send" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2 rounded-lg font-medium">发送</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 锚 view -->
+  <section data-view="anchors" class="view flex-1 min-h-0 flex flex-col hidden">
+    <div class="px-3 py-2 border-b border-neutral-800 text-xs text-neutral-500">主线锚：会注入到每次 LLM 调用的 system prompt，防漂移</div>
+    <div id="anchors-list" class="flex-1 scroll-y px-3 py-2 space-y-1.5"></div>
+    <form id="anchor-form" class="border-t border-neutral-800 p-2 flex gap-2 safe-bottom">
+      <input id="anchor-input" placeholder="补一条新诉求/约定…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+      <button class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-3 py-2 rounded-lg">加</button>
+    </form>
+  </section>
+
+  <!-- 洞察 view -->
+  <section data-view="insights" class="view flex-1 min-h-0 hidden scroll-y">
+    <div class="p-3 space-y-3">
+      <div id="insights-summary" class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-1"></div>
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">知识点掌握度</div>
+        <div id="insights-mastery" class="space-y-2"></div>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">动作分布（近 12 轮）</div>
+        <div id="insights-actions" class="flex flex-wrap gap-1.5"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 设置 view -->
+  <section data-view="settings" class="view flex-1 min-h-0 hidden scroll-y">
+    <div class="p-3 space-y-4 text-sm">
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">外观</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <button id="theme-ink" class="theme-choice text-xs px-3 py-2 rounded border border-neutral-700">柔和黑色</button>
+            <button id="theme-warm" class="theme-choice text-xs px-3 py-2 rounded border border-neutral-700">暖灰浅色</button>
+          </div>
+          <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+            <span>AI 回复后弹出消息提示</span>
+            <input id="popup-enabled" type="checkbox" class="accent-emerald-700">
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话</div>
+        <div id="sess-list" class="space-y-1.5"></div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">LLM 配置</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
+          <div class="text-[11px] text-neutral-400 leading-relaxed">
+            填写任意 <b>OpenAI 兼容</b> 端点。<br>
+            <span class="text-amber-400">⚠️ 注意</span>：浏览器直调多数 LLM API 会有 <b>CORS 限制</b>。可用：本机 ollama / 自部署 vLLM / Groq 等。<br>
+            <span class="text-neutral-500">留空则使用智能 mock 模式（零配置可玩）。</span>
+          </div>
+          <label class="block">
+            <span class="text-xs text-neutral-400">Base URL</span>
+            <input id="cfg-base" type="text" placeholder="http://localhost:11434/v1（ollama 示例）" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+          </label>
+          <label class="block">
+            <span class="text-xs text-neutral-400">API Key</span>
+            <input id="cfg-key" type="password" placeholder="若无则留空" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
+          </label>
+          <label class="block">
+            <span class="text-xs text-neutral-400">Model</span>
+            <input id="cfg-model" type="text" placeholder="llama3 / qwen2.5 / gpt-4o-mini ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+          </label>
+          <div id="cfg-status" class="text-xs text-neutral-500"></div>
+          <div class="flex gap-2">
+            <button id="cfg-test" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">测试连接</button>
+            <button id="cfg-save" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800">保存</button>
+          </div>
+          <button id="cfg-clear" class="w-full text-xs px-3 py-1.5 rounded text-neutral-500 hover:text-neutral-300">清空回 mock</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">软件更新</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
+          <div class="text-[11px] text-neutral-400 leading-relaxed">
+            当前版本：<span id="update-current" class="text-neutral-200 font-mono"></span><br>
+            填入 GitHub Release 或自托管的 <span class="font-mono">latest.json</span> 地址后，应用可手动或启动时检查新版 APK。
+          </div>
+          <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+            <span>启动时自动检查</span>
+            <input id="update-auto" type="checkbox" class="accent-emerald-700">
+          </label>
+          <label class="block">
+            <span class="text-xs text-neutral-400">更新源 URL</span>
+            <input id="update-feed" type="url" placeholder="https://.../latest.json" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
+          </label>
+          <div id="update-status" class="text-xs text-neutral-500 leading-relaxed"></div>
+          <div class="flex gap-2">
+            <button id="update-check" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">检查更新</button>
+            <button id="update-open" class="hidden flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white">下载新版</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">数据</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
+          <button id="data-export" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left">📤 导出全部数据（JSON）</button>
+          <label class="block">
+            <span class="w-full block text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left cursor-pointer">📥 导入数据（覆盖）</span>
+            <input id="data-import" type="file" accept=".json,application/json" class="hidden">
+          </label>
+          <button id="data-wipe" class="w-full text-xs px-3 py-2 rounded border border-red-900 text-red-400 active:bg-red-900/20 text-left">🗑️ 清空全部数据</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">安装到主屏</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
+          <button id="pwa-install" class="hidden w-full text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white">📲 安装到主屏</button>
+          <div id="pwa-installed" class="hidden text-xs text-emerald-400 text-center py-1">✅ 已作为 PWA 运行</div>
+          <div id="pwa-hint-ios" class="hidden text-[11px] text-neutral-400 leading-relaxed">
+            <b>iOS Safari</b>：点底栏「分享」 → 「添加到主屏幕」即可。
+          </div>
+          <div id="pwa-hint-default" class="text-[11px] text-neutral-500 leading-relaxed">
+            满足 PWA 条件后此处会出现安装按钮（需 https 或 localhost）。<br>
+            iOS Safari 无自动按钮：手动 分享 → 添加到主屏幕。
+          </div>
+        </div>
+      </div>
+
+      <div class="text-[10px] text-neutral-600 text-center pt-2">
+        <div>反转家教 v0.11 · 移动 PWA</div>
+        <div>所有数据保存在本机浏览器（IndexedDB）</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============== 底部 tab 栏 ============== -->
+<nav class="bottom-nav bg-neutral-950 border-t border-neutral-800 grid grid-cols-4 safe-bottom">
+  <button data-tab="chat" class="tab-btn active flex flex-col items-center py-2 gap-0.5">
+    <div class="text-xl leading-none">💬</div>
+    <div class="text-[10px]">聊天</div>
+    <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
+  </button>
+  <button data-tab="anchors" class="tab-btn flex flex-col items-center py-2 gap-0.5">
+    <div class="text-xl leading-none">📌</div>
+    <div class="text-[10px]">锚</div>
+    <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
+  </button>
+  <button data-tab="insights" class="tab-btn flex flex-col items-center py-2 gap-0.5">
+    <div class="text-xl leading-none">📊</div>
+    <div class="text-[10px]">洞察</div>
+    <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
+  </button>
+  <button data-tab="settings" class="tab-btn flex flex-col items-center py-2 gap-0.5">
+    <div class="text-xl leading-none">⚙️</div>
+    <div class="text-[10px]">设置</div>
+    <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
+  </button>
+</nav>
+
+<!-- ============== 新会话 modal ============== -->
+<div id="new-modal" class="fixed inset-0 bg-black/80 hidden items-end justify-center z-50" onclick="if(event.target===this)closeNew()">
+  <div class="bg-neutral-900 border border-neutral-800 rounded-t-2xl w-full max-h-[90vh] p-4 safe-bottom flex flex-col">
+    <div class="flex justify-between items-center mb-3">
+      <div class="text-sm font-semibold">新建会话</div>
+      <button onclick="closeNew()" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+    </div>
+    <div class="scroll-y flex-1 space-y-3">
+      <div>
+        <div class="text-xs text-neutral-500 mb-2">预设场景</div>
+        <div id="tpl-grid" class="grid grid-cols-2 gap-2"></div>
+      </div>
+      <label class="block">
+        <span class="text-xs text-neutral-400">学生角色 *</span>
+        <input id="new-role" placeholder="高三理科生 / Python 小白 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">目标 *</span>
+        <input id="new-goal" placeholder="一年内数学冲 130 分 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">截止时间</span>
+        <input id="new-deadline" placeholder="2026 高考 / 3 个月内 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">性格</span>
+        <input id="new-pers" placeholder="好奇但易焦虑 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">初始诉求（一行一条）</span>
+        <textarea id="new-reqs" rows="3" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
+      </label>
+      <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+        <span>创建后让学生 AI 主动开场提问</span>
+        <input id="new-auto-opening" type="checkbox" checked class="accent-emerald-700">
+      </label>
+    </div>
+    <button id="new-create" class="bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium mt-3">创建会话 + 学生开场</button>
+  </div>
+</div>
+
+<!-- ============== Toast ============== -->
+<div id="toast" class="fixed top-14 left-1/2 -translate-x-1/2 bg-neutral-800/95 border border-neutral-700 text-sm px-3 py-2 rounded-lg shadow-xl hidden z-50"></div>
+<div id="message-popup" class="fixed left-3 right-3 bottom-20 border rounded-xl p-3 shadow-2xl hidden z-50" role="status">
+  <div class="flex justify-between items-start gap-3">
+    <div class="min-w-0">
+      <div id="message-popup-title" class="text-xs font-semibold mb-1">学生 AI</div>
+      <div id="message-popup-body" class="text-sm leading-snug line-clamp-2"></div>
+    </div>
+    <button id="message-popup-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+  </div>
+</div>
+
+<script>
+// ============== 状态与工具 ==============
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const esc = s => (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const md = s => (window.marked && window.DOMPurify)
+  ? window.DOMPurify.sanitize(window.marked.parse(s||'', { breaks:true, gfm:true }))
+  : esc(s);
+
+const state = {
+  sid: null,
+  sessions: [],
+  currentTab: 'chat',
+};
+
+const APP_VERSION_CODE = 1;
+const APP_VERSION_NAME = '0.11.0';
+const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
+const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
+const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
+const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
+
+function toast(msg, ms=1800) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.add('hidden'), ms);
+}
+
+function popupEnabled() {
+  return localStorage.getItem('rt-mobile-popup') !== '0';
+}
+
+function setPopupEnabled(enabled) {
+  localStorage.setItem('rt-mobile-popup', enabled ? '1' : '0');
+  const input = $('#popup-enabled');
+  if (input) input.checked = enabled;
+}
+
+function updateAutoEnabled() {
+  return localStorage.getItem(UPDATE_AUTO_KEY) !== '0';
+}
+
+function updateFeedUrl() {
+  return (localStorage.getItem(UPDATE_FEED_KEY) || '').trim();
+}
+
+function appVersionLabel() {
+  return `${APP_VERSION_NAME} (${APP_VERSION_CODE})`;
+}
+
+function parseVersionParts(v) {
+  return String(v || '').replace(/^v/i, '').split(/[.+-]/)
+    .map(x => parseInt(x, 10))
+    .filter(n => Number.isFinite(n));
+}
+
+function compareVersionName(a, b) {
+  const av = parseVersionParts(a);
+  const bv = parseVersionParts(b);
+  const len = Math.max(av.length, bv.length, 3);
+  for (let i = 0; i < len; i++) {
+    const d = (av[i] || 0) - (bv[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+function normalizeUpdateInfo(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('更新源格式无效');
+  const asset = Array.isArray(raw.assets)
+    ? raw.assets.find(a => String(a.name || a.browser_download_url || '').toLowerCase().endsWith('.apk'))
+    : null;
+  const notes = Array.isArray(raw.releaseNotes)
+    ? raw.releaseNotes.join('\n')
+    : (raw.releaseNotes || raw.body || raw.notes || '');
+  return {
+    versionCode: Number(raw.versionCode || raw.androidVersionCode || 0),
+    versionName: String(raw.versionName || raw.tag_name || raw.name || '').replace(/^v/i, ''),
+    apkUrl: raw.apkUrl || raw.downloadUrl || asset?.browser_download_url || '',
+    releaseNotes: notes,
+    publishedAt: raw.publishedAt || raw.published_at || '',
+  };
+}
+
+function isNewerUpdate(info) {
+  if (info.versionCode && info.versionCode > APP_VERSION_CODE) return true;
+  if (!info.versionCode && info.versionName) return compareVersionName(info.versionName, APP_VERSION_NAME) > 0;
+  return false;
+}
+
+function setUpdateStatus(text, kind='neutral') {
+  const el = $('#update-status');
+  if (!el) return;
+  el.textContent = text;
+  const color = {
+    ok: 'text-emerald-400',
+    warn: 'text-amber-400',
+    err: 'text-red-400',
+    neutral: 'text-neutral-500',
+  }[kind] || 'text-neutral-500';
+  el.className = 'text-xs leading-relaxed ' + color;
+}
+
+function renderUpdateSettings() {
+  const current = $('#update-current');
+  const feed = $('#update-feed');
+  const auto = $('#update-auto');
+  const open = $('#update-open');
+  if (current) current.textContent = appVersionLabel();
+  if (feed) feed.value = updateFeedUrl();
+  if (auto) auto.checked = updateAutoEnabled();
+  if (open) {
+    const url = localStorage.getItem(UPDATE_LAST_URL_KEY) || '';
+    open.classList.toggle('hidden', !url);
+  }
+}
+
+async function checkUpdate(silent=false) {
+  const feed = updateFeedUrl();
+  if (!feed) {
+    if (!silent) setUpdateStatus('还没有设置更新源 URL。等 GitHub Release 建好后，把 latest.json 地址填进来。', 'warn');
+    return null;
+  }
+  if (!silent) setUpdateStatus('正在检查更新…');
+  try {
+    const res = await fetch(feed, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`更新源返回 ${res.status}`);
+    const info = normalizeUpdateInfo(await res.json());
+    localStorage.setItem(UPDATE_LAST_CHECK_KEY, String(Date.now()));
+    if (!isNewerUpdate(info)) {
+      localStorage.removeItem(UPDATE_LAST_URL_KEY);
+      renderUpdateSettings();
+      if (!silent) setUpdateStatus(`已是最新版本：${appVersionLabel()}`, 'ok');
+      return info;
+    }
+    if (!info.apkUrl) throw new Error('发现新版，但更新源没有 apkUrl/downloadUrl');
+    localStorage.setItem(UPDATE_LAST_URL_KEY, info.apkUrl);
+    renderUpdateSettings();
+    const notes = info.releaseNotes ? `\n${info.releaseNotes}` : '';
+    setUpdateStatus(`发现新版本：${info.versionName || 'unknown'} (${info.versionCode || 'no-code'})${notes}`, 'warn');
+    if (silent) toast('发现新版本，可到设置里下载');
+    return info;
+  } catch (err) {
+    if (!silent) setUpdateStatus(`检查失败：${err.message || err}`, 'err');
+    return null;
+  }
+}
+
+function showMessagePopup(title, text, ms=4200) {
+  if (!popupEnabled() || !text) return;
+  $('#message-popup-title').textContent = title || '学生 AI';
+  $('#message-popup-body').textContent = text.replace(/\s+/g, ' ').trim().slice(0, 120);
+  $('#message-popup').classList.remove('hidden');
+  clearTimeout(showMessagePopup._t);
+  showMessagePopup._t = setTimeout(() => $('#message-popup').classList.add('hidden'), ms);
+}
+
+function applyTheme(theme) {
+  const next = theme === 'warm' ? 'warm' : 'ink';
+  document.body.classList.toggle('theme-warm', next === 'warm');
+  localStorage.setItem('rt-mobile-theme', next);
+  $('#theme-ink')?.classList.toggle('active', next === 'ink');
+  $('#theme-warm')?.classList.toggle('active', next === 'warm');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    'content',
+    next === 'warm' ? '#c9c0b3' : '#252927'
+  );
+}
+
+// 简单 UUID（12 字符）
+const uuid = () => Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-6);
+</script>
+
+<script>
+// ============== IndexedDB 封装 ==============
+const DB = (() => {
+  const DB_NAME = 'reverse-tutor';
+  const DB_VERSION = 1;
+  const STORES = ['sessions', 'messages', 'anchors', 'mastery', 'kv'];
+  let _db = null;
+
+  function open() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains('sessions')) {
+          d.createObjectStore('sessions', { keyPath: 'id' });
+        }
+        if (!d.objectStoreNames.contains('messages')) {
+          const s = d.createObjectStore('messages', { keyPath: 'id', autoIncrement: true });
+          s.createIndex('sid', 'sid', { unique: false });
+        }
+        if (!d.objectStoreNames.contains('anchors')) {
+          const s = d.createObjectStore('anchors', { keyPath: 'id', autoIncrement: true });
+          s.createIndex('sid', 'sid', { unique: false });
+        }
+        if (!d.objectStoreNames.contains('mastery')) {
+          const s = d.createObjectStore('mastery', { keyPath: 'id', autoIncrement: true });
+          s.createIndex('sid_kp', ['sid', 'kp'], { unique: true });
+          s.createIndex('sid', 'sid', { unique: false });
+        }
+        if (!d.objectStoreNames.contains('kv')) {
+          d.createObjectStore('kv', { keyPath: 'k' });
+        }
+      };
+      req.onsuccess = () => { _db = req.result; resolve(_db); };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function tx(store, mode='readonly') {
+    const d = await open();
+    return d.transaction(store, mode).objectStore(store);
+  }
+
+  function wrap(req) {
+    return new Promise((res, rej) => {
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function add(store, obj) { return wrap((await tx(store,'readwrite')).add(obj)); }
+  async function put(store, obj) { return wrap((await tx(store,'readwrite')).put(obj)); }
+  async function get(store, key) { return wrap((await tx(store)).get(key)); }
+  async function del(store, key) { return wrap((await tx(store,'readwrite')).delete(key)); }
+  async function all(store) { return wrap((await tx(store)).getAll()); }
+
+  async function bySid(store, sid) {
+    const s = await tx(store);
+    return wrap(s.index('sid').getAll(IDBKeyRange.only(sid)));
+  }
+
+  async function delBySid(store, sid) {
+    const s = await tx(store, 'readwrite');
+    const idx = s.index('sid');
+    const keys = await wrap(idx.getAllKeys(IDBKeyRange.only(sid)));
+    return Promise.all(keys.map(k => wrap(s.delete(k))));
+  }
+
+  // KV
+  const kvGet = async (k, dflt=null) => { const r = await get('kv', k); return r ? r.v : dflt; };
+  const kvSet = async (k, v) => put('kv', { k, v });
+
+  // 全量导出/导入
+  async function exportAll() {
+    return {
+      version: 1,
+      exported_at: new Date().toISOString(),
+      sessions: await all('sessions'),
+      messages: await all('messages'),
+      anchors: await all('anchors'),
+      mastery: await all('mastery'),
+      kv: await all('kv'),
+    };
+  }
+  async function importAll(payload) {
+    if (!payload || !payload.sessions) throw new Error('invalid payload');
+    const d = await open();
+    for (const store of STORES) {
+      await new Promise((res, rej) => {
+        const t = d.transaction(store, 'readwrite');
+        const s = t.objectStore(store);
+        s.clear();
+        for (const obj of (payload[store] || [])) s.put(obj);
+        t.oncomplete = res; t.onerror = () => rej(t.error);
+      });
+    }
+  }
+  async function wipe() {
+    const d = await open();
+    for (const store of STORES) {
+      await new Promise((res, rej) => {
+        const t = d.transaction(store, 'readwrite');
+        t.objectStore(store).clear();
+        t.oncomplete = res; t.onerror = () => rej(t.error);
+      });
+    }
+  }
+
+  return { open, add, put, get, del, all, bySid, delBySid, kvGet, kvSet, exportAll, importAll, wipe };
+})();
+</script>
+<script>
+// ============== LLM 适配层（mock + OpenAI 兼容）==============
+const LLM = (() => {
+  let cfg = { base_url: '', api_key: '', model: '' };
+
+  const has_real = () => !!(cfg.base_url && cfg.api_key && cfg.model);
+  const set_config = (c) => { cfg = { ...cfg, ...c }; };
+  const get_config = () => ({ ...cfg, has_api_key: !!cfg.api_key, mode: has_real() ? 'live' : 'mock' });
+
+  // === Mock：与后端 llm.py 的智能 mock 等价 ===
+  const KP_SEQ = ['二次函数对称轴','二次函数顶点','判别式','韦达定理','复合函数','导数定义'];
+  const LINES = {
+    ask: [
+      '（挠头）老师我想先问：**{kp}** 怎么搞？我连定义都有点蒙……',
+      '好嘛！那 **{kp}** 这个东西到底咋用啊？给我讲讲呗？',
+      '诶老师我突然想到——**{kp}** 是不是上节课说过的那个？我又忘了 QAQ',
+    ],
+    probe: [
+      '你说的我大概懂，但是**为什么**是这样？能再深一点不？关于 **{kp}**？',
+      '嗯……可如果题目里改一个条件，**{kp}** 这个结论还成立吗？',
+      '我有点疑惑：**{kp}** 在什么情况下会失效？老师能举个反例吗？',
+    ],
+    persuade: [
+      '诶老师别走啊……我就剩 **{kp}** 这一节没搞懂了，你陪我弄完好不好，我请你喝奶茶 QAQ',
+      '（小声）我知道我笨……但你刚才那个思路对我帮助超大，能再讲下 **{kp}** 不？',
+      '哎呀别嫌我烦嘛！再坚持五分钟就把 **{kp}** 搞定！(￣y▽,￣)╭ ',
+    ],
+    encourage: [
+      '（眼睛一亮）真的吗？我有进步？那 **{kp}** 我应该没问题了对吧！',
+      '诶嘿其实我自己都没意识到。那下一题——咱继续？',
+      '（窃喜）那我把这个总结写到本子上，以后看到 **{kp}** 就不慌啦。',
+    ],
+    next: [
+      '好的好的我懂了！那我们继续——**{kp}** 是啥？我猜跟前面那个有关系？',
+      'OK 这个 kp 我打卡了。接下来想了解 **{kp}**，老师从哪入手好？',
+      '（合上书）好了，我准备好挑战 **{kp}** 了！来题吧！',
+    ],
+    wrap: [
+      '今天就到这吧老师，我先把 **{kp}** 复盘一下，明天接着来！',
+      '差不多了！我感觉脑子充电了，今天的 **{kp}** 我会再做两题巩固。',
+    ],
+  };
+
+  function detect_intent(t) {
+    t = (t||'').trim();
+    if (!t) return 'ask';
+    const has = (arr) => arr.some(k => t.includes(k));
+    if (has(['不想','算了','放弃','没意思','烦','够了','退出','拜拜','再见','晚安'])) return 'persuade';
+    if (t.length > 25 && has(['因为','所以','由于','推出','证明','推导','推论','证'])) return 'probe';
+    if (['=','→','²','^','∫','代码','函数'].some(c => t.includes(c))) return 'probe';
+    if (has(['你真棒','你不错','你厉害','你掌握','你学得快','你懂了','你做得','做得好','学得不错'])) return 'encourage';
+    if (has(['今天就这样','今天就到','明天','下次再','下次见','结束','总结一下','总结今天'])) return 'wrap';
+    if (has(['继续','下一','next','再来','懂了','明白了'])) return 'next';
+    return 'ask';
+  }
+  function detect_emotion(t) {
+    t = t || '';
+    if (['不想','烦','放弃','没意思','够了','晕'].some(k => t.includes(k))) return 'frustrated';
+    if (['好的','明白','懂','可以'].some(k => t.includes(k))) return 'engaged';
+    if (['？','?','为什么','怎么'].some(k => t.includes(k))) return 'curious';
+    return t ? 'neutral' : 'fresh';
+  }
+  function extract_reqs(t) {
+    t = (t||'').trim();
+    const triggers = ['重点','想搞','想学','想多练','尤其','目标','要考','希望多','希望少','不要','别给'];
+    return triggers.some(k => t.includes(k)) ? [t.slice(0,80)] : [];
+  }
+  function pack(action_type, kp, emotion, correctness, depth, reqs, note='mock') {
+    const pool = LINES[action_type] || LINES.ask;
+    const reply = pool[Math.floor(Math.random()*pool.length)].replace('{kp}', kp);
+    return {
+      evaluation: { correctness: +correctness.toFixed(2), depth: +depth.toFixed(2),
+                     user_emotion: emotion, new_requirements: reqs },
+      action: { type: action_type, knowledge_point: kp,
+                difficulty: action_type==='ask' ? 0.4 : 0.6, note },
+      reply,
+      anchor_updates: reqs.map(r => ({ kind:'requirement', content: r, weight: 1.2 })),
+    };
+  }
+  function mock_response(messages) {
+    const userMsgs = messages.filter(m => m.role === 'user');
+    const last_user = userMsgs.length ? userMsgs[userMsgs.length-1].content : '';
+    if (!last_user) return pack('ask', KP_SEQ[0], 'fresh', 0, 0, [], 'mock-opening');
+    const intent = detect_intent(last_user);
+    const emotion = detect_emotion(last_user);
+    const reqs = extract_reqs(last_user);
+    let n_next = 0;
+    for (const m of messages) {
+      if (m.role === 'assistant') {
+        const c = m.content || '';
+        if (c.includes('（合上书）') || c.includes('我准备好挑战') || c.includes('下一题')) n_next++;
+      }
+    }
+    const kp_idx = Math.min(n_next + (intent==='next' ? 1 : 0), KP_SEQ.length - 1);
+    const kp = KP_SEQ[kp_idx];
+    let correctness, depth;
+    if (['probe','next','encourage'].includes(intent)) { correctness = Math.min(0.85, 0.35 + 0.1*userMsgs.length); depth = 0.6; }
+    else if (intent === 'persuade') { correctness = 0.1; depth = 0.1; }
+    else { correctness = 0.4; depth = 0.3; }
+    return pack(intent, kp, emotion, correctness, depth, reqs);
+  }
+
+  // === OpenAI 兼容真调 ===
+  async function openai_chat(system, messages, temperature=0.7, max_tokens=900) {
+    const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
+    const body = {
+      model: cfg.model,
+      messages: [{ role:'system', content: system }, ...messages],
+      temperature, max_tokens,
+      response_format: { type: 'json_object' },
+    };
+    const headers = { 'Content-Type':'application/json' };
+    if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
+    let r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    if (!r.ok) {
+      // 部分 provider 不支持 response_format，去掉再试
+      delete body.response_format;
+      r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    }
+    if (!r.ok) throw new Error(`LLM ${r.status}: ${await r.text().catch(()=>'')}`);
+    const data = await r.json();
+    const raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    return extract_json(raw);
+  }
+  function extract_json(raw) {
+    try { return JSON.parse(raw.trim()); } catch(e) {}
+    const m = (raw||'').match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch(e) {} }
+    throw new Error('LLM did not return valid JSON: ' + (raw||'').slice(0,200));
+  }
+
+  async function chat_json(system, messages, opts={}) {
+    if (!has_real()) return mock_response(messages);
+    return openai_chat(system, messages, opts.temperature ?? 0.7, opts.max_tokens ?? 900);
+  }
+
+  async function ping() {
+    if (!has_real()) return { ok:false, mode:'mock', reason:'no credentials' };
+    try {
+      const out = await openai_chat(
+        '你是连通性检测。仅返回 JSON: {"ok":true}',
+        [{ role:'user', content:'ping' }], 0.0, 20
+      );
+      return { ok:true, mode:'live', model: cfg.model, sample: out };
+    } catch(e) {
+      return { ok:false, mode:'live', error: String(e.message || e) };
+    }
+  }
+
+  return { has_real, set_config, get_config, chat_json, ping };
+})();
+</script>
+
+<script>
+// ============== 引擎（system prompt + 评估-决策-行动）==============
+const ENGINE = (() => {
+  const ACTION_TYPES = {
+    ask: '主动提问（请用户讲一个新知识点）',
+    probe: '追问（让用户解释更深）',
+    explain_back: '复述（"我是不是这么理解……？"）',
+    persuade: '情感说服（用户拒绝时）',
+    encourage: '鼓励（用户进步时）',
+    next: '推进到下一个知识点',
+    wrap: '本节收尾',
+  };
+  const SUMMARY_THRESHOLD = 30, SUMMARY_KEEP_RECENT = 12;
+
+  function format_anchors(anchors) {
+    if (!anchors || !anchors.length) return '（无主线锚，按通用策略走）';
+    return anchors.slice().sort((a,b)=>b.weight-a.weight).map(a => `- [${a.kind} w=${a.weight.toFixed(1)}] ${a.content}`).join('\n');
+  }
+  function format_mastery(m) {
+    if (!m || !m.length) return '（用户尚无掌握度记录，从基础开始）';
+    return m.slice().sort((a,b)=>b.level-a.level).map(x => `- ${x.kp}: ${x.level.toFixed(2)} (attempts=${x.attempts})`).join('\n');
+  }
+  function format_actions() {
+    return Object.entries(ACTION_TYPES).map(([k,v]) => `- \`${k}\`: ${v}`).join('\n');
+  }
+
+  function build_system_prompt(session, anchors, masteries, summary='') {
+    const p = session.persona || {};
+    let s = `你是 "反转家教 AI" 中的"学生"角色。你的核心使命：通过向用户（老师）请教问题，让用户在教你的过程中加深理解。
+
+# 你的人设
+- 角色: ${p.role||''}
+- 目标: ${p.goal||''}
+- 截止: ${p.deadline||''}
+- 性格: ${p.personality||''}
+
+# 主线锚（不可漂移，**永远不能违背**）
+${format_anchors(anchors)}
+
+# 用户掌握度
+${format_mastery(masteries)}
+
+# 你的可用动作
+${format_actions()}
+
+# 输出格式（必须严格遵守，**只返回 JSON**，不要任何解释）
+\`\`\`json
+{
+  "evaluation": {
+    "correctness": 0.0,
+    "depth": 0.0,
+    "user_emotion": "neutral|frustrated|engaged|curious|fresh",
+    "new_requirements": ["（若用户说出了新诉求/约定就抽取，否则 []）"]
+  },
+  "action": {
+    "type": "ask|probe|explain_back|persuade|encourage|next|wrap",
+    "knowledge_point": "本回合相关的具体知识点（短词组）",
+    "difficulty": 0.0,
+    "note": ""
+  },
+  "reply": "你（学生）这一回合要说的话，自然口语，可适度撒娇/挠头/犹豫，符合人设",
+  "anchor_updates": []
+}
+\`\`\`
+`;
+    if (summary) s += `\n\n# 早期对话摘要（已压缩，其后附最近原文）\n${summary}\n`;
+    return s;
+  }
+
+  function find_latest_summary(msgs) {
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === 'system' && (m.meta||{}).kind === 'summary') return m;
+    }
+    return null;
+  }
+  function build_messages(msgs, user_input, skip_until_id=0) {
+    const out = [];
+    const recent = msgs.slice(-30);
+    for (const m of recent) {
+      if (m.id <= skip_until_id) continue;
+      if (m.role === 'user' || m.role === 'assistant') {
+        out.push({ role: m.role, content: m.content });
+      }
+    }
+    if (user_input != null) out.push({ role:'user', content: user_input });
+    return out;
+  }
+
+  async function upsert_mastery(sid, kp, correctness, depth) {
+    if (!kp) return;
+    const all = await DB.bySid('mastery', sid);
+    let row = all.find(m => m.kp === kp);
+    const alpha = 0.35;
+    const target = 0.5*correctness + 0.5*depth;
+    if (row) {
+      row.level = Math.min(1, row.level + alpha*(target - row.level));
+      row.attempts += 1; row.last_correctness = correctness; row.last_depth = depth;
+      row.updated_at = Date.now();
+      await DB.put('mastery', row);
+    } else {
+      row = { sid, kp, level: alpha*target, attempts: 1,
+              last_correctness: correctness, last_depth: depth, updated_at: Date.now() };
+      await DB.add('mastery', row);
+    }
+  }
+
+  async function add_anchor(sid, kind, content, weight=1.0) {
+    return DB.add('anchors', { sid, kind, content, weight, created_at: Date.now() });
+  }
+
+  async function add_message(sid, role, content, meta={}) {
+    return DB.add('messages', { sid, role, content, meta, created_at: Date.now() });
+  }
+
+  // 压缩：模拟后端 maybe_summarize
+  async function maybe_summarize(sid) {
+    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const last_sum = find_latest_summary(msgs);
+    const cutoff = last_sum ? (last_sum.meta.summarized_until_id || 0) : 0;
+    const after = msgs.filter(m => m.id > cutoff && (m.role==='user' || m.role==='assistant'));
+    if (after.length < SUMMARY_THRESHOLD) return null;
+    const to_compress = after.length > SUMMARY_KEEP_RECENT
+      ? after.slice(0, after.length - SUMMARY_KEEP_RECENT) : after;
+    if (!to_compress.length) return null;
+    const session = await DB.get('sessions', sid);
+    const p = session.persona || {};
+    // 简易摘要：mock 文本（PWA 端不调 LLM 摘要以省 token）
+    const sample = (to_compress[0].content || '').slice(0, 50).replace(/\n/g,' ');
+    const text = `[摘要] 已压缩 ${to_compress.length} 条早期对话\n- 角色：${p.role||'?'} · 目标：${p.goal||'?'}\n- 早期话题示例：${sample}\n- （这是 PWA 本地摘要，要更精细可在后端模式生成）`;
+    await add_message(sid, 'system', text, {
+      kind: 'summary',
+      summarized_until_id: to_compress[to_compress.length-1].id,
+      summarized_count: to_compress.length,
+    });
+    return { summarized_count: to_compress.length };
+  }
+
+  async function run_opening_turn(sid) {
+    const session = await DB.get('sessions', sid);
+    const anchors = await DB.bySid('anchors', sid);
+    const masteries = await DB.bySid('mastery', sid);
+    const system_prompt = build_system_prompt(session, anchors, masteries) + `
+
+# 当前情境（重要）
+这是会话的**第一句话**，用户（老师）还没说话。请你作为"学生"主动开场：
+1. 用你角色的口吻自然打招呼（一句话）。
+2. 立刻提出**第一个真实的知识点问题**，与你的 goal 直接相关。
+3. action.type 设为 "ask"。
+4. action.knowledge_point 是具体知识点。
+`;
+    const raw = await LLM.chat_json(system_prompt, [], { temperature: 0.85 });
+    const reply = (raw.reply||'').trim() || '（站在讲台前傻笑）……老师好，咱开始吧！';
+    const action = raw.action || { type:'ask', knowledge_point:'?' };
+    await add_message(sid, 'assistant', reply, { action, evaluation: raw.evaluation || {}, opening: true });
+    return { reply, action };
+  }
+
+  async function run_turn(sid, user_input) {
+    await maybe_summarize(sid);
+    const session = await DB.get('sessions', sid);
+    const anchors = await DB.bySid('anchors', sid);
+    const masteries = await DB.bySid('mastery', sid);
+    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const summary = find_latest_summary(msgs);
+    const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
+    const summary_text = summary ? summary.content : '';
+
+    const system = build_system_prompt(session, anchors, masteries, summary_text);
+    const messages = build_messages(msgs, user_input, skip_id);
+
+    const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
+    const ev = raw.evaluation || {};
+    const ac = raw.action || {};
+    const reply = (raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
+    const updates = raw.anchor_updates || [];
+
+    await add_message(sid, 'user', user_input, { turn_input: true });
+    await add_message(sid, 'assistant', reply, { action: ac, evaluation: ev });
+
+    if (ac.knowledge_point) {
+      await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+    }
+    for (const u of updates) {
+      await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0);
+    }
+    return { reply, action: ac, evaluation: ev };
+  }
+
+  async function create_session({ title, role, goal, deadline='', personality='', reqs=[] }) {
+    const sid = uuid();
+    const session = {
+      id: sid,
+      title: title || `${role} · ${goal}`,
+      persona: { role, goal, deadline, personality: personality || '好奇、有点贪玩、容易丧气但能被鼓励' },
+      created_at: Date.now(), updated_at: Date.now(),
+    };
+    await DB.put('sessions', session);
+    await add_anchor(sid, 'initial', `角色=${role}；目标=${goal}；截止=${deadline||'未设'}`, 3.0);
+    for (const r of (reqs || [])) {
+      if (r && r.trim()) await add_anchor(sid, 'requirement', r.trim(), 1.5);
+    }
+    return session;
+  }
+
+  async function delete_session(sid) {
+    await Promise.all([
+      DB.del('sessions', sid),
+      DB.delBySid('messages', sid),
+      DB.delBySid('anchors', sid),
+      DB.delBySid('mastery', sid),
+    ]);
+  }
+
+  return { create_session, delete_session, run_opening_turn, run_turn, maybe_summarize, ACTION_TYPES };
+})();
+</script>
+
+<script>
+// ============== UI 逻辑 ==============
+
+const TEMPLATES = [
+  { label:'📐 高三冲刺', role:'高三理科生', goal:'数学一年内冲到 130 分',
+    deadline:'2026 高考', personality:'焦虑+好胜，会逃避难题',
+    reqs:['重点突破函数、导数、解析几何','先慢后快，前期循序渐进']},
+  { label:'🐍 Python 入门', role:'编程小白', goal:'3 个月能独立写 Python 小工具',
+    deadline:'3 个月内', personality:'好奇但容易被报错吓到',
+    reqs:['从语法到实战','案例驱动']},
+  { label:'🗣️ 雅思口语', role:'雅思考生', goal:'口语稳定 7.0',
+    deadline:'3 个月', personality:'紧张内向，开口困难',
+    reqs:['重点 part 2 长讲','每天必须练 15 分钟']},
+  { label:'📚 考研英语', role:'考研党', goal:'考研英语二 75+',
+    deadline:'2025 年 12 月', personality:'毅力强但词汇底子薄',
+    reqs:['每天 30 个核心词汇','阅读以真题为主']},
+];
+
+// --- Tab 切换 ---
+function switchTab(name) {
+  state.currentTab = name;
+  $$('[data-view]').forEach(v => v.classList.toggle('hidden', v.dataset.view !== name));
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  if (name === 'insights') renderInsights();
+  if (name === 'anchors') renderAnchors();
+  if (name === 'settings') renderSettings();
+}
+$$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+// --- Header ---
+async function refreshHeader() {
+  const cfg = LLM.get_config();
+  $('#header-mode').textContent = cfg.mode === 'live' ? `⚡ ${cfg.model}` : 'mock';
+  $('#header-mode').className = cfg.mode === 'live'
+    ? 'text-[10px] text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-900/60'
+    : 'text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60';
+
+  if (state.sid) {
+    const s = await DB.get('sessions', state.sid);
+    if (s) {
+      $('#header-title').textContent = s.title;
+      $('#header-sub').textContent = `${s.persona.role} · ${s.persona.goal}`;
+    }
+  } else {
+    $('#header-title').textContent = '反转家教';
+    $('#header-sub').textContent = '点 设置 创建你的第一个会话';
+  }
+}
+
+// --- Chat ---
+async function renderChat() {
+  const chat = $('#chat');
+  if (!state.sid) {
+    chat.innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10 px-6">尚无会话<br><br>点右下角 <b>+ 新会话</b> 打开抽屉创建第一节。</div>';
+    return;
+  }
+  const msgs = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
+
+  // 摘要 banner
+  let banner = '';
+  let cutoff = 0;
+  for (let i = msgs.length-1; i >= 0; i--) {
+    if (msgs[i].role === 'system' && (msgs[i].meta||{}).kind === 'summary') {
+      const m = msgs[i].meta;
+      cutoff = m.summarized_until_id || 0;
+      banner = `<details class="bg-neutral-900/60 border border-neutral-800 rounded p-2 text-xs">
+        <summary class="cursor-pointer text-neutral-400">📦 已把早期 ${m.summarized_count} 条对话压缩为摘要（点开）</summary>
+        <div class="md mt-2 text-neutral-300">${md(msgs[i].content)}</div></details>`;
+      break;
+    }
+  }
+
+  const html = msgs
+    .filter(m => m.role !== 'system')
+    .filter(m => m.id > cutoff)
+    .map(m => {
+      const isUser = m.role === 'user';
+      const a = (m.meta||{}).action || {};
+      const ev = (m.meta||{}).evaluation || {};
+      const meta = (!isUser && a.type) ? `
+        <div class="text-[10px] text-neutral-500 mt-1 flex flex-wrap gap-1 items-center">
+          <span class="pill pill-${a.type}">${a.type}</span>
+          <span>${esc(a.knowledge_point||'')}</span>
+          ${ev.user_emotion ? `· ${esc(ev.user_emotion)}` : ''}
+        </div>` : '';
+      return `
+        <div class="flex ${isUser?'justify-end':'justify-start'}">
+          <div class="max-w-[85%] ${isUser?'bg-emerald-900/40 border border-emerald-800':'bg-neutral-900 border border-neutral-800'} rounded-2xl px-3 py-2">
+            <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
+            <div class="md text-sm">${isUser ? `<div class="whitespace-pre-wrap">${esc(m.content)}</div>` : md(m.content)}</div>
+            ${meta}
+          </div>
+        </div>`;
+    }).join('');
+  chat.innerHTML = banner + (html || '<div class="text-xs text-neutral-500 text-center mt-10">学生 AI 还没说话。点 "发送" 它会先开场……或者发一句 "开始吧"</div>');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendMessage() {
+  const txt = $('#chat-input').value.trim();
+  if (!txt) {
+    if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
+    // 空消息当 "请开场" 处理
+    return openingFor(state.sid);
+  }
+  if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
+  $('#chat-input').value = '';
+  $('#chat-input').style.height = 'auto';
+  // 立即显示用户气泡（乐观更新）
+  await renderChat();
+  $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
+  try {
+    const result = await ENGINE.run_turn(state.sid, txt);
+    showMessagePopup('学生 AI 回复', result.reply);
+  } catch(e) {
+    toast('LLM 失败: ' + (e.message||e), 4000);
+  } finally {
+    $('#chat-send').disabled = false; $('#chat-send').textContent = '发送';
+    await renderChat();
+    refreshHeader();
+  }
+}
+
+async function openingFor(sid) {
+  $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
+  try {
+    const result = await ENGINE.run_opening_turn(sid);
+    showMessagePopup('学生 AI 主动开场', result.reply);
+  }
+  catch(e) { toast('开场失败: ' + (e.message||e), 4000); }
+  finally {
+    $('#chat-send').disabled = false; $('#chat-send').textContent = '发送';
+    await renderChat();
+  }
+}
+
+$('#chat-send').addEventListener('click', sendMessage);
+$('#chat-input').addEventListener('input', e => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
+});
+$('#chat-input').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+});
+
+// --- Anchors ---
+async function renderAnchors() {
+  if (!state.sid) { $('#anchors-list').innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10">先创建会话</div>'; return; }
+  const anchors = (await DB.bySid('anchors', state.sid)).sort((a,b)=>b.weight-a.weight);
+  $('#anchors-list').innerHTML = anchors.map(a => `
+    <div class="flex gap-2 items-start group bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
+      <span class="pill pill-${a.kind}">${a.kind}</span>
+      <div class="flex-1 text-neutral-200">${esc(a.content)} <span class="text-neutral-600">w=${a.weight.toFixed(1)}</span></div>
+      <button data-del="${a.id}" class="text-neutral-500 active:text-red-400 text-base px-1">✕</button>
+    </div>
+  `).join('') || '<div class="text-xs text-neutral-500 text-center mt-10">尚无锚</div>';
+  $$('#anchors-list [data-del]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('删除该锚？')) return;
+    await DB.del('anchors', +b.dataset.del);
+    renderAnchors();
+  }));
+}
+$('#anchor-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!state.sid) { toast('先创建会话'); return; }
+  const v = $('#anchor-input').value.trim();
+  if (!v) return;
+  await ENGINE.add_anchor ? ENGINE.add_anchor(state.sid, 'requirement', v, 1.5) :
+    DB.add('anchors', { sid: state.sid, kind:'requirement', content: v, weight: 1.5, created_at: Date.now() });
+  $('#anchor-input').value = '';
+  renderAnchors();
+});
+
+// --- Insights ---
+async function renderInsights() {
+  const sumDiv = $('#insights-summary');
+  const mastDiv = $('#insights-mastery');
+  const actDiv = $('#insights-actions');
+  if (!state.sid) {
+    sumDiv.innerHTML = '<div class="text-neutral-500">先创建会话</div>';
+    mastDiv.innerHTML = ''; actDiv.innerHTML = '';
+    return;
+  }
+  const msgs = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
+  const masteries = (await DB.bySid('mastery', state.sid)).sort((a,b)=>b.level-a.level);
+  const ai = msgs.filter(m => m.role==='assistant');
+  const avg = masteries.length ? masteries.reduce((s,m)=>s+m.level,0)/masteries.length : 0;
+  const strongest = masteries[0], weakest = masteries[masteries.length-1];
+  const recent = ai.slice(-12);
+  const actCount = {};
+  for (const m of recent) { const t = (m.meta||{}).action?.type; if (t) actCount[t]=(actCount[t]||0)+1; }
+  const total = recent.length || 1;
+  sumDiv.innerHTML = `
+    <div class="flex justify-between"><span class="text-neutral-500">学生提问轮数</span><span>${ai.length}</span></div>
+    <div class="flex justify-between"><span class="text-neutral-500">平均掌握度</span><span>${avg.toFixed(2)}</span></div>
+    ${strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最熟</span><span class="text-emerald-400 truncate">${esc(strongest.kp)} · ${strongest.level.toFixed(2)}</span></div>`:''}
+    ${weakest && weakest!==strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最弱</span><span class="text-amber-400 truncate">${esc(weakest.kp)} · ${weakest.level.toFixed(2)}</span></div>`:''}
+  `;
+  mastDiv.innerHTML = masteries.map(m => `
+    <div>
+      <div class="text-xs flex justify-between"><span class="truncate pr-2">${esc(m.kp)}</span><span class="text-neutral-500">${m.level.toFixed(2)} · ${m.attempts}次</span></div>
+      <div class="bar mt-1"><div style="width:${(m.level*100).toFixed(0)}%"></div></div>
+    </div>`).join('') || '<div class="text-xs text-neutral-500">尚无数据</div>';
+  actDiv.innerHTML = Object.entries(actCount).map(([k,v]) =>
+    `<span class="pill pill-${k}">${k} ${v}/${total}</span>`).join('') || '<div class="text-xs text-neutral-500">尚无</div>';
+}
+
+// --- Settings ---
+async function renderSettings() {
+  state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
+  $('#sess-list').innerHTML = state.sessions.length ? state.sessions.map(s => `
+    <div class="flex items-center bg-neutral-900 border border-neutral-800 rounded-lg p-2 gap-2">
+      <button data-open="${s.id}" class="flex-1 text-left min-w-0">
+        <div class="text-sm truncate ${state.sid===s.id?'text-emerald-400':''}">${esc(s.title)}</div>
+        <div class="text-[10px] text-neutral-500 truncate">${esc(s.persona.role)} · ${esc(s.persona.goal)}</div>
+      </button>
+      <button data-del-sess="${s.id}" class="text-neutral-500 active:text-red-400 text-base px-2">✕</button>
+    </div>
+  `).join('') : '<div class="text-xs text-neutral-500 text-center py-3">尚无会话</div>';
+  $$('#sess-list [data-open]').forEach(b => b.addEventListener('click', async () => {
+    state.sid = b.dataset.open;
+    await DB.kvSet('current_sid', state.sid);
+    await refreshHeader(); renderSettings();
+    switchTab('chat'); renderChat();
+  }));
+  $$('#sess-list [data-del-sess]').forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('删除该会话及所有数据？')) return;
+    const sid = b.dataset.delSess;
+    await ENGINE.delete_session(sid);
+    if (state.sid === sid) { state.sid = null; await DB.kvSet('current_sid', null); }
+    await refreshHeader(); renderSettings(); renderChat();
+  }));
+
+  // LLM cfg
+  const cfg = LLM.get_config();
+  $('#cfg-base').value = cfg.base_url || '';
+  $('#cfg-model').value = cfg.model || '';
+  $('#cfg-key').value = cfg.api_key || '';
+  $('#cfg-status').textContent = cfg.mode === 'live' ? `当前：live (${cfg.model})` : '当前：mock';
+  $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
+  setPopupEnabled(popupEnabled());
+  renderUpdateSettings();
+}
+
+async function saveLlmConfig() {
+  const c = {
+    base_url: $('#cfg-base').value.trim(),
+    api_key: $('#cfg-key').value.trim(),
+    model: $('#cfg-model').value.trim(),
+  };
+  LLM.set_config(c);
+  await DB.kvSet('llm_config', c);
+  const cfg = LLM.get_config();
+  $('#cfg-status').textContent = cfg.mode==='live' ? `✅ 已切到 live：${cfg.model}` : '⚠️ 信息不完，仍 mock';
+  $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  refreshHeader();
+}
+async function testLlm() {
+  await saveLlmConfig();
+  $('#cfg-status').textContent = '🔌 测试中…';
+  $('#cfg-status').className = 'text-xs text-neutral-400';
+  const r = await LLM.ping();
+  if (r.ok) {
+    $('#cfg-status').textContent = `✅ 联通 OK（${r.mode} · ${r.model||''}）`;
+    $('#cfg-status').className = 'text-xs text-emerald-400';
+  } else {
+    $('#cfg-status').textContent = `❌ ${r.error || r.reason || '失败'}`;
+    $('#cfg-status').className = 'text-xs text-red-400';
+  }
+}
+async function clearLlm() {
+  LLM.set_config({ base_url:'', api_key:'', model:'' });
+  await DB.kvSet('llm_config', { base_url:'', api_key:'', model:'' });
+  renderSettings(); refreshHeader();
+}
+$('#cfg-save').addEventListener('click', saveLlmConfig);
+$('#cfg-test').addEventListener('click', testLlm);
+$('#cfg-clear').addEventListener('click', clearLlm);
+$('#theme-ink').addEventListener('click', () => applyTheme('ink'));
+$('#theme-warm').addEventListener('click', () => applyTheme('warm'));
+$('#popup-enabled').addEventListener('change', e => setPopupEnabled(e.target.checked));
+$('#update-feed').addEventListener('change', e => {
+  localStorage.setItem(UPDATE_FEED_KEY, e.target.value.trim());
+  localStorage.removeItem(UPDATE_LAST_URL_KEY);
+  renderUpdateSettings();
+});
+$('#update-auto').addEventListener('change', e => {
+  localStorage.setItem(UPDATE_AUTO_KEY, e.target.checked ? '1' : '0');
+});
+$('#update-check').addEventListener('click', () => {
+  localStorage.setItem(UPDATE_FEED_KEY, $('#update-feed').value.trim());
+  checkUpdate(false);
+});
+$('#update-open').addEventListener('click', () => {
+  const url = localStorage.getItem(UPDATE_LAST_URL_KEY);
+  if (!url) { toast('没有可下载的新版本'); return; }
+  window.open(url, '_blank', 'noopener');
+});
+$('#message-popup-close').addEventListener('click', () => $('#message-popup').classList.add('hidden'));
+$('#message-popup').addEventListener('click', e => {
+  if (e.target.id === 'message-popup-close') return;
+  switchTab('chat');
+  $('#message-popup').classList.add('hidden');
+});
+
+// 数据导入导出
+
+async function renderSessionDrawer() {
+  const list = $('#drawer-sess-list');
+  state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
+  list.innerHTML = state.sessions.length ? state.sessions.map(s => {
+    const active = state.sid === s.id ? 'text-emerald-400' : '';
+    return '<div class="flex items-center bg-neutral-900 border border-neutral-800 rounded-lg p-2 gap-2">'
+      + '<button data-drawer-open="' + s.id + '" class="flex-1 text-left min-w-0">'
+      + '<div class="text-sm truncate ' + active + '">' + esc(s.title) + '</div>'
+      + '<div class="text-[10px] text-neutral-500 truncate">' + esc(s.persona.role) + ' / ' + esc(s.persona.goal) + '</div>'
+      + '</button>'
+      + '<button data-drawer-del="' + s.id + '" class="text-neutral-500 active:text-red-400 text-base px-2">×</button>'
+      + '</div>';
+  }).join('') : '<div class="text-xs text-neutral-500 text-center py-8">暂无会话，先新建一个</div>';
+  list.querySelectorAll('[data-drawer-open]').forEach(b => b.addEventListener('click', async () => {
+    state.sid = b.dataset.drawerOpen;
+    await DB.kvSet('current_sid', state.sid);
+    closeDrawer();
+    switchTab('chat');
+    await refreshHeader();
+    await renderChat();
+  }));
+  list.querySelectorAll('[data-drawer-del]').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (!confirm('删除这个会话？')) return;
+    const sid = b.dataset.drawerDel;
+    await ENGINE.delete_session(sid);
+    if (state.sid === sid) {
+      state.sid = null;
+      await DB.kvSet('current_sid', null);
+      await refreshHeader();
+      await renderChat();
+    }
+    renderSessionDrawer();
+  }));
+}
+
+async function openDrawer() {
+  await renderSessionDrawer();
+  document.body.classList.add('drawer-open');
+}
+
+function closeDrawer() {
+  document.body.classList.remove('drawer-open');
+}
+
+$('#drawer-open').addEventListener('click', openDrawer);
+$('#drawer-close').addEventListener('click', closeDrawer);
+$('#session-drawer').addEventListener('click', closeDrawer);
+$('#drawer-new').addEventListener('click', () => {
+  closeDrawer();
+  openNew();
+});
+
+let swipeStart = null;
+document.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  swipeStart = { x: t.clientX, y: t.clientY, drawer: document.body.classList.contains('drawer-open') };
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!swipeStart) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipeStart.x;
+  const dy = Math.abs(t.clientY - swipeStart.y);
+  if (dy < 70 && swipeStart.x < 28 && dx > 70) openDrawer();
+  if (dy < 70 && swipeStart.drawer && dx < -70) closeDrawer();
+  swipeStart = null;
+}, { passive: true });
+
+$('#data-export').addEventListener('click', async () => {
+  const payload = await DB.exportAll();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `reverse-tutor-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('已导出');
+});
+$('#data-import').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  if (!confirm('导入会覆盖现有全部数据，确定？')) return;
+  const txt = await f.text();
+  try {
+    await DB.importAll(JSON.parse(txt));
+    toast('导入成功，刷新…', 1200);
+    setTimeout(()=>location.reload(), 1000);
+  } catch(err) { toast('导入失败: ' + err.message, 4000); }
+  e.target.value = '';
+});
+$('#data-wipe').addEventListener('click', async () => {
+  if (!confirm('确定清空全部本地数据？此操作不可撤销！')) return;
+  await DB.wipe();
+  state.sid = null;
+  toast('已清空，刷新…', 1000);
+  setTimeout(()=>location.reload(), 800);
+});
+
+// --- 新会话 modal ---
+function openNew() {
+  $('#new-modal').classList.remove('hidden'); $('#new-modal').classList.add('flex');
+  // 渲染模板
+  $('#tpl-grid').innerHTML = TEMPLATES.map((t,i) => `
+    <button data-tpl="${i}" class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-2 text-left">
+      <div class="text-xs font-medium">${esc(t.label)}</div>
+      <div class="text-[10px] text-neutral-500 truncate mt-0.5">${esc(t.role)}</div>
+    </button>`).join('');
+  $$('#tpl-grid [data-tpl]').forEach(b => b.addEventListener('click', () => {
+    const t = TEMPLATES[+b.dataset.tpl];
+    $('#new-role').value = t.role; $('#new-goal').value = t.goal;
+    $('#new-deadline').value = t.deadline; $('#new-pers').value = t.personality;
+    $('#new-reqs').value = t.reqs.join('\n');
+  }));
+}
+function closeNew() {
+  $('#new-modal').classList.add('hidden'); $('#new-modal').classList.remove('flex');
+}
+window.closeNew = closeNew;  // 给 inline onclick 用
+
+$('#new-create').addEventListener('click', async () => {
+  const role = $('#new-role').value.trim();
+  const goal = $('#new-goal').value.trim();
+  if (!role || !goal) { toast('请至少填 角色 + 目标'); return; }
+  const s = await ENGINE.create_session({
+    role, goal,
+    deadline: $('#new-deadline').value.trim(),
+    personality: $('#new-pers').value.trim(),
+    reqs: $('#new-reqs').value.split('\n').map(r=>r.trim()).filter(Boolean),
+  });
+  state.sid = s.id;
+  await DB.kvSet('current_sid', s.id);
+  closeNew();
+  switchTab('chat');
+  await refreshHeader();
+  if ($('#new-auto-opening').checked) {
+    await openingFor(s.id);
+  } else {
+    await renderChat();
+  }
+  renderSettings();
+});
+
+// --- Service Worker + PWA 安装 ---
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(err => console.warn('sw register failed', err));
+}
+
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstall = e;
+  $('#pwa-install').classList.remove('hidden');
+  $('#pwa-hint-default').classList.add('hidden');
+});
+window.addEventListener('appinstalled', () => {
+  _deferredInstall = null;
+  $('#pwa-install').classList.add('hidden');
+  $('#pwa-installed').classList.remove('hidden');
+  toast('已安装到主屏 🎉');
+});
+$('#pwa-install').addEventListener('click', async () => {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  const r = await _deferredInstall.userChoice;
+  if (r.outcome === 'accepted') {
+    $('#pwa-install').classList.add('hidden');
+    toast('安装中…');
+  }
+  _deferredInstall = null;
+});
+
+// 启动时识别运行环境
+function detectPwaEnv() {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true;
+  if (isStandalone) {
+    $('#pwa-installed').classList.remove('hidden');
+    $('#pwa-hint-default').classList.add('hidden');
+  } else if (isIOS) {
+    $('#pwa-hint-ios').classList.remove('hidden');
+    $('#pwa-hint-default').classList.add('hidden');
+  }
+}
+detectPwaEnv();
+
+// --- init ---
+(async function init() {
+  applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
+  setPopupEnabled(popupEnabled());
+  renderUpdateSettings();
+  await DB.open();
+  // 恢复 LLM 配置
+  const saved = await DB.kvGet('llm_config');
+  if (saved) LLM.set_config(saved);
+  // 恢复当前 session
+  const sid = await DB.kvGet('current_sid');
+  if (sid && await DB.get('sessions', sid)) {
+    state.sid = sid;
+  } else {
+    // 没有 session：自动跳到设置 tab 引导创建
+    const allSess = await DB.all('sessions');
+    if (!allSess.length) { switchTab('settings'); }
+  }
+  await refreshHeader();
+  await renderChat();
+  if (updateAutoEnabled() && updateFeedUrl()) {
+    setTimeout(() => checkUpdate(true), 1200);
+  }
+})();
+</script>
+
+</body>
+</html>

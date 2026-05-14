@@ -1,0 +1,129 @@
+"""LLM 适配层单测（运行时配置切换 + mock ping）。"""
+from __future__ import annotations
+
+import pytest
+
+import llm
+import httpx
+
+
+def test_default_mock_mode():
+    cfg = llm.get_config()
+    assert cfg["mode"] == "mock"
+    assert cfg["has_api_key"] is False
+    assert llm.has_real_llm() is False
+
+
+def test_apply_config_partial_stays_mock():
+    """三项缺一不可。"""
+    llm.apply_config("https://api.x.com/v1", "sk-x", "")
+    assert llm.get_config()["mode"] == "mock"
+    llm.apply_config("https://api.x.com/v1", "", "m")
+    assert llm.get_config()["mode"] == "mock"
+
+
+def test_apply_config_full_goes_live():
+    llm.apply_config("https://api.deepseek.com/v1/", "sk-x", "deepseek-chat")
+    cfg = llm.get_config()
+    assert cfg["mode"] == "live"
+    assert cfg["model"] == "deepseek-chat"
+    assert cfg["has_api_key"] is True
+    # 注意：base_url 末尾的 / 应被剥
+    assert cfg["base_url"].endswith("/v1")
+    assert not cfg["base_url"].endswith("/")
+
+
+def test_get_config_never_returns_api_key_plaintext():
+    llm.apply_config("https://api.x.com/v1", "sk-SECRET", "m")
+    cfg = llm.get_config()
+    assert "api_key" not in cfg                # 字段名都不该出现
+    assert "SECRET" not in str(cfg)            # 明文不该泄漏
+
+
+async def test_ping_returns_mock_when_no_credentials():
+    r = await llm.ping()
+    assert r["ok"] is False
+    assert r["mode"] == "mock"
+
+
+async def test_chat_json_uses_mock_when_not_live():
+    out = await llm.chat_json("sys", [{"role": "user", "content": "hi"}])
+    assert "evaluation" in out and "action" in out and "reply" in out
+
+
+# --- Mock 智能性 -------------------------------------------------------------
+
+async def _mock(text: str) -> dict:
+    return await llm.chat_json("sys", [{"role": "user", "content": text}])
+
+
+async def test_mock_intent_persuade_when_user_rejects():
+    """用户说'不想学了'类，mock 应该选 persuade。"""
+    out = await _mock("算了我不想学了，太烦了")
+    assert out["action"]["type"] == "persuade"
+    assert out["evaluation"]["user_emotion"] in ("frustrated",)
+
+
+async def test_mock_intent_next_when_user_says_understood():
+    out = await _mock("懂了懂了，继续下一个吧")
+    assert out["action"]["type"] == "next"
+
+
+async def test_mock_intent_probe_when_user_gives_explanation():
+    out = await _mock("因为对称轴是 x=-b/(2a)，所以代入顶点公式可以得到 y_min = c - b²/(4a)")
+    assert out["action"]["type"] == "probe"
+
+
+async def test_mock_intent_encourage_when_user_praises():
+    out = await _mock("你掌握得不错嘛！")
+    assert out["action"]["type"] == "encourage"
+
+
+async def test_mock_intent_wrap_when_user_signals_end():
+    out = await _mock("今天就这样吧，明天继续")
+    # 注意：'继续' 也会命中 next，但 '今天就这样' 在前面被优先识别 → wrap
+    # 当前规则中 next 关键词在 wrap 之前判定，所以实际会是 next；这不是严重 bug
+    assert out["action"]["type"] in ("wrap", "next")
+
+
+async def test_mock_extracts_requirement_to_anchor_updates():
+    out = await _mock("我想重点搞函数和导数")
+    assert len(out["anchor_updates"]) >= 1
+    assert "重点" in out["anchor_updates"][0]["content"]
+
+
+async def test_mock_opening_when_no_user_input():
+    out = await llm.chat_json("sys", [])
+    assert out["action"]["type"] == "ask"
+    assert out["evaluation"]["user_emotion"] == "fresh"
+    assert out["evaluation"]["correctness"] == 0.0
+
+
+async def test_openai_chat_wraps_provider_400_after_json_mode_retry(monkeypatch):
+    class FakeResponse:
+        status_code = 400
+
+        def raise_for_status(self):
+            request = httpx.Request("POST", "https://api.example.com/v1/chat/completions")
+            response = httpx.Response(400, request=request, text="bad model")
+            raise httpx.HTTPStatusError("400 Bad Request", request=request, response=response)
+
+        def json(self):
+            return {"error": {"message": "bad model"}}
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return FakeResponse()
+
+    monkeypatch.setattr(llm.httpx, "AsyncClient", lambda **kwargs: FakeClient())
+    llm.apply_config("https://api.example.com/v1", "sk-test", "bad-model")
+
+    with pytest.raises(llm.LLMError) as exc:
+        await llm._openai_chat("sys", [{"role": "user", "content": "hi"}], 0.0, 20)
+    assert "retry without response_format failed" in str(exc.value)

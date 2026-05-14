@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Reverse Tutor · 反转家教</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
+<style>
+  :root {
+    --page: #c9c0b3;
+    --panel: #d8d0c5;
+    --panel-2: #e4ddd4;
+    --panel-3: #bdb3a6;
+    --line: #a99f91;
+    --text: #28241f;
+    --text-soft: #4f473e;
+    --muted: #766d62;
+    --muted-2: #8d8377;
+    --accent: #567663;
+    --accent-hover: #466755;
+    --accent-soft: #c9dacd;
+    --warn: #8a6a37;
+    --chat-bg: #e7dfd5;
+    --chat-line: rgba(120, 103, 82, .16);
+    --chat-mark: rgba(86, 118, 99, .10);
+    --left-w: 290px;
+    --right-w: 310px;
+  }
+  body.theme-ink {
+    --page: #252927;
+    --panel: #303631;
+    --panel-2: #394039;
+    --panel-3: #465047;
+    --line: #5f685d;
+    --text: #ebe6dc;
+    --text-soft: #d4ccbd;
+    --muted: #aaa193;
+    --muted-2: #8f877c;
+    --accent: #78a084;
+    --accent-hover: #86af93;
+    --accent-soft: #415f4b;
+    --warn: #d0ad70;
+    --chat-bg: #333a34;
+    --chat-line: rgba(231, 224, 213, .10);
+    --chat-mark: rgba(120, 160, 132, .12);
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--page);
+    color: var(--text);
+  }
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w);
+    background: var(--page);
+    color: var(--text);
+    transition: grid-template-columns .22s ease;
+  }
+  .app-shell > * { grid-column: auto !important; min-width: 0; }
+  body.left-collapsed .app-shell { grid-template-columns: 0 minmax(0, 1fr) var(--right-w); }
+  body.right-collapsed .app-shell { grid-template-columns: var(--left-w) minmax(0, 1fr) 0; }
+  body.left-collapsed.right-collapsed .app-shell { grid-template-columns: 0 minmax(0, 1fr) 0; }
+  .app-sidebar {
+    background: var(--panel);
+    overflow: hidden;
+    transition: visibility .22s ease, opacity .22s ease;
+  }
+  body.left-collapsed #left-sidebar,
+  body.right-collapsed #right-sidebar {
+    visibility: hidden;
+    opacity: 0;
+    border: 0 !important;
+  }
+  #main-panel { background: var(--panel-2); }
+  .pane-toggle {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text-soft);
+    background: rgba(255,255,255,.18);
+  }
+  .pane-toggle:hover { background: rgba(255,255,255,.34); color: var(--text); }
+  .layout-controls {
+    position: fixed;
+    bottom: 14px;
+    left: 50%;
+    z-index: 50;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(228,221,212,.88);
+    box-shadow: 0 8px 24px rgba(74,64,52,.16);
+    backdrop-filter: blur(8px);
+  }
+  .layout-controls .pane-toggle { width: 32px; height: 28px; background: transparent; }
+  body.left-collapsed #toggle-left,
+  body.right-collapsed #toggle-right { background: rgba(86,118,99,.18); color: var(--accent); }
+  #chat {
+    background-color: var(--chat-bg);
+    background-image:
+      linear-gradient(115deg, transparent 0 17%, var(--chat-mark) 17% 17.5%, transparent 17.5% 39%, var(--chat-mark) 39% 39.4%, transparent 39.4%),
+      linear-gradient(0deg, transparent 0 31px, var(--chat-line) 32px, transparent 33px),
+      linear-gradient(90deg, transparent 0 54px, rgba(120,103,82,.08) 55px, transparent 56px);
+    background-size: 260px 180px, 100% 32px, 56px 100%;
+    background-attachment: local;
+  }
+  #chat > * { position: relative; z-index: 1; }
+  .scroll-y { overflow-y: auto; }
+  .scroll-y::-webkit-scrollbar { width: 6px; }
+  .scroll-y::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .bubble-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .bar { height: 6px; background: var(--panel-3); border-radius: 3px; overflow: hidden; }
+  .bar > div { height: 100%; background: linear-gradient(90deg,#8b7a4a,#5d836b); }
+  .anchor-pill { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+  .pill-initial      { background:#a56f48; color:#fff5e8; }
+  .pill-requirement  { background:#667d91; color:#f4f8fb; }
+  .pill-milestone    { background:#5f7f69; color:#f2fbf5; }
+  .pill-constraint   { background:#807069; color:#fbf5f2; }
+  .action-pill { font-size: 10px; padding: 1px 6px; border-radius: 3px; background:#b8aa9b; color:var(--text); }
+  textarea, input { outline: none; }
+  textarea, input { color: var(--text); }
+  ::placeholder { color: var(--muted-2) !important; }
+  .md p { margin: 0; }
+  .md p + p { margin-top: 6px; }
+  .md code { background: #cfc5b8; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .md pre { background: #cfc5b8; padding: 8px 10px; border-radius: 4px; overflow-x: auto; margin: 6px 0; }
+  .md pre code { background: none; padding: 0; font-size: 12px; }
+  .md ul, .md ol { padding-left: 18px; margin: 4px 0; }
+  .md blockquote { border-left: 3px solid var(--line); padding-left: 8px; color: var(--muted); margin: 4px 0; }
+  .md strong { color: #6f5525; }
+  .md a { color: #426c7b; text-decoration: underline; }
+  .bg-neutral-950, .bg-neutral-900 { background-color: var(--panel) !important; }
+  .bg-neutral-900\/60 { background-color: rgba(216,208,197,.72) !important; }
+  .bg-neutral-800 { background-color: var(--panel-3) !important; }
+  .bg-black\/70 { background-color: rgba(51,44,37,.48) !important; }
+  .border-neutral-900, .border-neutral-800, .border-neutral-700 { border-color: var(--line) !important; }
+  .text-neutral-100, .text-neutral-200, .text-neutral-300 { color: var(--text) !important; }
+  .text-neutral-400 { color: var(--text-soft) !important; }
+  .text-neutral-500, .text-neutral-600 { color: var(--muted) !important; }
+  .hover\:bg-neutral-900:hover, .hover\:bg-neutral-800:hover, .hover\:bg-neutral-700:hover { background-color: #cbbfaf !important; }
+  .bg-emerald-700 { background-color: var(--accent) !important; color: #f8f4ed !important; }
+  .hover\:bg-emerald-600:hover { background-color: var(--accent-hover) !important; }
+  .bg-emerald-900\/40 { background-color: var(--accent-soft) !important; }
+  .border-emerald-800, .border-emerald-700 { border-color: #789482 !important; }
+  .text-emerald-400, .text-emerald-300 { color: #456f58 !important; }
+  .bg-amber-900 { background-color: #d5c396 !important; }
+  .text-amber-400, .text-amber-300 { color: var(--warn) !important; }
+  .disabled\:bg-neutral-800:disabled { background-color: #bdb3a6 !important; }
+  .disabled\:text-neutral-500:disabled { color: #8b8175 !important; }
+</style>
+</head>
+<body class="bg-neutral-950 text-neutral-100">
+
+<div class="layout-controls" aria-label="布局控制">
+  <button id="toggle-left" class="pane-toggle" title="显示/隐藏会话栏" aria-label="显示或隐藏会话栏">L</button>
+  <button id="theme-toggle" class="pane-toggle" title="切换主题" aria-label="切换主题">◐</button>
+  <button id="toggle-right" class="pane-toggle" title="显示/隐藏信息栏" aria-label="显示或隐藏信息栏">R</button>
+</div>
+
+<div id="app-shell" class="app-shell h-screen">
+
+  <!-- 左：会话 -->
+  <aside id="left-sidebar" class="app-sidebar col-span-3 border-r border-neutral-800 flex flex-col">
+    <div class="p-3 border-b border-neutral-800 flex items-center justify-between">
+      <div>
+        <div class="text-sm font-semibold">Reverse Tutor</div>
+        <div class="text-[11px] text-neutral-500 cursor-pointer underline-offset-2 hover:underline" id="mode-badge" title="点击运行时切换 LLM">checking…</div>
+      </div>
+      <button id="new-btn" class="text-xs bg-emerald-700 hover:bg-emerald-600 px-2 py-1 rounded">+ 新会话</button>
+    </div>
+    <div id="session-list" class="flex-1 scroll-y"></div>
+    <div class="border-t border-neutral-800">
+      <button id="bindings-btn" class="w-full text-left px-3 py-2 text-xs text-neutral-400 hover:bg-neutral-900 flex items-center justify-between">
+        <span>🔌 机器人接入 (Bindings)</span>
+        <span id="bindings-count" class="text-neutral-600">0</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 中：聊天 -->
+  <main id="main-panel" class="col-span-6 flex flex-col">
+    <header class="p-3 border-b border-neutral-800 flex items-center justify-between">
+      <div>
+        <div id="cur-title" class="text-sm font-semibold">未选会话</div>
+        <div id="cur-sub" class="text-[11px] text-neutral-500"></div>
+      </div>
+      <div class="flex gap-2">
+        <a id="export-md" class="text-xs px-2 py-1 rounded border border-neutral-700 text-neutral-300 hover:bg-neutral-800 hidden" href="#">导出 MD</a>
+        <a id="export-json" class="text-xs px-2 py-1 rounded border border-neutral-700 text-neutral-300 hover:bg-neutral-800 hidden" href="#" target="_blank">导出 JSON</a>
+      </div>
+    </header>
+    <div id="chat" class="flex-1 scroll-y p-4 space-y-3"></div>
+    <div class="border-t border-neutral-800 p-3">
+      <div class="flex gap-2">
+        <textarea id="input" rows="2" placeholder="作为'用户/老师'回复学生 AI ……（Ctrl+Enter 发送）"
+                  class="flex-1 resize-none bg-neutral-900 border border-neutral-800 rounded p-2 text-sm"></textarea>
+        <button id="send-btn" class="bg-emerald-700 hover:bg-emerald-600 disabled:bg-neutral-800 disabled:text-neutral-500 px-4 rounded text-sm">发送</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 右：锚点 + 掌握度 -->
+  <aside id="right-sidebar" class="app-sidebar col-span-3 border-l border-neutral-800 flex flex-col">
+    <div class="p-3 border-b border-neutral-800">
+      <div class="text-xs uppercase tracking-wider text-neutral-500">主线锚 · Anchors</div>
+      <div class="text-[11px] text-neutral-600 mt-1">每次 LLM 调用前注入 system prompt，防止主线漂移</div>
+    </div>
+    <div id="anchors" class="scroll-y px-3 py-2 space-y-2 border-b border-neutral-800 max-h-[40%]"></div>
+    <form id="anchor-form" class="px-3 py-2 border-b border-neutral-800 flex gap-2">
+      <input id="anchor-input" placeholder="手动追加一条 requirement…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-xs" />
+      <button class="text-xs bg-neutral-800 hover:bg-neutral-700 px-2 rounded">+</button>
+    </form>
+    <div class="p-3 border-b border-neutral-800">
+      <div class="text-xs uppercase tracking-wider text-neutral-500">学习洞察</div>
+    </div>
+    <div id="insights" class="px-3 py-2 border-b border-neutral-800 text-xs space-y-1"></div>
+    <div class="p-3 border-b border-neutral-800">
+      <div class="text-xs uppercase tracking-wider text-neutral-500">知识点掌握度</div>
+    </div>
+    <div id="mastery" class="scroll-y px-3 py-2 space-y-2 flex-1"></div>
+  </aside>
+
+</div>
+
+<!-- LLM 配置 modal -->
+<div id="llm-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center">
+  <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-5 w-[520px]">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <div class="text-sm font-semibold">⚡ LLM 运行时配置</div>
+        <div class="text-[11px] text-neutral-500 mt-1">仅本进程生效；重启后会回退到 .env 。任何 OpenAI 兼容端点均可。</div>
+      </div>
+      <button id="llm-close" class="text-xs px-2 py-1 rounded border border-neutral-700 hover:bg-neutral-800">关闭</button>
+    </div>
+    <div class="space-y-3 text-sm">
+      <label class="block">
+        <span class="text-xs text-neutral-400">Base URL</span>
+        <input id="llm-base" type="text" placeholder="https://api.deepseek.com/v1" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">API Key <span class="text-neutral-500">（留空 = 保留原 key 不变）</span></span>
+        <input id="llm-key" type="password" placeholder="留空 = 不修改；输入 sk-... 覆盖" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">Model</span>
+        <input id="llm-model" type="text" placeholder="deepseek-chat / qwen-plus / moonshot-v1-8k ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+      </label>
+      <div id="llm-status" class="text-xs text-neutral-500"></div>
+    </div>
+    <div class="flex items-center justify-between mt-4 gap-2">
+      <button id="llm-test" class="text-xs px-3 py-1.5 rounded border border-neutral-700 hover:bg-neutral-800">🔌 测试连接</button>
+      <div class="flex gap-2">
+        <button id="llm-clear" class="text-xs px-3 py-1.5 rounded border border-neutral-700 hover:bg-neutral-800">返回 mock</button>
+        <button id="llm-save-local" class="text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 hover:bg-emerald-950">保存到本地</button>
+        <button id="llm-apply" class="text-xs px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600">应用</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bindings modal -->
+<div id="bind-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center">
+  <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-5 w-[640px] max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <div class="text-sm font-semibold">🔌 机器人接入列表</div>
+        <div class="text-[11px] text-neutral-500 mt-1">飞书 / QQ / Hermes 用户 → 会话 的持久化绑定</div>
+      </div>
+      <button id="bind-close" class="text-xs px-2 py-1 rounded border border-neutral-700 hover:bg-neutral-800">关闭</button>
+    </div>
+    <div class="text-[11px] text-neutral-500 bg-neutral-950 border border-neutral-800 rounded p-2 mb-3">
+      测试：<code class="text-emerald-400">curl -X POST http://127.0.0.1:8765/api/adapters/hermes/webhook -H 'Content-Type: application/json' -d '{"external_id":"u1","text":"hi"}'</code>
+      → 会自动走 3 步 onboarding 创建会话。
+    </div>
+    <div id="bindings-list" class="flex-1 scroll-y space-y-2"></div>
+  </div>
+</div>
+
+<!-- 新建会话 modal -->
+<div id="modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center">
+  <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-5 w-[520px] max-h-[90vh] overflow-y-auto">
+    <div class="text-sm font-semibold mb-3">新建反转家教会话</div>
+    <div class="mb-4">
+      <div class="text-xs text-neutral-400 mb-2">选一个预设场景一键填充 ↓</div>
+      <div id="template-bar" class="grid grid-cols-2 gap-2"></div>
+    </div>
+    <div class="space-y-3 text-sm">
+      <label class="block">
+        <span class="text-xs text-neutral-400">AI 扮演的角色</span>
+        <input id="f-role" class="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 mt-1" value="高三学生" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">他/她要达成的目标（你将充当老师/教练）</span>
+        <input id="f-goal" class="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 mt-1" value="一年内数学考到 130 分" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">截止日期 / 时限</span>
+        <input id="f-deadline" class="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 mt-1" value="2026-06-高考" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">性格描述</span>
+        <input id="f-personality" class="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 mt-1"
+               value="好奇、有点贪玩、容易丧气但能被鼓励" />
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">初始诉求（每行一条，自动入 anchor）</span>
+        <textarea id="f-reqs" rows="3" class="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1 mt-1"
+                  placeholder="例：重点突破函数和导数&#10;例：每次问的题难度循序渐进"></textarea>
+      </label>
+      <label class="flex items-center gap-2 text-xs text-neutral-500">
+        <input id="f-auto-opening" type="checkbox" checked class="accent-emerald-700">
+        <span>创建后让学生 AI 主动开场提问</span>
+      </label>
+    </div>
+    <div class="flex gap-2 justify-end mt-4">
+      <button id="modal-cancel" class="text-xs px-3 py-1 rounded border border-neutral-700">取消</button>
+      <button id="modal-ok" class="text-xs px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600">创建</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+const state = { sid: null, sessions: [] };
+
+async function api(path, opts={}) {
+  const r = await fetch(path, { headers: {'Content-Type': 'application/json'}, ...opts });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`${r.status} ${t}`);
+  }
+  const ct = r.headers.get('content-type')||'';
+  return ct.includes('json') ? r.json() : r.text();
+}
+
+function esc(s) { return (s||'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+// Markdown 渲染（带 sanitize）
+function md(s) {
+  if (!window.marked || !window.DOMPurify) return esc(s);
+  try {
+    return window.DOMPurify.sanitize(window.marked.parse(s||'', { breaks: true, gfm: true }));
+  } catch (e) { return esc(s); }
+}
+
+// --- Persona 模板库（DB 化）-----------------------------------------------
+state.templates = [];
+
+async function renderTemplates() {
+  const bar = document.getElementById('template-bar');
+  try {
+    state.templates = await api('/api/templates');
+  } catch(e) {
+    state.templates = [];
+  }
+  bar.innerHTML = state.templates.map((t,i)=>`
+    <button data-i="${i}" class="tpl-btn group relative text-left text-xs bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-emerald-700 rounded px-2 py-2">
+      <div class="font-medium text-neutral-100 pr-4">${esc(t.label)}</div>
+      <div class="text-[10px] text-neutral-500 mt-1 truncate">${esc(t.role)} · ${esc(t.goal)}</div>
+      ${t.builtin
+          ? '<span class="absolute top-1 right-1 text-[9px] text-neutral-600">内置</span>'
+          : `<button data-del-tpl="${t.id}" title="删除该模板" class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 text-xs px-1">\u2715</button>`}
+    </button>
+  `).join('') + `
+    <button id="tpl-new" class="text-left text-xs bg-neutral-900 hover:bg-neutral-800 border border-dashed border-neutral-700 hover:border-emerald-700 rounded px-2 py-2 text-emerald-400">
+      + 保存当前为模板
+    </button>
+  `;
+  bar.querySelectorAll('.tpl-btn').forEach(b => b.addEventListener('click', (e) => {
+    if (e.target.dataset.delTpl) return;
+    const t = state.templates[+b.dataset.i];
+    $('#f-role').value = t.role;
+    $('#f-goal').value = t.goal;
+    $('#f-deadline').value = t.deadline;
+    $('#f-personality').value = t.personality;
+    $('#f-reqs').value = (t.reqs || []).join('\n');
+  }));
+  bar.querySelectorAll('[data-del-tpl]').forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('删除该模板？')) return;
+    await api('/api/templates/'+btn.dataset.delTpl, { method:'DELETE' });
+    renderTemplates();
+  }));
+  const newBtn = document.getElementById('tpl-new');
+  if (newBtn) newBtn.addEventListener('click', saveCurrentAsTemplate);
+}
+
+async function saveCurrentAsTemplate() {
+  const role = $('#f-role').value.trim();
+  const goal = $('#f-goal').value.trim();
+  if (!role || !goal) { alert('至少填写 角色 + 目标'); return; }
+  const label = prompt('给这个模板起个短名：', `${role} · ${goal.slice(0,12)}`);
+  if (!label) return;
+  await api('/api/templates', {
+    method: 'POST',
+    body: JSON.stringify({
+      label, role, goal,
+      deadline: $('#f-deadline').value.trim(),
+      personality: $('#f-personality').value.trim(),
+      reqs: $('#f-reqs').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    }),
+  });
+  renderTemplates();
+}
+
+async function loadHealth() {
+  try {
+    const h = await api('/api/health');
+    if (h.mode === 'live') {
+      $('#mode-badge').textContent = `⚡ LLM: ${h.model}`;
+      $('#mode-badge').className = 'text-[11px] text-emerald-400 cursor-pointer underline-offset-2 hover:underline';
+    } else {
+      $('#mode-badge').textContent = 'LLM: mock · 点我接入真 LLM';
+      $('#mode-badge').className = 'text-[11px] text-amber-400 cursor-pointer underline-offset-2 hover:underline';
+    }
+    $('#mode-badge').onclick = openLlmModal;
+  } catch(e){ $('#mode-badge').textContent='health 错误'; }
+}
+
+async function openLlmModal() {
+  const cfg = await api('/api/llm-config');
+  $('#llm-base').value = cfg.base_url || '';
+  $('#llm-key').value = '';
+  $('#llm-model').value = cfg.model || '';
+  $('#llm-status').textContent = cfg.mode === 'live'
+    ? `当前：live (${cfg.model})${cfg.has_api_key?' · key 已设':''}`
+    : '当前：mock（未配置真 LLM）';
+  $('#llm-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  $('#llm-modal').classList.remove('hidden'); $('#llm-modal').classList.add('flex');
+}
+
+async function applyLlmConfig({ autoClose = true } = {}) {
+  const keyVal = $('#llm-key').value.trim();
+  const body = {
+    base_url: $('#llm-base').value.trim(),
+    model: $('#llm-model').value.trim(),
+  };
+  // 留空 = 不变（后端 None sentinel 保留原 key）；非空才覆盖
+  if (keyVal) body.api_key = keyVal;
+  const cfg = await api('/api/llm-config', { method:'POST', body: JSON.stringify(body) });
+  $('#llm-status').textContent = cfg.mode==='live' ? `✅ 已切换为 live：${cfg.model}` : '⚠️ 信息不完，仍为 mock';
+  $('#llm-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  loadHealth();
+  if (autoClose) {
+    setTimeout(() => {
+      $('#llm-modal').classList.add('hidden');
+      $('#llm-modal').classList.remove('flex');
+    }, 700);
+  }
+  return cfg;
+}
+
+async function testLlm() {
+  $('#llm-status').textContent = '🔌 测试中…';
+  $('#llm-status').className = 'text-xs text-neutral-400';
+  // 先 apply 再 ping（避免用户只填不点应用）；测试期间不要关 modal
+  await applyLlmConfig({ autoClose: false });
+  const r = await api('/api/llm-config/test', { method:'POST' });
+  if (r.ok) {
+    $('#llm-status').textContent = `✅ 联通 OK（${r.mode} · ${r.model||''}）`;
+    $('#llm-status').className = 'text-xs text-emerald-400';
+  } else {
+    $('#llm-status').textContent = `❌ ${r.error || r.reason || '联通失败'}`;
+    $('#llm-status').className = 'text-xs text-red-400';
+  }
+}
+
+async function saveLlmConfigLocal() {
+  const keyVal = $('#llm-key').value.trim();
+  const body = {
+    base_url: $('#llm-base').value.trim(),
+    model: $('#llm-model').value.trim(),
+  };
+  if (keyVal) body.api_key = keyVal;
+
+  $('#llm-status').textContent = '正在保存到本地 .env...';
+  $('#llm-status').className = 'text-xs text-neutral-400';
+  const cfg = await api('/api/llm-config/save', { method:'POST', body: JSON.stringify(body) });
+  $('#llm-status').textContent = cfg.mode === 'live'
+    ? `已写入 .env，并切换为 live：${cfg.model}`
+    : '已写入 .env，但信息不完整，当前仍为 mock';
+  $('#llm-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  $('#llm-key').value = '';
+  loadHealth();
+}
+
+async function clearLlmConfig() {
+  await api('/api/llm-config', { method:'POST', body: JSON.stringify({base_url:'',api_key:'',model:''}) });
+  await openLlmModal();
+  loadHealth();
+}
+
+async function loadSessions() {
+  state.sessions = await api('/api/sessions');
+  const html = state.sessions.map(s => `
+    <div data-sid="${s.id}" class="sess-item group cursor-pointer px-3 py-2 border-b border-neutral-900 hover:bg-neutral-900 ${state.sid===s.id?'bg-neutral-900':''} flex items-start gap-2">
+      <div class="flex-1 min-w-0">
+        <div class="text-sm truncate">${esc(s.title)}</div>
+        <div class="text-[11px] text-neutral-500 truncate">${esc(s.persona.role)} · ${esc(s.persona.goal)}</div>
+      </div>
+      <button data-del="${s.id}" title="删除会话" class="sess-del opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 text-xs px-1">✕</button>
+    </div>
+  `).join('') || '<div class="p-3 text-xs text-neutral-500">还没有会话，点右上 + 新建</div>';
+  $('#session-list').innerHTML = html;
+  $$('.sess-item').forEach(el => el.addEventListener('click', e => {
+    if (e.target.classList.contains('sess-del')) return;
+    openSession(el.dataset.sid);
+  }));
+  $$('.sess-del').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    const sid = b.dataset.del;
+    if (!confirm('确定删除这个会话？（包含所有错点、错话、掌握度数据）')) return;
+    await api('/api/sessions/'+sid, { method:'DELETE' });
+    if (state.sid === sid) {
+      state.sid = null;
+      $('#cur-title').textContent = '未选会话'; $('#cur-sub').textContent='';
+      $('#chat').innerHTML=''; $('#anchors').innerHTML=''; $('#mastery').innerHTML='';
+      $('#export-md').classList.add('hidden'); $('#export-json').classList.add('hidden');
+    }
+    loadSessions();
+  }));
+}
+
+async function openSession(sid) {
+  state.sid = sid;
+  const s = await api('/api/sessions/'+sid);
+  $('#cur-title').textContent = s.title;
+  $('#cur-sub').textContent = `${s.persona.role} · ${s.persona.goal} · 截止 ${s.persona.deadline||'未设'}`;
+  $('#export-md').classList.remove('hidden');
+  $('#export-json').classList.remove('hidden');
+  $('#export-md').href = `/api/sessions/${sid}/export?format=md`;
+  $('#export-json').href = `/api/sessions/${sid}/export?format=json`;
+  renderChat(s.messages || []);
+  renderAnchors(s.anchors || []);
+  renderMastery(s.mastery || []);
+  renderInsights(s.messages || [], s.mastery || []);
+  loadSessions();
+}
+
+const EMO_ICON = { fresh:'✨', neutral:'😐', engaged:'🔥', tired:'😪', frustrated:'😤', refusing:'🙅' };
+const ACT_LABEL = { ask:'提问', probe:'追问', emote:'情绪', persuade:'说服', next:'推进', recap:'回顾' };
+
+function renderInsights(messages, mastery) {
+  const ai = messages.filter(m => m.role === 'assistant');
+  const turns = ai.length;
+  if (turns === 0) {
+    $('#insights').innerHTML = '<div class="text-neutral-500">会话未开始</div>';
+    return;
+  }
+  // 掌握度统计
+  const avg = mastery.length ? mastery.reduce((a,m)=>a+m.level,0)/mastery.length : 0;
+  const strongest = mastery.length ? [...mastery].sort((a,b)=>b.level-a.level)[0] : null;
+  const weakest   = mastery.length ? [...mastery].sort((a,b)=>a.level-b.level)[0] : null;
+  // 动作分布
+  const actCount = {};
+  ai.forEach(m => { const t=(m.meta?.action||{}).type; if(t) actCount[t]=(actCount[t]||0)+1; });
+  const actBar = Object.entries(actCount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="action-pill mr-1">${ACT_LABEL[k]||k}·${v}</span>`).join('') || '<span class="text-neutral-500">无</span>';
+  // 情绪分布（近 10 轮）
+  const recent = ai.slice(-10);
+  const emoCount = {};
+  recent.forEach(m => { const e=(m.meta?.evaluation||{}).user_emotion; if(e && e!=='fresh') emoCount[e]=(emoCount[e]||0)+1; });
+  const emoBar = Object.entries(emoCount).map(([k,v])=>`${EMO_ICON[k]||'❓'}×${v}`).join(' ') || '<span class="text-neutral-500">还没累计</span>';
+
+  $('#insights').innerHTML = `
+    <div class="flex justify-between"><span class="text-neutral-500">学生提问轮数</span><span class="text-neutral-200">${turns}</span></div>
+    <div class="flex justify-between"><span class="text-neutral-500">平均掌握度</span><span class="text-neutral-200">${avg.toFixed(2)}</span></div>
+    ${strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最熟的点</span><span class="text-emerald-400 truncate text-right" title="${esc(strongest.knowledge_point)}">${esc(strongest.knowledge_point)} · ${strongest.level.toFixed(2)}</span></div>` : ''}
+    ${weakest && weakest!==strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最弱的点</span><span class="text-amber-400 truncate text-right" title="${esc(weakest.knowledge_point)}">${esc(weakest.knowledge_point)} · ${weakest.level.toFixed(2)}</span></div>` : ''}
+    <div class="pt-1"><span class="text-neutral-500">动作分布 </span>${actBar}</div>
+    <div><span class="text-neutral-500">你的情绪（近 ${recent.length} 轮） </span>${emoBar}</div>
+  `;
+}
+
+function renderChat(msgs) {
+  // 找最近一条 summary
+  let summaryBanner = '';
+  let cutoffId = 0;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].role === 'system' && (msgs[i].meta||{}).kind === 'summary') {
+      const meta = msgs[i].meta || {};
+      cutoffId = meta.summarized_until_id || 0;
+      summaryBanner = `
+        <details class="bg-neutral-900/60 border border-neutral-800 rounded p-2 text-xs">
+          <summary class="cursor-pointer text-neutral-400">📦 已把早期 ${meta.summarized_count} 条对话压缩为摘要（点开查看）</summary>
+          <div class="md mt-2 text-neutral-300">${md(msgs[i].content)}</div>
+        </details>`;
+      break;
+    }
+  }
+  const html = msgs
+    .filter(m => m.role !== 'system')               // 永远不渲染 system
+    .filter(m => m.id > cutoffId)                   // 被压缩的不渲染（点开 banner 看摘要）
+    .map(m => {
+      const isUser = m.role === 'user';
+      const meta = m.meta || {};
+      const a = meta.action || {};
+      const ev = meta.evaluation || {};
+      const metaLine = (!isUser && a.type) ? `
+        <div class="bubble-meta">
+          <span class="action-pill mr-1">${a.type}</span>
+          <span>kp=${esc(a.knowledge_point||'')}</span>
+          ${ev.correctness!==undefined?`· correctness=${ev.correctness}`:''}
+          ${ev.depth!==undefined?`· depth=${ev.depth}`:''}
+          ${ev.user_emotion?`· emo=${esc(ev.user_emotion)}`:''}
+        </div>` : '';
+      return `
+        <div class="flex ${isUser?'justify-end':'justify-start'}">
+          <div class="max-w-[78%] ${isUser?'bg-emerald-900/40 border border-emerald-800':'bg-neutral-900 border border-neutral-800'} rounded-lg px-3 py-2 text-sm">
+            <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
+            <div class="md">${isUser ? `<div class="whitespace-pre-wrap">${esc(m.content)}</div>` : md(m.content)}</div>
+            ${metaLine}
+          </div>
+        </div>
+      `;
+    }).join('');
+  $('#chat').innerHTML = (summaryBanner ? summaryBanner : '') +
+    (html || '<div class="text-xs text-neutral-500 text-center mt-10">学生 AI 还没说话。发一句"开始吧"试试</div>');
+  $('#chat').scrollTop = $('#chat').scrollHeight;
+}
+
+function renderAnchors(anchors) {
+  $('#anchors').innerHTML = anchors.map(a => `
+    <div class="text-xs flex gap-2 items-start group">
+      <span class="anchor-pill pill-${a.kind}">${a.kind}</span>
+      <div class="flex-1 text-neutral-300">${esc(a.content)} <span class="text-neutral-600">w=${a.weight.toFixed(1)}</span></div>
+      <button data-del-anchor="${a.id}" title="删除该锚" class="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 transition">✕</button>
+    </div>
+  `).join('') || '<div class="text-xs text-neutral-500">（尚无锚）</div>';
+  $('#anchors').querySelectorAll('[data-del-anchor]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('删除这个锚？')) return;
+    await api('/api/anchors/'+btn.dataset.delAnchor, { method:'DELETE' });
+    if (state.sid) {
+      const a = await api(`/api/sessions/${state.sid}/anchors`);
+      renderAnchors(a);
+    }
+  }));
+}
+
+function renderMastery(ms) {
+  $('#mastery').innerHTML = ms.map(m => `
+    <div>
+      <div class="text-xs flex justify-between">
+        <span class="truncate pr-2">${esc(m.knowledge_point)}</span>
+        <span class="text-neutral-500">${m.level.toFixed(2)} · ${m.attempts}次</span>
+      </div>
+      <div class="bar mt-1"><div style="width:${(m.level*100).toFixed(0)}%"></div></div>
+    </div>
+  `).join('') || '<div class="text-xs text-neutral-500">（尚无）</div>';
+}
+
+async function send() {
+  if (!state.sid) { alert('请先选择或创建一个会话'); return; }
+  const text = $('#input').value.trim();
+  if (!text) return;
+  $('#input').value = '';
+  $('#send-btn').disabled = true;
+
+  // 立即乐观渲染
+  const chat = $('#chat');
+  chat.insertAdjacentHTML('beforeend', `
+    <div class="flex justify-end"><div class="max-w-[78%] bg-emerald-900/40 border border-emerald-800 rounded-lg px-3 py-2 text-sm">
+      <div class="text-[10px] text-neutral-500 mb-1">你（老师）</div>
+      <div class="whitespace-pre-wrap">${esc(text)}</div></div></div>
+    <div id="thinking" class="flex justify-start"><div class="bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-neutral-500">🎓 学生 AI 思考中…</div></div>
+  `);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    await api(`/api/sessions/${state.sid}/chat`, {
+      method: 'POST', body: JSON.stringify({ message: text }),
+    });
+    await openSession(state.sid);
+  } catch(e) {
+    $('#thinking')?.remove();
+    alert('错误：' + e.message);
+  } finally {
+    $('#send-btn').disabled = false;
+  }
+}
+
+async function createSession() {
+  const role = $('#f-role').value.trim();
+  const goal = $('#f-goal').value.trim();
+  if (!role || !goal) { alert('角色和目标必填'); return; }
+  const reqs = $('#f-reqs').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const s = await api('/api/sessions', {
+    method:'POST',
+    body: JSON.stringify({
+      title: `${role} · ${goal}`,
+      role, goal,
+      deadline: $('#f-deadline').value.trim(),
+      personality: $('#f-personality').value.trim(),
+      initial_requirements: reqs,
+      auto_opening: $('#f-auto-opening').checked,
+    }),
+  });
+  $('#modal').classList.add('hidden'); $('#modal').classList.remove('flex');
+  await openSession(s.id);
+}
+
+function setPaneCollapsed(side, collapsed) {
+  document.body.classList.toggle(`${side}-collapsed`, collapsed);
+  localStorage.setItem(`rt-${side}-collapsed`, collapsed ? '1' : '0');
+}
+
+function initPaneToggles() {
+  setPaneCollapsed('left', localStorage.getItem('rt-left-collapsed') === '1');
+  setPaneCollapsed('right', localStorage.getItem('rt-right-collapsed') === '1');
+  $('#toggle-left').addEventListener('click', () => {
+    setPaneCollapsed('left', !document.body.classList.contains('left-collapsed'));
+  });
+  $('#toggle-right').addEventListener('click', () => {
+    setPaneCollapsed('right', !document.body.classList.contains('right-collapsed'));
+  });
+}
+
+function applyTheme(theme) {
+  const next = theme === 'ink' ? 'ink' : 'warm';
+  document.body.classList.toggle('theme-ink', next === 'ink');
+  document.body.classList.toggle('theme-warm', next === 'warm');
+  localStorage.setItem('rt-theme', next);
+  $('#theme-toggle').textContent = next === 'ink' ? '☾' : '☼';
+  $('#theme-toggle').title = next === 'ink' ? '当前：柔和黑色，点击切换暖灰' : '当前：暖灰，点击切换柔和黑色';
+}
+
+function initThemeToggle() {
+  applyTheme(localStorage.getItem('rt-theme') || 'warm');
+  $('#theme-toggle').addEventListener('click', () => {
+    applyTheme(document.body.classList.contains('theme-ink') ? 'warm' : 'ink');
+  });
+}
+
+// --- bindings ---
+$('#new-btn').addEventListener('click', () => { $('#modal').classList.remove('hidden'); $('#modal').classList.add('flex'); });
+$('#modal-cancel').addEventListener('click', () => { $('#modal').classList.add('hidden'); $('#modal').classList.remove('flex'); });
+$('#modal-ok').addEventListener('click', createSession);
+$('#bindings-btn').addEventListener('click', openBindings);
+$('#bind-close').addEventListener('click', () => { $('#bind-modal').classList.add('hidden'); $('#bind-modal').classList.remove('flex'); });
+$('#llm-close').addEventListener('click', () => { $('#llm-modal').classList.add('hidden'); $('#llm-modal').classList.remove('flex'); });
+$('#llm-apply').addEventListener('click', applyLlmConfig);
+$('#llm-test').addEventListener('click', testLlm);
+$('#llm-save-local').addEventListener('click', saveLlmConfigLocal);
+$('#llm-clear').addEventListener('click', clearLlmConfig);
+$('#send-btn').addEventListener('click', send);
+$('#input').addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') send(); });
+$('#anchor-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!state.sid) return;
+  const v = $('#anchor-input').value.trim(); if (!v) return;
+  await api(`/api/sessions/${state.sid}/anchors`, {
+    method:'POST', body: JSON.stringify({ kind:'requirement', content:v, weight:1.5 })
+  });
+  $('#anchor-input').value = '';
+  openSession(state.sid);
+});
+
+const PLATFORM_ICON = { feishu:'🐦', qq:'🐧', hermes:'⚡' };
+const STAGE_LABEL = {
+  asking_role:'等角色', asking_goal:'等目标', asking_deadline:'等截止',
+  active:'已激活', welcome:'首次', reset:'重置'
+};
+
+async function loadBindingsCount() {
+  try {
+    const bs = await api('/api/bindings');
+    $('#bindings-count').textContent = bs.length;
+    return bs;
+  } catch(e){ return []; }
+}
+
+async function openBindings() {
+  $('#bind-modal').classList.remove('hidden'); $('#bind-modal').classList.add('flex');
+  const bs = await loadBindingsCount();
+  const list = $('#bindings-list');
+  if (bs.length === 0) {
+    list.innerHTML = '<div class="text-xs text-neutral-500 text-center p-6">暂无机器人用户接入。从任何适配器的 webhook 发一条消息即可触发。</div>';
+    return;
+  }
+  list.innerHTML = bs.map(b => {
+    const d = b.onboarding_data || {};
+    const summary = d.role ? `${esc(d.role)} · ${esc(d.goal||'?')} · ${esc(d.deadline||'无')}` : '<span class="text-neutral-600">尚未完成设定</span>';
+    return `
+      <div class="bg-neutral-950 border border-neutral-800 rounded p-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="text-base">${PLATFORM_ICON[b.platform]||'❓'}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm truncate">${esc(b.platform)} · <span class="text-neutral-400">${esc(b.external_id)}</span></div>
+              <div class="text-[11px] text-neutral-500">${summary}</div>
+            </div>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded ${b.onboarding_state==='active'?'bg-emerald-900 text-emerald-300':'bg-amber-900 text-amber-300'}">${STAGE_LABEL[b.onboarding_state]||b.onboarding_state}</span>
+        </div>
+        <div class="flex gap-2 mt-2">
+          ${b.session_id ? `<button data-jump="${b.session_id}" class="text-[11px] px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">跳转会话</button>` : ''}
+          <button data-del-bind="${b.id}" class="text-[11px] px-2 py-1 rounded bg-neutral-800 hover:bg-red-900 hover:text-red-300">解绑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  list.querySelectorAll('[data-jump]').forEach(btn => btn.addEventListener('click', () => {
+    $('#bind-modal').classList.add('hidden'); $('#bind-modal').classList.remove('flex');
+    openSession(btn.dataset.jump);
+  }));
+  list.querySelectorAll('[data-del-bind]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('解绑后该外部用户下次发消息会重新走 onboarding。确定？')) return;
+    await api('/api/bindings/'+btn.dataset.delBind, { method:'DELETE' });
+    openBindings();
+  }));
+}
+
+// --- init ---
+initPaneToggles();
+initThemeToggle();
+renderTemplates();
+loadHealth();
+loadSessions();
+loadBindingsCount();
+setInterval(loadBindingsCount, 8000);  // 每 8s 轻量刷新计数
+</script>
+</body>
+</html>

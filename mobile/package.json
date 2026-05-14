@@ -1,0 +1,18 @@
+{
+  "name": "reverse-tutor-mobile",
+  "version": "0.11.0",
+  "private": true,
+  "description": "Reverse Tutor - local-only Android wrapper via Capacitor",
+  "scripts": {
+    "sync": "node sync-web.js && cap sync android",
+    "open:android": "cap open android",
+    "build:apk": "node sync-web.js && cap sync android && cd android && gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

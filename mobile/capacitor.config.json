@@ -1,0 +1,13 @@
+{
+  "appId": "com.reversetutor.app",
+  "appName": "反转家教",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
