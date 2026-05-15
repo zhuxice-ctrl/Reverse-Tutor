@@ -1,16 +1,16 @@
 {
-  "versionCode": 6,
-  "versionName": "0.15.1",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.1-debug.apk",
+  "versionCode": 7,
+  "versionName": "0.15.2",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.2-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.1/Back_Teacher-v0.15.1-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.2/Back_Teacher-v0.15.2-debug.apk"
   ],
-  "sha256": "fe2dc2dc456b574be490a34d1faf1c6a3386e3759e369635bba9a51fc89cc491",
+  "sha256": "996ef3fd093487c6563d291d67fd7250717c4c00382060dcb71ce7d4e0cb5854",
   "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "修复 LLM 测试连接偶发失败：测试连接不再强制模型返回 JSON，只要模型能正常返回内容就判定连通。",
-    "修复对话和后台回复容易显示 JSON 解析失败的问题：模型返回自然语言时会自动包装成可用的学生回复。",
-    "后台生成导入更稳：历史遗留的纯文本后台结果也会正常写入对话，不再直接显示解析失败。",
-    "防止连续点击测试连接和发送造成并发请求。"
+    "对话消息增加 turn 绑定：用户消息、前台 LLM 回复、后台 LLM 回复都会记录同一轮的 turn_id 和 reply_to_message_id。",
+    "后台回复导入更稳：完成结果和本地 pending 记录会共同用于找回原问题，不再容易显示成 unknown。",
+    "AI 回复改为安全文本渲染，修复 Markdown 删除线把普通内容划掉的问题。",
+    "长回复会按句子拆成最多 3 个气泡，连续回复更像聊天，不再挤成一整块。"
   ]
 }

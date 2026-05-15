@@ -71,6 +71,8 @@
   .pill-encourage { background:#065f46; color:#a7f3d0; }
   .pill-next { background:#1f2937; color:#9ca3af; }
   .pill-wrap { background:#374151; color:#d1d5db; }
+  .pill-pending { background:#164e63; color:#a5f3fc; }
+  .pill-error { background:#7f1d1d; color:#fecaca; }
   .pill-onboarding { background:#0369a1; color:#bae6fd; }
   .pill-initial { background:#7e22ce; color:#e9d5ff; }
   .pill-requirement { background:#047857; color:#a7f3d0; }
@@ -585,8 +587,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 6;
-const APP_VERSION_NAME = '0.15.1';
+const APP_VERSION_CODE = 7;
+const APP_VERSION_NAME = '0.15.2';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -1026,6 +1028,57 @@ function applyTheme(theme) {
 
 // 简单 UUID（12 字符）
 const uuid = () => Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-6);
+
+function createTurnId() {
+  return `turn_${uuid()}`;
+}
+
+function shapeReplyBubbles(text, maxBubbles=3) {
+  const raw = String(text || '').replace(/\r\n/g, '\n').trim();
+  if (!raw) return [];
+
+  const explicit = raw.split(/\s*\|\|\|\s*/).map(s => s.trim()).filter(Boolean);
+  const source = explicit.length > 1 ? explicit : [raw];
+  const chunks = [];
+  for (const block of source) {
+    if (block.length <= 120 || /^```/.test(block.trim())) {
+      chunks.push(block);
+      continue;
+    }
+    const parts = block.match(/[^。！？!?…]+[。！？!?…]*/g) || [block];
+    let buf = '';
+    for (const part of parts) {
+      const next = (buf + part).trim();
+      if (buf && next.length > 140) {
+        chunks.push(buf.trim());
+        buf = part;
+      } else {
+        buf = next;
+      }
+    }
+    if (buf.trim()) chunks.push(buf.trim());
+  }
+
+  if (chunks.length <= maxBubbles) return chunks;
+  return [
+    ...chunks.slice(0, maxBubbles - 1),
+    chunks.slice(maxBubbles - 1).join('\n'),
+  ].filter(Boolean);
+}
+
+function normalizeAction(rawAction={}, fallbackNote='自由回复') {
+  const allowed = ['ask', 'probe', 'explain_back', 'persuade', 'encourage', 'next', 'wrap', 'pending', 'error'];
+  const action = (rawAction && typeof rawAction === 'object') ? { ...rawAction } : {};
+  if (!allowed.includes(action.type)) action.type = 'ask';
+  const kp = String(action.knowledge_point || '').trim();
+  if (!kp || /^(unknown|\?|模型自由回复)$/i.test(kp)) delete action.knowledge_point;
+  if (!action.note) action.note = fallbackNote;
+  return action;
+}
+
+function safeChatHtml(content) {
+  return `<div class="whitespace-pre-wrap break-words">${esc(String(content || ''))}</div>`;
+}
 </script>
 
 <script>
@@ -1698,7 +1751,20 @@ ${format_actions()}
   }
 
   async function add_message(sid, role, content, meta={}) {
-    return DB.add('messages', { sid, role, content, meta, created_at: Date.now() });
+    const now = Date.now();
+    const record = {
+      sid,
+      role,
+      content,
+      meta: { ...meta },
+      created_at: now,
+      status: meta.status || (meta.kind === 'native_background_pending' ? 'pending' : 'completed'),
+      source: meta.source || role,
+    };
+    for (const key of ['turn_id', 'client_msg_id', 'reply_to_message_id', 'message_index', 'message_total']) {
+      if (meta[key] !== undefined) record[key] = meta[key];
+    }
+    return DB.add('messages', record);
   }
 
   // 压缩：模拟后端 maybe_summarize
@@ -1744,7 +1810,7 @@ ${format_actions()}
     return { reply, action };
   }
 
-  async function maybe_enqueue_native_background_turn(sid, system, messages, temperature=0.85, max_tokens=900) {
+  async function maybe_enqueue_native_background_turn(sid, system, messages, temperature=0.85, max_tokens=900, turnMeta={}) {
     const cfg = LLM.get_config();
     if (cfg.mode !== 'live') return null;
     if (!supportsBackgroundChat(cfg)) return null;
@@ -1760,6 +1826,9 @@ ${format_actions()}
       model: cfg.model,
       api_type: cfg.api_type,
       capability: cfg.capability,
+      turn_id: turnMeta.turn_id || null,
+      client_msg_id: turnMeta.client_msg_id || null,
+      reply_to_message_id: turnMeta.reply_to_message_id || null,
       system,
       messages,
       temperature,
@@ -1768,6 +1837,11 @@ ${format_actions()}
     await add_message(sid, 'system', `[后台回复生成中] ${jobId}`, {
       kind: 'native_background_pending',
       native_background_job_id: jobId,
+      turn_id: turnMeta.turn_id || jobId,
+      client_msg_id: turnMeta.client_msg_id || null,
+      reply_to_message_id: turnMeta.reply_to_message_id || null,
+      source: 'native_background',
+      status: 'pending',
       created_at: Date.now(),
     });
     return {
@@ -1775,6 +1849,8 @@ ${format_actions()}
       action: { type: 'pending', knowledge_point: '后台生成' },
       evaluation: {},
       native_background_job_id: jobId,
+      turn_id: turnMeta.turn_id || jobId,
+      reply_to_message_id: turnMeta.reply_to_message_id || null,
     };
   }
 
@@ -1789,7 +1865,14 @@ ${format_actions()}
     for (const job of jobs) {
       const jobId = job.job_id || '';
       if (!jobId || !job.sid) continue;
-      const existing = (await DB.bySid('messages', job.sid))
+      const sidMessages = await DB.bySid('messages', job.sid);
+      const pending = sidMessages.find(m =>
+        (m.meta || {}).native_background_job_id === jobId &&
+        (m.meta || {}).kind === 'native_background_pending'
+      ) || {};
+      const turn_id = job.turn_id || pending.turn_id || (pending.meta || {}).turn_id || jobId;
+      const reply_to_message_id = job.reply_to_message_id || pending.reply_to_message_id || (pending.meta || {}).reply_to_message_id || null;
+      const existing = sidMessages
         .some(m => (m.meta || {}).native_background_job_id === jobId && m.role === 'assistant');
       if (existing) {
         await NativeBackgroundLlm.clearCompletedTurn(jobId);
@@ -1808,6 +1891,12 @@ ${format_actions()}
               evaluation: {},
               native_background_job_id: jobId,
               native_background: true,
+              turn_id,
+              reply_to_message_id,
+              message_index: 0,
+              message_total: 1,
+              source:'native_background',
+              status: 'completed',
             });
             imported += 1;
             lastReply = `后台回复解析失败：${e.message || e}`;
@@ -1816,16 +1905,25 @@ ${format_actions()}
           }
         }
         const ev = raw.evaluation || {};
-        const ac = raw.action || {};
+        const ac = normalizeAction(raw.action || {}, '后台回复');
         const reply = (raw.reply || '').trim() || '（后台回复已生成，但内容为空）';
         const updates = raw.anchor_updates || [];
 
-        await add_message(job.sid, 'assistant', reply, {
-          action: ac,
-          evaluation: ev,
-          native_background_job_id: jobId,
-          native_background: true,
-        });
+        const bubbles = shapeReplyBubbles(reply);
+        for (let i = 0; i < bubbles.length; i++) {
+          await add_message(job.sid, 'assistant', bubbles[i], {
+            action: ac,
+            evaluation: ev,
+            native_background_job_id: jobId,
+            native_background: true,
+            turn_id,
+            reply_to_message_id,
+            message_index: i,
+            message_total: bubbles.length,
+            source:'native_background',
+            status: 'completed',
+          });
+        }
         if (ac.knowledge_point) {
           await upsert_mastery(job.sid, ac.knowledge_point, +ev.correctness || 0, +ev.depth || 0);
         }
@@ -1842,6 +1940,12 @@ ${format_actions()}
           evaluation: {},
           native_background_job_id: jobId,
           native_background: true,
+          turn_id,
+          reply_to_message_id,
+          message_index: 0,
+          message_total: 1,
+          source:'native_background',
+          status: 'completed',
         });
         imported += 1;
         lastReply = `后台回复失败：${job.error || '未知错误'}`;
@@ -1852,9 +1956,18 @@ ${format_actions()}
   }
 
   async function run_turn(sid, user_input, onUserAdded) {
+    const turnId = createTurnId();
+    const clientMsgId = `client_${uuid()}`;
+    let userMessage = null;
     // 立即写入用户消息（让 UI 可乐观渲染），再做摘要 / LLM
     if (user_input != null) {
-      await add_message(sid, 'user', user_input, { turn_input: true });
+      userMessage = await add_message(sid, 'user', user_input, {
+        turn_input: true,
+        turn_id: turnId,
+        client_msg_id: clientMsgId,
+        source: 'user',
+        status: 'completed',
+      });
       if (typeof onUserAdded === 'function') { try { await onUserAdded(); } catch(e){} }
     }
     await maybe_summarize(sid);
@@ -1870,16 +1983,32 @@ ${format_actions()}
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
 
-    const nativeQueued = await maybe_enqueue_native_background_turn(sid, system, messages, 0.85, 900);
+    const nativeQueued = await maybe_enqueue_native_background_turn(sid, system, messages, 0.85, 900, {
+      turn_id: turnId,
+      client_msg_id: clientMsgId,
+      reply_to_message_id: userMessage ? userMessage.id : null,
+    });
     if (nativeQueued) return nativeQueued;
 
     const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
     const ev = raw.evaluation || {};
-    const ac = raw.action || {};
+    const ac = normalizeAction(raw.action || {}, '自由回复');
     const reply = (raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
     const updates = raw.anchor_updates || [];
 
-    await add_message(sid, 'assistant', reply, { action: ac, evaluation: ev });
+    const bubbles = shapeReplyBubbles(reply);
+    for (let i = 0; i < bubbles.length; i++) {
+      await add_message(sid, 'assistant', bubbles[i], {
+        action: ac,
+        evaluation: ev,
+        turn_id: turnId,
+        reply_to_message_id: userMessage ? userMessage.id : null,
+        message_index: i,
+        message_total: bubbles.length,
+        source:'foreground_llm',
+        status: 'completed',
+      });
+    }
 
     if (ac.knowledge_point) {
       await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
@@ -1996,19 +2125,29 @@ async function renderChat() {
     .filter(m => m.id > cutoff)
     .map(m => {
       const isUser = m.role === 'user';
-      const a = (m.meta||{}).action || {};
-      const ev = (m.meta||{}).evaluation || {};
-      const meta = (!isUser && a.type) ? `
+      const msgMeta = m.meta || {};
+      const hasActionMeta = !!msgMeta.action || msgMeta.native_background || m.source === 'foreground_llm' || m.source === 'native_background';
+      const a = hasActionMeta ? normalizeAction(msgMeta.action || {}, msgMeta.native_background ? '后台回复' : '自由回复') : {};
+      const ev = msgMeta.evaluation || {};
+      const source = msgMeta.source || m.source || '';
+      const sourceLabel = source === 'native_background' ? '后台回复' : (source === 'foreground_llm' ? '对话' : '');
+      const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;
+      const messageTotal = msgMeta.message_total ?? m.message_total ?? 1;
+      const kp = a.knowledge_point ? `<span>${esc(a.knowledge_point)}</span>` : '';
+      const bubblePos = messageTotal > 1 ? `<span>${messageIndex + 1}/${messageTotal}</span>` : '';
+      const meta = (!isUser && a.type && messageIndex === 0) ? `
         <div class="text-[10px] text-neutral-500 mt-1 flex flex-wrap gap-1 items-center">
           <span class="pill pill-${a.type}">${a.type}</span>
-          <span>${esc(a.knowledge_point||'')}</span>
+          ${sourceLabel ? `<span>${sourceLabel}</span>` : ''}
+          ${kp}
+          ${bubblePos}
           ${ev.user_emotion ? `· ${esc(ev.user_emotion)}` : ''}
         </div>` : '';
       return `
         <div class="flex ${isUser?'justify-end':'justify-start'}">
           <div class="max-w-[85%] ${isUser?'bg-emerald-900/40 border border-emerald-800':'bg-neutral-900 border border-neutral-800'} rounded-2xl px-3 py-2">
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
-            <div class="md text-sm">${isUser ? `<div class="whitespace-pre-wrap">${esc(m.content)}</div>` : md(m.content)}</div>
+            <div class="md text-sm">${isUser ? `<div class="whitespace-pre-wrap">${esc(m.content)}</div>` : safeChatHtml(m.content)}</div>
             ${meta}
           </div>
         </div>`;

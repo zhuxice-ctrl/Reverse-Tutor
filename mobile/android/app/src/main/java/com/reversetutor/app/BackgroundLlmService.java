@@ -349,6 +349,9 @@ public class BackgroundLlmService extends Service {
         JSONObject item = new JSONObject();
         item.put("job_id", job.optString("job_id", ""));
         item.put("sid", job.optString("sid", ""));
+        item.put("turn_id", job.optString("turn_id", ""));
+        item.put("client_msg_id", job.optString("client_msg_id", ""));
+        item.put("reply_to_message_id", job.opt("reply_to_message_id"));
         item.put("status", status);
         item.put("raw_content", rawContent);
         item.put("error", error);

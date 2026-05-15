@@ -57,3 +57,22 @@ def test_mobile_llm_ping_uses_plain_text_connectivity_probe():
     assert "连通性检测。请简短回复 ok。" in html
     assert "const raw = await chat_text" in html
     assert "btn.disabled = true" in html
+
+
+def test_mobile_chat_turns_are_bound_and_rendered_safely():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function shapeReplyBubbles" in html
+    assert "function normalizeAction" in html
+    assert "function safeChatHtml" in html
+    assert "turn_id" in html
+    assert "client_msg_id" in html
+    assert "reply_to_message_id" in html
+    assert "message_index" in html
+    assert "message_total" in html
+    assert "source:'foreground_llm'" in html
+    assert "source:'native_background'" in html
+    assert "native_background_job_id: jobId" in html
+    assert "pending.turn_id" in html
+    assert "safeChatHtml(m.content)" in html
+    assert "md(m.content)" not in html

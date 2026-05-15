@@ -41,6 +41,8 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert "fallbackReplyJson" in service
     assert "extractReplyText" in service
     assert "background_fallback" in service
+    assert 'item.put("turn_id"' in service
+    assert 'item.put("reply_to_message_id"' in service
 
 
 def test_mobile_frontend_enqueues_and_imports_native_background_turns():
