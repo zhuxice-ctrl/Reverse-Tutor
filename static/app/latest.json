@@ -1,13 +1,13 @@
 {
-  "versionCode": 4,
-  "versionName": "0.14.0",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.14.0/Back_Teacher-v0.14.0-debug.apk",
+  "versionCode": 5,
+  "versionName": "0.15.0",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.0/Back_Teacher-v0.15.0-debug.apk",
   "publishedAt": "2026-05-15",
   "releaseNotes": [
-    "LLM JSON 解析增强：兼容 <think> 标签、Markdown 代码块、尾随逗号，失败自动严格重试。",
-    "LLM API 配置改为设备长期保存，退出重开后自动恢复。",
-    "Android 新增后台 LLM 前台服务：发送后退出应用仍可继续生成当前回复，完成后系统通知提醒。",
-    "后台生成结果会在重开或回到应用后自动导入当前会话。",
-    "增强 provider 非 JSON 响应、空内容、连接失败等错误提示。"
+    "新增常用 LLM 接口预设：DeepSeek、OpenAI、OpenRouter、硅基流动、通义千问、智谱、月之暗面、火山方舟等，可直接选择官方 URL 和常用模型。",
+    "增强后台 LLM 回复兼容：支持纯文本、Markdown 代码块、数组/对象包裹、非严格 JSON 等多种返回格式，降低偶发解析失败。",
+    "优化更新检查：GitHub 更新源失败时会自动回退到 latest.json，减少一直检查但不出结果的问题。",
+    "刷新应用图标：新的深色书本、对话、闪电图标，同时覆盖 PWA 和 Android 启动器图标。",
+    "保留本地长期配置和后台生成能力：绑定 API 后设备会持续保存配置，退出应用后当前后台回复仍可继续写回。"
   ]
 }
