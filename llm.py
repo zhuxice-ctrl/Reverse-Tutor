@@ -83,7 +83,27 @@ async def chat_json(
     if not _HAS_REAL:
         return _mock_response(system, messages)
     raw = await _openai_chat(system, messages, temperature, max_tokens)
-    return _extract_json(raw)
+    try:
+        return _extract_json(raw)
+    except LLMError as first_error:
+        retry_system = (
+            system
+            + "\n\nIMPORTANT: Return only one valid JSON object. Do not use markdown, "
+            + "comments, <think> tags, or explanations before/after the JSON. "
+            + "Start with { and end with }."
+        )
+        retry_raw = await _openai_chat(
+            retry_system,
+            messages,
+            min(temperature, 0.3),
+            max_tokens,
+        )
+        try:
+            return _extract_json(retry_raw)
+        except LLMError as retry_error:
+            raise LLMError(
+                f"{retry_error}; first invalid response preview={raw[:200]!r}"
+            ) from first_error
 
 
 def has_real_llm() -> bool:
@@ -108,9 +128,11 @@ async def _openai_chat(
         try:
             r = await client.post(url, json=payload, headers=headers)
             r.raise_for_status()
-        except httpx.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             # 某些 provider 不支持 response_format，去掉重试一次
-            if "response_format" in str(e) or r.status_code in (400, 422):
+            status = e.response.status_code
+            body_preview = (e.response.text or "")[:300]
+            if "response_format" in str(e) or "response_format" in body_preview or status in (400, 422):
                 payload.pop("response_format", None)
                 try:
                     r = await client.post(url, json=payload, headers=headers)
@@ -120,8 +142,10 @@ async def _openai_chat(
                         f"LLM retry without response_format failed: {retry_e}"
                     ) from retry_e
             else:
-                raise LLMError(f"LLM request failed: {e}") from e
-    data = r.json()
+                raise LLMError(f"LLM request failed: {e}; body={body_preview}") from e
+        except httpx.HTTPError as e:
+            raise LLMError(f"LLM request failed: {e}") from e
+    data = _response_json(r, "LLM")
     content = _content_from_openai_data(data)
     if content.strip():
         return content
@@ -138,7 +162,7 @@ async def _openai_chat(
             r.raise_for_status()
         except httpx.HTTPError as e:
             raise LLMError(f"LLM request failed after empty-content retry: {e}") from e
-    retry_data = r.json()
+    retry_data = _response_json(r, "LLM retry")
     retry_content = _content_from_openai_data(retry_data)
     if retry_content.strip():
         return retry_content
@@ -180,6 +204,17 @@ def _content_from_openai_data(data: dict[str, Any]) -> str:
     return content
 
 
+def _response_json(response: httpx.Response, label: str) -> dict[str, Any]:
+    try:
+        data = response.json()
+    except Exception as e:
+        text = getattr(response, "text", "") or ""
+        raise LLMError(f"{label} returned non-JSON API response: {text[:300]}") from e
+    if not isinstance(data, dict):
+        raise LLMError(f"{label} response shape unexpected: {str(data)[:300]}")
+    return data
+
+
 def _raise_empty_content(data: dict[str, Any]) -> str:
     choice = (data.get("choices") or [{}])[0]
     finish = choice.get("finish_reason")
@@ -196,24 +231,89 @@ def _raise_empty_content(data: dict[str, Any]) -> str:
     )
 
 
-_JSON_RE = re.compile(r"\{[\s\S]*\}")
+_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
+_THINK_RE = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
+_TRAILING_COMMA_RE = re.compile(r",(\s*[}\]])")
 
 
 def _extract_json(raw: str) -> dict[str, Any]:
-    raw = (raw or "").strip()
-    # 直接尝试
-    try:
-        return json.loads(raw)
-    except Exception:
-        pass
-    # 抽出第一个 {...} 块
-    m = _JSON_RE.search(raw)
-    if m:
+    original = raw or ""
+    s = _normalize_json_text(original)
+
+    for candidate in _json_candidates(s):
+        parsed = _loads_json_lenient(candidate)
+        if parsed is not None:
+            return parsed
+
+    raise LLMError(f"LLM did not return valid JSON: {original.strip()[:300]}")
+
+
+def _normalize_json_text(raw: str) -> str:
+    s = (raw or "").strip()
+    s = _THINK_RE.sub("", s).strip()
+    fence = _FENCE_RE.search(s)
+    if fence:
+        s = fence.group(1).strip()
+    return s
+
+
+def _json_candidates(s: str) -> list[str]:
+    candidates = [s]
+    first = s.find("{")
+    last = s.rfind("}")
+    if first >= 0 and last > first:
+        candidates.append(s[first:last + 1])
+
+    balanced = _first_balanced_json_object(s, first)
+    if balanced:
+        candidates.append(balanced)
+
+    deduped = []
+    seen = set()
+    for candidate in candidates:
+        candidate = candidate.strip()
+        if candidate and candidate not in seen:
+            deduped.append(candidate)
+            seen.add(candidate)
+    return deduped
+
+
+def _first_balanced_json_object(s: str, first: int) -> str | None:
+    if first < 0:
+        return None
+    depth = 0
+    in_string = False
+    escaped = False
+    for i in range(first, len(s)):
+        ch = s[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return s[first:i + 1]
+    return None
+
+
+def _loads_json_lenient(s: str) -> dict[str, Any] | None:
+    for candidate in (s, _TRAILING_COMMA_RE.sub(r"\1", s)):
         try:
-            return json.loads(m.group(0))
+            parsed = json.loads(candidate)
         except Exception:
-            pass
-    raise LLMError(f"LLM did not return valid JSON: {raw[:300]}")
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
 
 
 # --- Mock：离线 demo 模式 -----------------------------------------------------

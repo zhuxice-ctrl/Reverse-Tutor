@@ -562,8 +562,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 3;
-const APP_VERSION_NAME = '0.13.0';
+const APP_VERSION_CODE = 4;
+const APP_VERSION_NAME = '0.14.0';
 const DEFAULT_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
@@ -619,22 +619,72 @@ function saveLlmConfigLocal(c) {
   localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(normalizeLlmConfig(c)));
 }
 
+function nativePreferences() {
+  return window.Capacitor?.Plugins?.Preferences || null;
+}
+
+async function loadLlmConfigNative() {
+  const Preferences = nativePreferences();
+  if (!Preferences) return null;
+  try {
+    const r = await Preferences.get({ key: LLM_CONFIG_KEY });
+    return r && r.value ? normalizeLlmConfig(JSON.parse(r.value)) : null;
+  } catch (err) {
+    console.warn('llm native config load failed', err);
+    return null;
+  }
+}
+
+async function saveLlmConfigNative(c) {
+  const Preferences = nativePreferences();
+  if (!Preferences) return false;
+  try {
+    await Preferences.set({
+      key: LLM_CONFIG_KEY,
+      value: JSON.stringify(normalizeLlmConfig(c)),
+    });
+    return true;
+  } catch (err) {
+    console.warn('llm native config save failed', err);
+    return false;
+  }
+}
+
+async function clearLlmConfigNative() {
+  const Preferences = nativePreferences();
+  if (!Preferences) return false;
+  try {
+    await Preferences.remove({ key: LLM_CONFIG_KEY });
+    return true;
+  } catch (err) {
+    console.warn('llm native config clear failed', err);
+    return false;
+  }
+}
+
 async function persistLlmConfig(c) {
   const next = normalizeLlmConfig(c);
   LLM.set_config(next);
   saveLlmConfigLocal(next);
-  await DB.kvSet('llm_config', next);
+  await Promise.allSettled([
+    saveLlmConfigNative(next),
+    DB.kvSet('llm_config', next),
+  ]);
   return LLM.get_config();
 }
 
 async function restoreLlmConfig() {
-  const dbCfg = await DB.kvGet('llm_config');
+  const nativeCfg = await loadLlmConfigNative();
   const localCfg = loadLlmConfigLocal();
-  const next = normalizeLlmConfig(dbCfg || localCfg || {});
+  const dbCfg = await DB.kvGet('llm_config');
+  const next = normalizeLlmConfig(nativeCfg || localCfg || dbCfg || {});
   if (next.base_url || next.api_key || next.model) {
     LLM.set_config(next);
     saveLlmConfigLocal(next);
-    if (!dbCfg && localCfg) await DB.kvSet('llm_config', next);
+    await Promise.allSettled([
+      saveLlmConfigNative(next),
+      DB.kvSet('llm_config', next),
+    ]);
   }
   return LLM.get_config();
 }
@@ -1122,8 +1172,25 @@ const LLM = (() => {
       }
     }
     if (!r.ok) throw new Error(`LLM ${r.status}: ${await r.text().catch(()=>'')}`);
-    const data = await r.json();
-    const raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+    const text = await r.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`LLM returned non-JSON API response: ${text.slice(0, 200)}`);
+    }
+    const choice = data.choices && data.choices[0];
+    const msg = choice && choice.message;
+    if (!msg) throw new Error(`LLM response shape unexpected: ${JSON.stringify(data).slice(0, 200)}`);
+    const raw = msg.content || msg.reasoning_content || '';
+    if (!String(raw).trim()) {
+      const finish = choice.finish_reason || 'unknown';
+      const usage = data.usage ? JSON.stringify(data.usage) : '{}';
+      const hint = finish === 'length'
+        ? '（被 max_tokens 截断，调大 max_tokens 或缩短上下文后重试）'
+        : '（模型返回了空内容，已无法解析 JSON）';
+      throw new Error(`LLM returned empty content. finish_reason=${finish} usage=${usage} ${hint}`);
+    }
     return extract_json(raw);
   }
   function extract_json(raw) {
@@ -1172,10 +1239,15 @@ const LLM = (() => {
     try {
       return await openai_chat(system, messages, t, mt);
     } catch (e) {
-      if (!/did not return valid JSON/.test(String(e.message||e))) throw e;
+      const firstMessage = String(e.message || e);
+      if (!/did not return valid JSON|empty content/.test(firstMessage)) throw e;
       // 重试：把 system 收紧、温度降低，强制 JSON 输出
       const sys2 = system + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
-      return await openai_chat(sys2, messages, Math.min(t, 0.3), mt);
+      try {
+        return await openai_chat(sys2, messages, Math.min(t, 0.3), mt);
+      } catch (retryErr) {
+        throw new Error(`${retryErr.message || retryErr}; first invalid response: ${firstMessage.slice(0, 180)}`);
+      }
     }
   }
 
@@ -1192,7 +1264,60 @@ const LLM = (() => {
     }
   }
 
-  return { has_real, set_config, get_config, chat_json, ping };
+  return { has_real, set_config, get_config, chat_json, ping, parse_json: extract_json };
+})();
+</script>
+
+<script>
+// ============== Android 后台 LLM 前台服务桥 ==============
+const NativeBackgroundLlm = (() => {
+  function plugin() {
+    return window.Capacitor?.Plugins?.BackgroundLlm || null;
+  }
+
+  async function isAvailable() {
+    const p = plugin();
+    if (!p) return false;
+    try {
+      const r = await p.isAvailable();
+      return !!r.available;
+    } catch (e) {
+      console.warn('background llm availability check failed', e);
+      return false;
+    }
+  }
+
+  async function requestNotificationPermission() {
+    const p = plugin();
+    if (!p) return { granted: false, available: false };
+    try {
+      return await p.requestNotificationPermission();
+    } catch (e) {
+      console.warn('background llm notification permission failed', e);
+      return { granted: false, error: String(e.message || e) };
+    }
+  }
+
+  async function enqueueTurn(job) {
+    const p = plugin();
+    if (!p) throw new Error('BackgroundLlm plugin unavailable');
+    return p.enqueueTurn(job);
+  }
+
+  async function getCompletedTurns() {
+    const p = plugin();
+    if (!p) return [];
+    const r = await p.getCompletedTurns();
+    return Array.isArray(r.jobs) ? r.jobs : [];
+  }
+
+  async function clearCompletedTurn(job_id) {
+    const p = plugin();
+    if (!p || !job_id) return;
+    await p.clearCompletedTurn({ job_id });
+  }
+
+  return { isAvailable, requestNotificationPermission, enqueueTurn, getCompletedTurns, clearCompletedTurn };
 })();
 </script>
 
@@ -1355,6 +1480,103 @@ ${format_actions()}
     return { reply, action };
   }
 
+  async function maybe_enqueue_native_background_turn(sid, system, messages, temperature=0.85, max_tokens=900) {
+    const cfg = LLM.get_config();
+    if (cfg.mode !== 'live') return null;
+    if (!await NativeBackgroundLlm.isAvailable()) return null;
+
+    const jobId = uuid();
+    await NativeBackgroundLlm.requestNotificationPermission();
+    await NativeBackgroundLlm.enqueueTurn({
+      job_id: jobId,
+      sid,
+      base_url: cfg.base_url,
+      api_key: cfg.api_key,
+      model: cfg.model,
+      system,
+      messages,
+      temperature,
+      max_tokens,
+    });
+    await add_message(sid, 'system', `[后台回复生成中] ${jobId}`, {
+      kind: 'native_background_pending',
+      native_background_job_id: jobId,
+      created_at: Date.now(),
+    });
+    return {
+      reply: '已转入后台生成。完成后会发通知，回到应用会自动显示回复。',
+      action: { type: 'pending', knowledge_point: '后台生成' },
+      evaluation: {},
+      native_background_job_id: jobId,
+    };
+  }
+
+  async function import_native_background_turns() {
+    const jobs = await NativeBackgroundLlm.getCompletedTurns();
+    let imported = 0;
+    let lastReply = '';
+    for (const job of jobs) {
+      const jobId = job.job_id || '';
+      if (!jobId || !job.sid) continue;
+      const existing = (await DB.bySid('messages', job.sid))
+        .some(m => (m.meta || {}).native_background_job_id === jobId && m.role === 'assistant');
+      if (existing) {
+        await NativeBackgroundLlm.clearCompletedTurn(jobId);
+        continue;
+      }
+
+      if (job.status === 'success') {
+        let raw;
+        try {
+          raw = LLM.parse_json(job.raw_content || '{}');
+        } catch (e) {
+          await add_message(job.sid, 'assistant', `后台回复解析失败：${e.message || e}`, {
+            action: { type: 'error', knowledge_point: '后台生成' },
+            evaluation: {},
+            native_background_job_id: jobId,
+            native_background: true,
+          });
+          imported += 1;
+          lastReply = `后台回复解析失败：${e.message || e}`;
+          await NativeBackgroundLlm.clearCompletedTurn(jobId);
+          continue;
+        }
+        const ev = raw.evaluation || {};
+        const ac = raw.action || {};
+        const reply = (raw.reply || '').trim() || '（后台回复已生成，但内容为空）';
+        const updates = raw.anchor_updates || [];
+
+        await add_message(job.sid, 'assistant', reply, {
+          action: ac,
+          evaluation: ev,
+          native_background_job_id: jobId,
+          native_background: true,
+        });
+        if (ac.knowledge_point) {
+          await upsert_mastery(job.sid, ac.knowledge_point, +ev.correctness || 0, +ev.depth || 0);
+        }
+        for (const u of updates) {
+          if (u && u.content) {
+            await add_anchor(job.sid, u.kind || 'requirement', u.content || '', +u.weight || 1.0);
+          }
+        }
+        imported += 1;
+        lastReply = reply;
+      } else if (job.status === 'error') {
+        await add_message(job.sid, 'assistant', `后台回复失败：${job.error || '未知错误'}`, {
+          action: { type: 'error', knowledge_point: '后台生成' },
+          evaluation: {},
+          native_background_job_id: jobId,
+          native_background: true,
+        });
+        imported += 1;
+        lastReply = `后台回复失败：${job.error || '未知错误'}`;
+      }
+      await NativeBackgroundLlm.clearCompletedTurn(jobId);
+    }
+    return { imported, lastReply };
+  }
+
   async function run_turn(sid, user_input, onUserAdded) {
     // 立即写入用户消息（让 UI 可乐观渲染），再做摘要 / LLM
     if (user_input != null) {
@@ -1373,6 +1595,9 @@ ${format_actions()}
     const system = build_system_prompt(session, anchors, masteries, summary_text);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
+
+    const nativeQueued = await maybe_enqueue_native_background_turn(sid, system, messages, 0.85, 900);
+    if (nativeQueued) return nativeQueued;
 
     const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
     const ev = raw.evaluation || {};
@@ -1416,7 +1641,7 @@ ${format_actions()}
     ]);
   }
 
-  return { create_session, delete_session, run_opening_turn, run_turn, maybe_summarize, ACTION_TYPES };
+  return { create_session, delete_session, run_opening_turn, run_turn, maybe_summarize, import_native_background_turns, ACTION_TYPES };
 })();
 </script>
 
@@ -1539,6 +1764,21 @@ async function sendMessage() {
     $('#chat-send').disabled = false; $('#chat-send').textContent = '发送';
     await renderChat();
     refreshHeader();
+  }
+}
+
+async function importNativeBackgroundTurns({ silent=false } = {}) {
+  try {
+    const r = await ENGINE.import_native_background_turns();
+    if (r.imported) {
+      if (state.sid) await renderChat();
+      refreshHeader();
+      if (!silent && r.lastReply) showMessagePopup('后台 LLM 回复', r.lastReply);
+    }
+    return r;
+  } catch (e) {
+    console.warn('import native background turns failed', e);
+    return { imported: 0, error: String(e.message || e) };
   }
 }
 
@@ -2138,7 +2378,7 @@ async function saveLlmConfig() {
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   $('#cfg-status').textContent = cfg.mode==='live'
-    ? `已切到 live：${cfg.model}`
+    ? `已保存到本设备，已切到 live：${cfg.model}`
     : (cfg.has_api_key ? '信息不完整，仍是 mock；API Key 已保留' : '信息不完整，仍是 mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   refreshHeader();
@@ -2160,7 +2400,10 @@ async function clearLlm() {
   const empty = { base_url:'', api_key:'', model:'' };
   LLM.set_config(empty);
   localStorage.removeItem(LLM_CONFIG_KEY);
-  await DB.kvSet('llm_config', empty);
+  await Promise.allSettled([
+    clearLlmConfigNative(),
+    DB.kvSet('llm_config', empty),
+  ]);
   renderSettings(); refreshHeader();
 }
 $('#cfg-save').addEventListener('click', saveLlmConfig);
@@ -2169,6 +2412,7 @@ $('#cfg-clear').addEventListener('click', clearLlm);
 async function restoreRuntimeConfigOnResume() {
   try {
     await restoreLlmConfig();
+    await importNativeBackgroundTurns();
     if (state.currentTab === 'settings') renderSettings();
     refreshHeader();
   } catch (err) {
@@ -2179,6 +2423,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') restoreRuntimeConfigOnResume();
 });
 window.addEventListener('focus', restoreRuntimeConfigOnResume);
+setInterval(() => importNativeBackgroundTurns({ silent: true }), 5000);
 $('#theme-ink').addEventListener('click', () => applyTheme('ink'));
 $('#theme-warm').addEventListener('click', () => applyTheme('warm'));
 $('#popup-enabled').addEventListener('change', e => setPopupEnabled(e.target.checked));
@@ -2409,6 +2654,7 @@ detectPwaEnv();
   await DB.open();
   // 恢复 LLM 配置
   await restoreLlmConfig();
+  await importNativeBackgroundTurns({ silent: true });
   // 恢复当前 session
   if (!state.sid) {
     const sid = await DB.kvGet('current_sid');

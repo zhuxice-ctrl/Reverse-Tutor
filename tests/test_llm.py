@@ -99,6 +99,88 @@ async def test_mock_opening_when_no_user_input():
     assert out["evaluation"]["correctness"] == 0.0
 
 
+def test_extract_json_accepts_common_llm_wrappers_and_trailing_commas():
+    raw = """
+    <think>先分析一下，但这些不应该影响解析</think>
+    ```json
+    {
+      "ok": true,
+      "items": [1, 2,],
+    }
+    ```
+    """
+    assert llm._extract_json(raw) == {"ok": True, "items": [1, 2]}
+
+
+async def test_chat_json_retries_once_when_model_returns_invalid_json(monkeypatch):
+    calls = []
+
+    async def fake_openai_chat(system, messages, temperature, max_tokens):
+        calls.append((system, temperature, max_tokens))
+        if len(calls) == 1:
+            return "我会返回 JSON：{bad"
+        return '{"ok": true}'
+
+    monkeypatch.setattr(llm, "_openai_chat", fake_openai_chat)
+    llm.apply_config("https://api.example.com/v1", "sk-test", "json-model")
+
+    out = await llm.chat_json("sys", [{"role": "user", "content": "hi"}], temperature=0.9, max_tokens=20)
+
+    assert out == {"ok": True}
+    assert len(calls) == 2
+    assert "Return only one valid JSON object" in calls[1][0]
+    assert calls[1][1] <= 0.3
+
+
+async def test_openai_chat_wraps_non_json_provider_response(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        text = "<html>bad gateway</html>"
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            raise ValueError("not json")
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return FakeResponse()
+
+    monkeypatch.setattr(llm.httpx, "AsyncClient", lambda **kwargs: FakeClient())
+    llm.apply_config("https://api.example.com/v1", "sk-test", "json-model")
+
+    with pytest.raises(llm.LLMError) as exc:
+        await llm._openai_chat("sys", [{"role": "user", "content": "hi"}], 0.0, 20)
+    assert "non-JSON API response" in str(exc.value)
+
+
+async def test_openai_chat_wraps_request_error_before_response(monkeypatch):
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, *args, **kwargs):
+            request = httpx.Request("POST", "https://api.example.com/v1/chat/completions")
+            raise httpx.ConnectError("connection refused", request=request)
+
+    monkeypatch.setattr(llm.httpx, "AsyncClient", lambda **kwargs: FakeClient())
+    llm.apply_config("https://api.example.com/v1", "sk-test", "json-model")
+
+    with pytest.raises(llm.LLMError) as exc:
+        await llm._openai_chat("sys", [{"role": "user", "content": "hi"}], 0.0, 20)
+    assert "LLM request failed" in str(exc.value)
+
+
 async def test_openai_chat_wraps_provider_400_after_json_mode_retry(monkeypatch):
     class FakeResponse:
         status_code = 400

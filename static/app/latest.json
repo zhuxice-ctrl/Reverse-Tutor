@@ -1,14 +1,13 @@
 {
-  "versionCode": 3,
-  "versionName": "0.13.0",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.13.0/Back_Teacher-v0.13.0-debug.apk",
+  "versionCode": 4,
+  "versionName": "0.14.0",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.14.0/Back_Teacher-v0.14.0-debug.apk",
   "publishedAt": "2026-05-15",
   "releaseNotes": [
-    "知识图谱新增语义关联链接（蓝色虚线），LLM 自动标注知识点间的前置/并列/推导关系。",
-    "LLM JSON 解析大幅增强：兼容 <think> 标签、Markdown 代码块、尾随逗号，失败自动重试。",
-    "对话消息乐观渲染：发送后用户气泡立即出现，无需等待 LLM 返回。",
-    "应用内更新：检测到新版本弹出确认弹窗，应用内直接下载 APK 并显示进度条。",
-    "底部导航图标优化：增大尺寸和留白，修复显示不全的问题。",
-    "图谱背景拖拽添加微弱惯性滑动效果。"
+    "LLM JSON 解析增强：兼容 <think> 标签、Markdown 代码块、尾随逗号，失败自动严格重试。",
+    "LLM API 配置改为设备长期保存，退出重开后自动恢复。",
+    "Android 新增后台 LLM 前台服务：发送后退出应用仍可继续生成当前回复，完成后系统通知提醒。",
+    "后台生成结果会在重开或回到应用后自动导入当前会话。",
+    "增强 provider 非 JSON 响应、空内容、连接失败等错误提示。"
   ]
 }
