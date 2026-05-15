@@ -565,6 +565,8 @@ const state = {
 const APP_VERSION_CODE = 4;
 const APP_VERSION_NAME = '0.14.0';
 const DEFAULT_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
+const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
+const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
@@ -595,6 +597,42 @@ function updateAutoEnabled() {
 
 function updateFeedUrl() {
   return (localStorage.getItem(UPDATE_FEED_KEY) || DEFAULT_UPDATE_FEED_URL).trim();
+}
+
+function cacheBustUrl(url) {
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}_rt=${Date.now()}`;
+}
+
+function updateFeedCandidates() {
+  const primary = updateFeedUrl();
+  const out = [];
+  if (primary) out.push({ label: '主更新源', url: primary });
+  if (primary !== GITHUB_LATEST_RELEASE_URL) {
+    out.push({ label: 'GitHub Release 备用源', url: GITHUB_LATEST_RELEASE_URL });
+  }
+  return out;
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs=UPDATE_CHECK_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(cacheBustUrl(url), {
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw new Error(`请求超时（${Math.round(timeoutMs / 1000)} 秒）`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function normalizeLlmConfig(c = {}) {
@@ -746,6 +784,13 @@ function setUpdateStatus(text, kind='neutral') {
   el.className = 'text-xs leading-relaxed ' + color;
 }
 
+function setUpdateChecking(checking) {
+  const btn = $('#update-check');
+  if (!btn) return;
+  $('#update-check').disabled = checking;
+  btn.textContent = checking ? '检查中…' : '检查更新';
+}
+
 function renderUpdateSettings() {
   const current = $('#update-current');
   const feed = $('#update-feed');
@@ -761,33 +806,41 @@ function renderUpdateSettings() {
 }
 
 async function checkUpdate(silent=false) {
-  const feed = updateFeedUrl();
-  if (!feed) {
+  const candidates = updateFeedCandidates();
+  if (!candidates.length) {
     if (!silent) setUpdateStatus('还没有设置更新源 URL。', 'warn');
     return null;
   }
   if (!silent) setUpdateStatus('正在检查更新…');
+  setUpdateChecking(true);
+  const errors = [];
   try {
-    const res = await fetch(feed, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`更新源返回 ${res.status}`);
-    const info = normalizeUpdateInfo(await res.json());
-    localStorage.setItem(UPDATE_LAST_CHECK_KEY, String(Date.now()));
-    if (!isNewerUpdate(info)) {
-      localStorage.removeItem(UPDATE_LAST_URL_KEY);
-      renderUpdateSettings();
-      if (!silent) setUpdateStatus(`已是最新版本：${appVersionLabel()}`, 'ok');
-      return info;
+    for (const candidate of candidates) {
+      try {
+        if (!silent) setUpdateStatus(`正在检查更新…${candidate.label}`);
+        const info = normalizeUpdateInfo(await fetchJsonWithTimeout(candidate.url));
+        localStorage.setItem(UPDATE_LAST_CHECK_KEY, String(Date.now()));
+        if (!isNewerUpdate(info)) {
+          localStorage.removeItem(UPDATE_LAST_URL_KEY);
+          renderUpdateSettings();
+          if (!silent) setUpdateStatus(`已是最新版本：${appVersionLabel()}（${candidate.label}）`, 'ok');
+          return info;
+        }
+        if (!info.apkUrl) throw new Error('发现新版，但更新源没有 apkUrl/downloadUrl');
+        localStorage.setItem(UPDATE_LAST_URL_KEY, info.apkUrl);
+        renderUpdateSettings();
+        const notes = info.releaseNotes ? `\n${info.releaseNotes}` : '';
+        setUpdateStatus(`发现新版本：${info.versionName || 'unknown'} (${info.versionCode || 'no-code'})${notes}`, 'warn');
+        showUpdateDialog(info);
+        return info;
+      } catch (err) {
+        errors.push(`${candidate.label}: ${err.message || err}`);
+      }
     }
-    if (!info.apkUrl) throw new Error('发现新版，但更新源没有 apkUrl/downloadUrl');
-    localStorage.setItem(UPDATE_LAST_URL_KEY, info.apkUrl);
-    renderUpdateSettings();
-    const notes = info.releaseNotes ? `\n${info.releaseNotes}` : '';
-    setUpdateStatus(`发现新版本：${info.versionName || 'unknown'} (${info.versionCode || 'no-code'})${notes}`, 'warn');
-    showUpdateDialog(info);
-    return info;
-  } catch (err) {
-    if (!silent) setUpdateStatus(`检查失败：${err.message || err}`, 'err');
+    if (!silent) setUpdateStatus(`检查失败：${errors.join('；')}`, 'err');
     return null;
+  } finally {
+    setUpdateChecking(false);
   }
 }
 
@@ -2435,9 +2488,9 @@ $('#update-feed').addEventListener('change', e => {
 $('#update-auto').addEventListener('change', e => {
   localStorage.setItem(UPDATE_AUTO_KEY, e.target.checked ? '1' : '0');
 });
-$('#update-check').addEventListener('click', () => {
+$('#update-check').addEventListener('click', async () => {
   localStorage.setItem(UPDATE_FEED_KEY, $('#update-feed').value.trim());
-  checkUpdate(false);
+  await checkUpdate(false);
 });
 $('#update-open').addEventListener('click', () => {
   const url = localStorage.getItem(UPDATE_LAST_URL_KEY);
