@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#059669"/>
-  <text x="256" y="320" text-anchor="middle" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif" font-size="220" font-weight="bold">🎓</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Reverse Tutor maskable icon">
+  <defs>
+    <linearGradient id="bg" x1="86" y1="40" x2="430" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12322a"/>
+      <stop offset="1" stop-color="#081a18"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="64" cy="62" r="174" fill="none" stroke="#1d5f4d" stroke-width="20" opacity=".7"/>
+  <circle cx="438" cy="448" r="168" fill="none" stroke="#25a380" stroke-width="16" opacity=".45"/>
+  <g transform="translate(41 41) scale(.84)">
+    <ellipse cx="256" cy="418" rx="146" ry="34" fill="#000" opacity=".28"/>
+    <path d="M220 226 188 276 282 236Z" fill="#081e1b"/>
+    <path d="M225 225 204 258 270 236Z" fill="#ebfff8"/>
+    <rect x="154" y="96" width="228" height="142" rx="42" fill="#ebfff8" stroke="#081e1b" stroke-width="10"/>
+    <circle cx="218" cy="166" r="9" fill="#09765f"/>
+    <circle cx="268" cy="166" r="9" fill="#09765f"/>
+    <circle cx="318" cy="166" r="9" fill="#09765f"/>
+    <path d="M112 282 250 238V392L116 432Z" fill="#fff6dc" stroke="#081e1b" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M262 238 400 282 396 432 262 392Z" fill="#d3fff1" stroke="#081e1b" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M256 240V396" stroke="#081e1b" stroke-width="9" stroke-linecap="round"/>
+    <path d="M136 386Q178 406 234 392" fill="none" stroke="#f0d193" stroke-width="6" stroke-linecap="round"/>
+    <path d="M276 392Q332 406 376 386" fill="none" stroke="#57caa9" stroke-width="6" stroke-linecap="round"/>
+    <path d="M294 126 218 274 274 264 232 390 354 220 292 234Z" fill="#ffc750" stroke="#081e1b" stroke-width="18" stroke-linejoin="round"/>
+  </g>
 </svg>
