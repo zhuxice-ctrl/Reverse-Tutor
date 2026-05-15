@@ -1,16 +1,15 @@
 {
-  "versionCode": 7,
-  "versionName": "0.15.2",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.2-debug.apk",
+  "versionCode": 8,
+  "versionName": "0.15.3",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.3-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.2/Back_Teacher-v0.15.2-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.3/Back_Teacher-v0.15.3-debug.apk"
   ],
-  "sha256": "996ef3fd093487c6563d291d67fd7250717c4c00382060dcb71ce7d4e0cb5854",
+  "sha256": "926839e14c5c7e5023a7381cd6322ef41ad9dcd6791b2ef217b03dbd4ddca5eb",
   "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "对话消息增加 turn 绑定：用户消息、前台 LLM 回复、后台 LLM 回复都会记录同一轮的 turn_id 和 reply_to_message_id。",
-    "后台回复导入更稳：完成结果和本地 pending 记录会共同用于找回原问题，不再容易显示成 unknown。",
-    "AI 回复改为安全文本渲染，修复 Markdown 删除线把普通内容划掉的问题。",
-    "长回复会按句子拆成最多 3 个气泡，连续回复更像聊天，不再挤成一整块。"
+    "修复旧版本保存过 GitHub 更新源后仍然优先走 GitHub 的问题，启动和检查更新时会自动迁移回自建高速源。",
+    "即使从 GitHub Release 读到新版本，也会优先使用 dl.zeroxcore.tech 的 APK 下载地址。",
+    "更新页文案改为自建高速更新源，避免误以为默认渠道仍是 GitHub。"
   ]
 }
