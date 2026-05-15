@@ -62,6 +62,7 @@
   textarea, input { font-size: 16px; }  /* 防 iOS 自动放大 */
   .tab-btn.active { color: var(--accent); }
   .tab-btn.active .tab-dot { background: var(--accent); }
+  .tab-icon { font-size: 22px; line-height: 1.15; height: 26px; display: flex; align-items: center; justify-content: center; }
   .pill { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; }
   .pill-ask { background:#1e3a8a; color:#bfdbfe; }
   .pill-probe { background:#581c87; color:#e9d5ff; }
@@ -445,27 +446,52 @@
 
 <!-- ============== 底部 tab 栏 ============== -->
 <nav class="bottom-nav bg-neutral-950 border-t border-neutral-800 grid grid-cols-4 safe-bottom">
-  <button data-tab="chat" class="tab-btn active flex flex-col items-center py-2 gap-0.5">
-    <div class="text-xl leading-none">💬</div>
+  <button data-tab="chat" class="tab-btn active flex flex-col items-center py-2.5 gap-1">
+    <div class="tab-icon">💬</div>
     <div class="text-[10px]">聊天</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
-  <button data-tab="anchors" class="tab-btn flex flex-col items-center py-2 gap-0.5">
-    <div class="text-xl leading-none">📌</div>
+  <button data-tab="anchors" class="tab-btn flex flex-col items-center py-2.5 gap-1">
+    <div class="tab-icon">📌</div>
     <div class="text-[10px]">锚</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
-  <button data-tab="insights" class="tab-btn flex flex-col items-center py-2 gap-0.5">
-    <div class="text-xl leading-none">📊</div>
+  <button data-tab="insights" class="tab-btn flex flex-col items-center py-2.5 gap-1">
+    <div class="tab-icon">📊</div>
     <div class="text-[10px]">洞察</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
-  <button data-tab="settings" class="tab-btn flex flex-col items-center py-2 gap-0.5">
-    <div class="text-xl leading-none">⚙️</div>
+  <button data-tab="settings" class="tab-btn flex flex-col items-center py-2.5 gap-1">
+    <div class="tab-icon">⚙️</div>
     <div class="text-[10px]">设置</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
 </nav>
+
+<!-- ============== 应用内更新 modal ============== -->
+<div id="update-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[80] p-4">
+  <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-4 space-y-3">
+    <div class="flex items-center gap-3">
+      <div class="text-3xl">🚀</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-base font-bold">发现新版本</div>
+        <div id="update-modal-version" class="text-xs text-neutral-400 mt-0.5"></div>
+      </div>
+    </div>
+    <div id="update-modal-notes" class="text-xs text-neutral-400 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap bg-neutral-950 border border-neutral-800 rounded p-2"></div>
+    <div id="update-modal-progress" class="hidden space-y-1.5">
+      <div class="h-2 bg-neutral-800 rounded-full overflow-hidden"><div id="update-progress-bar" class="h-full bg-emerald-600 transition-all" style="width:0%"></div></div>
+      <div class="flex justify-between text-[11px] text-neutral-400">
+        <span id="update-progress-text">0%</span>
+        <span id="update-progress-size"></span>
+      </div>
+    </div>
+    <div id="update-modal-actions" class="flex gap-2">
+      <button id="update-modal-skip" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">稍后再说</button>
+      <button id="update-modal-go" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">立即下载</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============== 新会话 modal ============== -->
 <div id="new-modal" class="fixed inset-0 bg-black/80 hidden items-end justify-center z-50" onclick="if(event.target===this)closeNew()">
@@ -536,8 +562,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 2;
-const APP_VERSION_NAME = '0.12.0';
+const APP_VERSION_CODE = 3;
+const APP_VERSION_NAME = '0.13.0';
 const DEFAULT_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
@@ -707,11 +733,107 @@ async function checkUpdate(silent=false) {
     renderUpdateSettings();
     const notes = info.releaseNotes ? `\n${info.releaseNotes}` : '';
     setUpdateStatus(`发现新版本：${info.versionName || 'unknown'} (${info.versionCode || 'no-code'})${notes}`, 'warn');
-    if (silent) toast('发现新版本，可到设置里下载');
+    showUpdateDialog(info);
     return info;
   } catch (err) {
     if (!silent) setUpdateStatus(`检查失败：${err.message || err}`, 'err');
     return null;
+  }
+}
+
+// --- 应用内更新弹窗与下载 ---
+let _pendingUpdateInfo = null;
+let _downloadingUpdate = false;
+
+function showUpdateDialog(info) {
+  _pendingUpdateInfo = info;
+  const modal = $('#update-modal');
+  $('#update-modal-version').textContent = `${info.versionName || '?'} (code ${info.versionCode || '?'})  ←  当前 ${appVersionLabel()}`;
+  $('#update-modal-notes').textContent = info.releaseNotes || '暂无更新说明。';
+  $('#update-modal-progress').classList.add('hidden');
+  $('#update-modal-actions').classList.remove('hidden');
+  $('#update-modal-go').disabled = false;
+  $('#update-modal-go').textContent = '立即下载';
+  $('#update-modal-skip').classList.remove('hidden');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+}
+
+function closeUpdateDialog() {
+  if (_downloadingUpdate) return; // 下载中不允许关闭
+  const modal = $('#update-modal');
+  modal.classList.add('hidden');
+  modal.style.display = '';
+  _pendingUpdateInfo = null;
+}
+
+function _fmtMB(bytes) { return (bytes / 1048576).toFixed(1); }
+
+async function downloadApkInApp(url, versionName) {
+  if (_downloadingUpdate) return;
+  _downloadingUpdate = true;
+  const prog = $('#update-modal-progress');
+  const bar = $('#update-progress-bar');
+  const pctEl = $('#update-progress-text');
+  const sizeEl = $('#update-progress-size');
+  const goBtn = $('#update-modal-go');
+  const skipBtn = $('#update-modal-skip');
+
+  prog.classList.remove('hidden');
+  skipBtn.classList.add('hidden');
+  goBtn.disabled = true;
+  goBtn.textContent = '下载中…';
+  bar.style.width = '0%';
+  pctEl.textContent = '0%';
+  sizeEl.textContent = '';
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const total = +(res.headers.get('content-length') || 0);
+    const reader = res.body.getReader();
+    const chunks = [];
+    let received = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      if (total) {
+        const pct = Math.min(100, Math.round(received / total * 100));
+        bar.style.width = pct + '%';
+        pctEl.textContent = pct + '%';
+        sizeEl.textContent = `${_fmtMB(received)} / ${_fmtMB(total)} MB`;
+      } else {
+        sizeEl.textContent = `${_fmtMB(received)} MB`;
+      }
+    }
+
+    bar.style.width = '100%';
+    pctEl.textContent = '100%';
+    goBtn.textContent = '安装…';
+
+    const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `reverse-tutor-${versionName || 'update'}.apk`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 3000);
+
+    goBtn.textContent = '下载完成';
+    skipBtn.classList.remove('hidden');
+    skipBtn.textContent = '关闭';
+    toast('APK 已下载，请在通知栏或文件管理器中打开安装', 5000);
+  } catch (e) {
+    goBtn.textContent = '重试下载';
+    goBtn.disabled = false;
+    skipBtn.classList.remove('hidden');
+    toast('下载失败：' + (e.message || e), 3000);
+  } finally {
+    _downloadingUpdate = false;
   }
 }
 
@@ -1005,15 +1127,56 @@ const LLM = (() => {
     return extract_json(raw);
   }
   function extract_json(raw) {
-    try { return JSON.parse(raw.trim()); } catch(e) {}
-    const m = (raw||'').match(/\{[\s\S]*\}/);
-    if (m) { try { return JSON.parse(m[0]); } catch(e) {} }
+    let s = (raw || '').trim();
+    // strip <think>...</think> (DeepSeek-R1 style)
+    s = s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    // strip markdown code fences ```json ... ``` or ``` ... ```
+    const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence) s = fence[1].trim();
+    // direct parse
+    try { return JSON.parse(s); } catch(e) {}
+    // lenient: remove trailing commas
+    try { return JSON.parse(s.replace(/,(\s*[}\]])/g,'$1')); } catch(e) {}
+    // scan for balanced {...} candidates
+    const first = s.indexOf('{');
+    if (first >= 0) {
+      // try greedy match (last })
+      const last = s.lastIndexOf('}');
+      if (last > first) {
+        const cand = s.slice(first, last+1);
+        try { return JSON.parse(cand); } catch(e) {}
+        try { return JSON.parse(cand.replace(/,(\s*[}\]])/g,'$1')); } catch(e) {}
+      }
+      // try first balanced {...}
+      let depth = 0;
+      for (let i = first; i < s.length; i++) {
+        if (s[i] === '{') depth++;
+        else if (s[i] === '}') {
+          depth--;
+          if (depth === 0) {
+            const cand = s.slice(first, i+1);
+            try { return JSON.parse(cand); } catch(e) {}
+            try { return JSON.parse(cand.replace(/,(\s*[}\]])/g,'$1')); } catch(e) {}
+            break;
+          }
+        }
+      }
+    }
     throw new Error('LLM did not return valid JSON: ' + (raw||'').slice(0,200));
   }
 
   async function chat_json(system, messages, opts={}) {
     if (!has_real()) return mock_response(messages);
-    return openai_chat(system, messages, opts.temperature ?? 0.7, opts.max_tokens ?? 900);
+    const t = opts.temperature ?? 0.7;
+    const mt = opts.max_tokens ?? 900;
+    try {
+      return await openai_chat(system, messages, t, mt);
+    } catch (e) {
+      if (!/did not return valid JSON/.test(String(e.message||e))) throw e;
+      // 重试：把 system 收紧、温度降低，强制 JSON 输出
+      const sys2 = system + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
+      return await openai_chat(sys2, messages, Math.min(t, 0.3), mt);
+    }
   }
 
   async function ping() {
@@ -1192,7 +1355,12 @@ ${format_actions()}
     return { reply, action };
   }
 
-  async function run_turn(sid, user_input) {
+  async function run_turn(sid, user_input, onUserAdded) {
+    // 立即写入用户消息（让 UI 可乐观渲染），再做摘要 / LLM
+    if (user_input != null) {
+      await add_message(sid, 'user', user_input, { turn_input: true });
+      if (typeof onUserAdded === 'function') { try { await onUserAdded(); } catch(e){} }
+    }
     await maybe_summarize(sid);
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
@@ -1203,7 +1371,8 @@ ${format_actions()}
     const summary_text = summary ? summary.content : '';
 
     const system = build_system_prompt(session, anchors, masteries, summary_text);
-    const messages = build_messages(msgs, user_input, skip_id);
+    // 用户消息已在 msgs 内，build_messages 不再追加
+    const messages = build_messages(msgs, null, skip_id);
 
     const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
     const ev = raw.evaluation || {};
@@ -1211,7 +1380,6 @@ ${format_actions()}
     const reply = (raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
     const updates = raw.anchor_updates || [];
 
-    await add_message(sid, 'user', user_input, { turn_input: true });
     await add_message(sid, 'assistant', reply, { action: ac, evaluation: ev });
 
     if (ac.knowledge_point) {
@@ -1360,11 +1528,10 @@ async function sendMessage() {
   if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
   $('#chat-input').value = '';
   $('#chat-input').style.height = 'auto';
-  // 立即显示用户气泡（乐观更新）
-  await renderChat();
   $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
   try {
-    const result = await ENGINE.run_turn(state.sid, txt);
+    // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
+    const result = await ENGINE.run_turn(state.sid, txt, renderChat);
     showMessagePopup('学生 AI 回复', result.reply);
   } catch(e) {
     toast('LLM 失败: ' + (e.message||e), 4000);
@@ -2030,7 +2197,16 @@ $('#update-check').addEventListener('click', () => {
 $('#update-open').addEventListener('click', () => {
   const url = localStorage.getItem(UPDATE_LAST_URL_KEY);
   if (!url) { toast('没有可下载的新版本'); return; }
-  window.open(url, '_blank', 'noopener');
+  showUpdateDialog({ apkUrl: url, versionName: '新版', versionCode: '', releaseNotes: '' });
+});
+$('#update-modal-skip').addEventListener('click', closeUpdateDialog);
+$('#update-modal-go').addEventListener('click', () => {
+  const info = _pendingUpdateInfo;
+  if (!info || !info.apkUrl) { toast('没有可下载的地址'); return; }
+  downloadApkInApp(info.apkUrl, info.versionName);
+});
+$('#update-modal').addEventListener('click', e => {
+  if (e.target.id === 'update-modal') closeUpdateDialog();
 });
 $('#message-popup-close').addEventListener('click', () => $('#message-popup').classList.add('hidden'));
 $('#message-popup').addEventListener('click', e => {

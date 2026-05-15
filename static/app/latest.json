@@ -1,14 +1,14 @@
 {
-  "versionCode": 2,
-  "versionName": "0.12.0",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.12.0/Back_Teacher-v0.12.0-debug.apk",
+  "versionCode": 3,
+  "versionName": "0.13.0",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.13.0/Back_Teacher-v0.13.0-debug.apk",
   "publishedAt": "2026-05-15",
   "releaseNotes": [
-    "Upgrade knowledge mastery into an interactive memory graph with node details.",
-    "Persist LLM configuration locally and restore it when the app resumes.",
-    "Add local Word/PDF source import for anchors.",
-    "Use the built-in GitHub latest.json update feed by default.",
-    "Refresh PWA and Android app icons.",
-    "Allow Android HTTP and mixed-content access for local/self-hosted LLM endpoints."
+    "知识图谱新增语义关联链接（蓝色虚线），LLM 自动标注知识点间的前置/并列/推导关系。",
+    "LLM JSON 解析大幅增强：兼容 <think> 标签、Markdown 代码块、尾随逗号，失败自动重试。",
+    "对话消息乐观渲染：发送后用户气泡立即出现，无需等待 LLM 返回。",
+    "应用内更新：检测到新版本弹出确认弹窗，应用内直接下载 APK 并显示进度条。",
+    "底部导航图标优化：增大尺寸和留白，修复显示不全的问题。",
+    "图谱背景拖拽添加微弱惯性滑动效果。"
   ]
 }
