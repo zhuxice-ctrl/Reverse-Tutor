@@ -358,6 +358,29 @@
             <span class="text-neutral-500">留空则使用智能 mock 模式（零配置可玩）。</span>
           </div>
           <label class="block">
+            <span class="text-xs text-neutral-400">提供商预设</span>
+            <select id="cfg-provider" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm"></select>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block min-w-0">
+              <span class="text-xs text-neutral-400">接口类型</span>
+              <select id="cfg-api-type" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+                <option value="openai_compatible">OpenAI Compatible</option>
+                <option value="openai_chat">OpenAI Chat Completions</option>
+                <option value="openai_responses">OpenAI Responses</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label class="block min-w-0">
+              <span class="text-xs text-neutral-400">模型能力</span>
+              <select id="cfg-capability" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+                <option value="text">文本</option>
+                <option value="vision">文本 + 图片</option>
+                <option value="vision_files">文本 + 图片 + 文件</option>
+              </select>
+            </label>
+          </div>
+          <label class="block">
             <span class="text-xs text-neutral-400">Base URL</span>
             <input id="cfg-base" type="text" placeholder="http://localhost:11434/v1（ollama 示例）" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
           </label>
@@ -572,6 +595,18 @@ const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
 const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
 const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
+const LLM_PROVIDERS = [
+  { id:'custom', label:'手动填写', base_url:'', model:'', api_type:'custom', capability:'text', requires_key:true },
+  { id:'openai', label:'OpenAI', base_url:'https://api.openai.com/v1', model:'gpt-4o-mini', api_type:'openai_chat', capability:'vision' },
+  { id:'openai-responses', label:'OpenAI Responses', base_url:'https://api.openai.com/v1', model:'gpt-4.1-mini', api_type:'openai_responses', capability:'vision' },
+  { id:'deepseek', label:'DeepSeek', base_url:'https://api.deepseek.com/v1', model:'deepseek-chat', api_type:'openai_compatible', capability:'text' },
+  { id:'qwen', label:'Qwen / DashScope', base_url:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus', api_type:'openai_compatible', capability:'vision' },
+  { id:'kimi', label:'Kimi / Moonshot', base_url:'https://api.moonshot.ai/v1', model:'moonshot-v1-8k', api_type:'openai_compatible', capability:'text' },
+  { id:'groq', label:'Groq', base_url:'https://api.groq.com/openai/v1', model:'llama-3.1-8b-instant', api_type:'openai_compatible', capability:'text' },
+  { id:'openrouter', label:'OpenRouter', base_url:'https://openrouter.ai/api/v1', model:'openai/gpt-4o-mini', api_type:'openai_compatible', capability:'vision' },
+  { id:'ollama', label:'Ollama 本机', base_url:'http://localhost:11434/v1', model:'llama3.2', api_type:'openai_compatible', capability:'text', requires_key:false },
+  { id:'lmstudio', label:'LM Studio 本机', base_url:'http://localhost:1234/v1', model:'local-model', api_type:'openai_compatible', capability:'text', requires_key:false },
+];
 
 function toast(msg, ms=1800) {
   const t = $('#toast');
@@ -637,6 +672,9 @@ async function fetchJsonWithTimeout(url, timeoutMs=UPDATE_CHECK_TIMEOUT_MS) {
 
 function normalizeLlmConfig(c = {}) {
   return {
+    provider: String(c.provider || 'custom').trim() || 'custom',
+    api_type: String(c.api_type || 'openai_compatible').trim() || 'openai_compatible',
+    capability: String(c.capability || 'text').trim() || 'text',
     base_url: String(c.base_url || '').trim(),
     api_key: String(c.api_key || '').trim(),
     model: String(c.model || '').trim(),
@@ -1081,11 +1119,18 @@ return { open, add, put, get, del, all, bySid, delBySid, kvGet, kvSet, exportAll
 <script>
 // ============== LLM 适配层（mock + OpenAI 兼容）==============
 const LLM = (() => {
-  let cfg = { base_url: '', api_key: '', model: '' };
+  let cfg = { provider: 'custom', api_type: 'openai_compatible', capability: 'text', base_url: '', api_key: '', model: '' };
 
-  const has_real = () => !!(cfg.base_url && cfg.api_key && cfg.model);
+  const providerRequiresKey = () => {
+    const preset = LLM_PROVIDERS.find(p => p.id === cfg.provider);
+    return preset ? preset.requires_key !== false : true;
+  };
+  const has_real = () => !!(cfg.base_url && cfg.model && (cfg.api_key || !providerRequiresKey()));
   const set_config = (c = {}) => {
     const next = { ...cfg };
+    if ('provider' in c) next.provider = String(c.provider || 'custom').trim() || 'custom';
+    if ('api_type' in c) next.api_type = String(c.api_type || 'openai_compatible').trim() || 'openai_compatible';
+    if ('capability' in c) next.capability = String(c.capability || 'text').trim() || 'text';
     if ('base_url' in c) next.base_url = String(c.base_url || '').trim();
     if ('api_key' in c) next.api_key = String(c.api_key || '').trim();
     if ('model' in c) next.model = String(c.model || '').trim();
@@ -1199,11 +1244,69 @@ const LLM = (() => {
     return new Error(`LLM 网络请求失败：${message}。请检查 Base URL、手机网络和模型服务状态。${localHint}${httpHint}`);
   }
 
+  function normalizeContentParts(content, capability=cfg.capability) {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return String(content || '');
+
+    const supportsImages = capability === 'vision' || capability === 'vision_files';
+    const parts = [];
+    const textOnly = [];
+    for (const part of content) {
+      if (!part || typeof part !== 'object') continue;
+      if (part.type === 'text') {
+        parts.push({ type:'text', text:String(part.text || '') });
+        textOnly.push(String(part.text || ''));
+      } else if (part.type === 'image_url') {
+        if (supportsImages) {
+          parts.push(part);
+        } else {
+          textOnly.push('[用户发送了一张图片，但当前模型不支持识别图片。请让用户用文字描述图片内容。]');
+        }
+      } else {
+        textOnly.push(`[不支持的消息片段：${part.type || 'unknown'}]`);
+      }
+    }
+    return supportsImages ? parts : textOnly.filter(Boolean).join('\n');
+  }
+
+  function sanitizeMessagesForCapability(messages, capability=cfg.capability) {
+    return (messages || []).map(m => ({
+      role: m.role,
+      content: normalizeContentParts(m.content, capability),
+    }));
+  }
+
+  function responsesInput(system, messages) {
+    return [
+      { role:'system', content: [{ type:'input_text', text: system }] },
+      ...sanitizeMessagesForCapability(messages).map(m => ({
+        role: m.role,
+        content: Array.isArray(m.content)
+          ? m.content.map(p => p.type === 'text'
+              ? { type:'input_text', text:p.text || '' }
+              : { type:'input_image', image_url:p.image_url?.url || p.image_url || '' })
+          : [{ type:'input_text', text:String(m.content || '') }],
+      })),
+    ];
+  }
+
+  function extractResponsesText(data) {
+    if (typeof data.output_text === 'string' && data.output_text.trim()) return data.output_text;
+    const chunks = [];
+    for (const item of (data.output || [])) {
+      for (const c of (item.content || [])) {
+        if (typeof c.text === 'string') chunks.push(c.text);
+        else if (typeof c.content === 'string') chunks.push(c.content);
+      }
+    }
+    return chunks.join('\n');
+  }
+
   async function openai_chat(system, messages, temperature=0.7, max_tokens=900) {
     const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
     const body = {
       model: cfg.model,
-      messages: [{ role:'system', content: system }, ...messages],
+      messages: [{ role:'system', content: system }, ...sanitizeMessagesForCapability(messages)],
       temperature, max_tokens,
       response_format: { type: 'json_object' },
     };
@@ -1244,6 +1347,35 @@ const LLM = (() => {
         : '（模型返回了空内容，已无法解析 JSON）';
       throw new Error(`LLM returned empty content. finish_reason=${finish} usage=${usage} ${hint}`);
     }
+    return extract_json(raw);
+  }
+
+  async function responses_chat(system, messages, temperature=0.7, max_tokens=900) {
+    const url = cfg.base_url.replace(/\/+$/, '') + '/responses';
+    const body = {
+      model: cfg.model,
+      input: responsesInput(system, messages),
+      temperature,
+      max_output_tokens: max_tokens,
+    };
+    const headers = { 'Content-Type':'application/json' };
+    if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
+    let r;
+    try {
+      r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    } catch (e) {
+      throw network_error(e, url);
+    }
+    if (!r.ok) throw new Error(`LLM ${r.status}: ${await r.text().catch(()=>'')}`);
+    const text = await r.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`LLM returned non-JSON API response: ${text.slice(0, 200)}`);
+    }
+    const raw = extractResponsesText(data);
+    if (!raw.trim()) throw new Error(`LLM returned empty responses output: ${text.slice(0, 200)}`);
     return extract_json(raw);
   }
   function extract_json(raw) {
@@ -1290,14 +1422,18 @@ const LLM = (() => {
     const t = opts.temperature ?? 0.7;
     const mt = opts.max_tokens ?? 900;
     try {
-      return await openai_chat(system, messages, t, mt);
+      return cfg.api_type === 'openai_responses'
+        ? await responses_chat(system, messages, t, mt)
+        : await openai_chat(system, messages, t, mt);
     } catch (e) {
       const firstMessage = String(e.message || e);
       if (!/did not return valid JSON|empty content/.test(firstMessage)) throw e;
       // 重试：把 system 收紧、温度降低，强制 JSON 输出
       const sys2 = system + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
       try {
-        return await openai_chat(sys2, messages, Math.min(t, 0.3), mt);
+        return cfg.api_type === 'openai_responses'
+          ? await responses_chat(sys2, messages, Math.min(t, 0.3), mt)
+          : await openai_chat(sys2, messages, Math.min(t, 0.3), mt);
       } catch (retryErr) {
         throw new Error(`${retryErr.message || retryErr}; first invalid response: ${firstMessage.slice(0, 180)}`);
       }
@@ -1307,10 +1443,9 @@ const LLM = (() => {
   async function ping() {
     if (!has_real()) return { ok:false, mode:'mock', reason:'no credentials' };
     try {
-      const out = await openai_chat(
-        '你是连通性检测。仅返回 JSON: {"ok":true}',
-        [{ role:'user', content:'ping' }], 0.0, 20
-      );
+      const out = cfg.api_type === 'openai_responses'
+        ? await responses_chat('你是连通性检测。仅返回 JSON: {"ok":true}', [{ role:'user', content:'ping' }], 0.0, 20)
+        : await openai_chat('你是连通性检测。仅返回 JSON: {"ok":true}', [{ role:'user', content:'ping' }], 0.0, 20);
       return { ok:true, mode:'live', model: cfg.model, sample: out };
     } catch(e) {
       return { ok:false, mode:'live', error: String(e.message || e) };
@@ -1536,6 +1671,7 @@ ${format_actions()}
   async function maybe_enqueue_native_background_turn(sid, system, messages, temperature=0.85, max_tokens=900) {
     const cfg = LLM.get_config();
     if (cfg.mode !== 'live') return null;
+    if (!supportsBackgroundChat(cfg)) return null;
     if (!await NativeBackgroundLlm.isAvailable()) return null;
 
     const jobId = uuid();
@@ -1546,6 +1682,8 @@ ${format_actions()}
       base_url: cfg.base_url,
       api_key: cfg.api_key,
       model: cfg.model,
+      api_type: cfg.api_type,
+      capability: cfg.capability,
       system,
       messages,
       temperature,
@@ -1562,6 +1700,10 @@ ${format_actions()}
       evaluation: {},
       native_background_job_id: jobId,
     };
+  }
+
+  function supportsBackgroundChat(cfg) {
+    return !cfg.api_type || ['openai_compatible', 'openai_chat', 'custom'].includes(cfg.api_type);
   }
 
   async function import_native_background_turns() {
@@ -2378,6 +2520,21 @@ async function renderInsights() {
 }
 
 // --- Settings ---
+function renderLlmProviderOptions() {
+  const select = $('#cfg-provider');
+  if (!select || select.options.length) return;
+  select.innerHTML = LLM_PROVIDERS.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');
+}
+
+function applyLlmProviderPreset(providerId) {
+  const preset = LLM_PROVIDERS.find(p => p.id === providerId) || LLM_PROVIDERS[0];
+  $('#cfg-provider').value = preset.id;
+  $('#cfg-api-type').value = preset.api_type || 'openai_compatible';
+  $('#cfg-capability').value = preset.capability || 'text';
+  if (preset.base_url) $('#cfg-base').value = preset.base_url;
+  if (preset.model) $('#cfg-model').value = preset.model;
+}
+
 async function renderSettings() {
   state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
   $('#sess-list').innerHTML = state.sessions.length ? state.sessions.map(s => `
@@ -2405,13 +2562,17 @@ async function renderSettings() {
   }));
 
   // LLM cfg
+  renderLlmProviderOptions();
   const cfg = LLM.get_config();
+  $('#cfg-provider').value = cfg.provider || 'custom';
+  $('#cfg-api-type').value = cfg.api_type || 'openai_compatible';
+  $('#cfg-capability').value = cfg.capability || 'text';
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   $('#cfg-status').textContent = cfg.mode === 'live'
-    ? `当前：live (${cfg.model})，API Key 已保存`
+    ? `当前：live (${cfg.model})，${cfg.has_api_key ? 'API Key 已保存' : '当前预设无需 API Key'}`
     : (cfg.has_api_key ? '当前：mock（Base URL / Model 不完整，API Key 已保存）' : '当前：mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
@@ -2423,6 +2584,9 @@ async function saveLlmConfig() {
   const existing = LLM.get_config();
   const keyInput = $('#cfg-key').value.trim();
   const c = {
+    provider: $('#cfg-provider').value || 'custom',
+    api_type: $('#cfg-api-type').value || 'openai_compatible',
+    capability: $('#cfg-capability').value || 'text',
     base_url: $('#cfg-base').value.trim(),
     api_key: keyInput || existing.api_key || '',
     model: $('#cfg-model').value.trim(),
@@ -2431,7 +2595,7 @@ async function saveLlmConfig() {
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   $('#cfg-status').textContent = cfg.mode==='live'
-    ? `已保存到本设备，已切到 live：${cfg.model}`
+    ? `已保存到本设备，已切到 live：${cfg.model}${cfg.has_api_key ? '' : '（无需 API Key）'}`
     : (cfg.has_api_key ? '信息不完整，仍是 mock；API Key 已保留' : '信息不完整，仍是 mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   refreshHeader();
@@ -2450,7 +2614,7 @@ async function testLlm() {
   }
 }
 async function clearLlm() {
-  const empty = { base_url:'', api_key:'', model:'' };
+  const empty = { provider:'custom', api_type:'openai_compatible', capability:'text', base_url:'', api_key:'', model:'' };
   LLM.set_config(empty);
   localStorage.removeItem(LLM_CONFIG_KEY);
   await Promise.allSettled([
@@ -2462,6 +2626,7 @@ async function clearLlm() {
 $('#cfg-save').addEventListener('click', saveLlmConfig);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
+$('#cfg-provider').addEventListener('change', e => applyLlmProviderPreset(e.target.value));
 async function restoreRuntimeConfigOnResume() {
   try {
     await restoreLlmConfig();
