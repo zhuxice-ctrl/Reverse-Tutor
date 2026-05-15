@@ -585,8 +585,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 5;
-const APP_VERSION_NAME = '0.15.0';
+const APP_VERSION_CODE = 6;
+const APP_VERSION_NAME = '0.15.1';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -1326,14 +1326,14 @@ const LLM = (() => {
     return chunks.join('\n');
   }
 
-  async function openai_chat(system, messages, temperature=0.7, max_tokens=900) {
+  async function openai_text(system, messages, temperature=0.7, max_tokens=900, jsonMode=true) {
     const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
     const body = {
       model: cfg.model,
       messages: [{ role:'system', content: system }, ...sanitizeMessagesForCapability(messages)],
       temperature, max_tokens,
-      response_format: { type: 'json_object' },
     };
+    if (jsonMode) body.response_format = { type: 'json_object' };
     const headers = { 'Content-Type':'application/json' };
     if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
     let r;
@@ -1371,10 +1371,14 @@ const LLM = (() => {
         : '（模型返回了空内容，已无法解析 JSON）';
       throw new Error(`LLM returned empty content. finish_reason=${finish} usage=${usage} ${hint}`);
     }
-    return extract_json(raw);
+    return raw;
   }
 
-  async function responses_chat(system, messages, temperature=0.7, max_tokens=900) {
+  async function openai_chat(system, messages, temperature=0.7, max_tokens=900) {
+    return extract_json(await openai_text(system, messages, temperature, max_tokens, true));
+  }
+
+  async function responses_text(system, messages, temperature=0.7, max_tokens=900) {
     const url = cfg.base_url.replace(/\/+$/, '') + '/responses';
     const body = {
       model: cfg.model,
@@ -1400,7 +1404,11 @@ const LLM = (() => {
     }
     const raw = extractResponsesText(data);
     if (!raw.trim()) throw new Error(`LLM returned empty responses output: ${text.slice(0, 200)}`);
-    return extract_json(raw);
+    return raw;
+  }
+
+  async function responses_chat(system, messages, temperature=0.7, max_tokens=900) {
+    return extract_json(await responses_text(system, messages, temperature, max_tokens));
   }
   function extract_json(raw) {
     let s = (raw || '').trim();
@@ -1441,24 +1449,69 @@ const LLM = (() => {
     throw new Error('LLM did not return valid JSON: ' + (raw||'').slice(0,200));
   }
 
+  function extract_reply_text(raw) {
+    let s = String(raw || '').trim();
+    s = s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    const fence = s.match(/```(?:json|text|markdown|md)?\s*([\s\S]*?)```/i);
+    if (fence) s = fence[1].trim();
+    s = s.replace(/^\s*(回复|reply|学生回复|assistant)\s*[:：]\s*/i, '').trim();
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!s) return '';
+    return s.slice(0, 1200);
+  }
+
+  function fallback_json(raw, note='plain_text_fallback') {
+    const reply = extract_reply_text(raw);
+    if (!reply) return null;
+    return {
+      evaluation: {
+        correctness: 0,
+        depth: 0,
+        user_emotion: 'unknown',
+        new_requirements: [],
+      },
+      action: {
+        type: 'ask',
+        knowledge_point: '模型自由回复',
+        difficulty: 0.5,
+        note,
+      },
+      reply,
+      anchor_updates: [],
+    };
+  }
+
+  function chat_text(system, messages, temperature=0.7, max_tokens=900, jsonMode=true) {
+    return cfg.api_type === 'openai_responses'
+      ? responses_text(system, messages, temperature, max_tokens)
+      : openai_text(system, messages, temperature, max_tokens, jsonMode);
+  }
+
   async function chat_json(system, messages, opts={}) {
     if (!has_real()) return mock_response(messages);
     const t = opts.temperature ?? 0.7;
     const mt = opts.max_tokens ?? 900;
+    let firstRaw = '';
     try {
-      return cfg.api_type === 'openai_responses'
-        ? await responses_chat(system, messages, t, mt)
-        : await openai_chat(system, messages, t, mt);
+      firstRaw = await chat_text(system, messages, t, mt, true);
+      return extract_json(firstRaw);
     } catch (e) {
       const firstMessage = String(e.message || e);
       if (!/did not return valid JSON|empty content/.test(firstMessage)) throw e;
       // 重试：把 system 收紧、温度降低，强制 JSON 输出
       const sys2 = system + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
       try {
-        return cfg.api_type === 'openai_responses'
-          ? await responses_chat(sys2, messages, Math.min(t, 0.3), mt)
-          : await openai_chat(sys2, messages, Math.min(t, 0.3), mt);
+        const retryRaw = await chat_text(sys2, messages, Math.min(t, 0.3), mt, false);
+        try {
+          return extract_json(retryRaw);
+        } catch (parseRetryErr) {
+          const fallback = fallback_json(retryRaw || firstRaw, 'plain_text_after_json_retry');
+          if (fallback) return fallback;
+          throw parseRetryErr;
+        }
       } catch (retryErr) {
+        const fallback = fallback_json(firstRaw, 'plain_text_first_response');
+        if (fallback) return fallback;
         throw new Error(`${retryErr.message || retryErr}; first invalid response: ${firstMessage.slice(0, 180)}`);
       }
     }
@@ -1467,16 +1520,15 @@ const LLM = (() => {
   async function ping() {
     if (!has_real()) return { ok:false, mode:'mock', reason:'no credentials' };
     try {
-      const out = cfg.api_type === 'openai_responses'
-        ? await responses_chat('你是连通性检测。仅返回 JSON: {"ok":true}', [{ role:'user', content:'ping' }], 0.0, 20)
-        : await openai_chat('你是连通性检测。仅返回 JSON: {"ok":true}', [{ role:'user', content:'ping' }], 0.0, 20);
-      return { ok:true, mode:'live', model: cfg.model, sample: out };
+      const raw = await chat_text('连通性检测。请简短回复 ok。', [{ role:'user', content:'ping' }], 0.0, 32, false);
+      if (!String(raw || '').trim()) throw new Error('模型返回了空内容');
+      return { ok:true, mode:'live', model: cfg.model, sample: String(raw).slice(0, 120) };
     } catch(e) {
       return { ok:false, mode:'live', error: String(e.message || e) };
     }
   }
 
-  return { has_real, set_config, get_config, chat_json, ping, parse_json: extract_json };
+  return { has_real, set_config, get_config, chat_json, ping, parse_json: extract_json, fallback_json };
 })();
 </script>
 
@@ -1749,16 +1801,19 @@ ${format_actions()}
         try {
           raw = LLM.parse_json(job.raw_content || '{}');
         } catch (e) {
-          await add_message(job.sid, 'assistant', `后台回复解析失败：${e.message || e}`, {
-            action: { type: 'error', knowledge_point: '后台生成' },
-            evaluation: {},
-            native_background_job_id: jobId,
-            native_background: true,
-          });
-          imported += 1;
-          lastReply = `后台回复解析失败：${e.message || e}`;
-          await NativeBackgroundLlm.clearCompletedTurn(jobId);
-          continue;
+          raw = LLM.fallback_json(job.raw_content || '', 'native_plain_text_fallback');
+          if (!raw) {
+            await add_message(job.sid, 'assistant', `后台回复解析失败：${e.message || e}`, {
+              action: { type: 'error', knowledge_point: '后台生成' },
+              evaluation: {},
+              native_background_job_id: jobId,
+              native_background: true,
+            });
+            imported += 1;
+            lastReply = `后台回复解析失败：${e.message || e}`;
+            await NativeBackgroundLlm.clearCompletedTurn(jobId);
+            continue;
+          }
         }
         const ev = raw.evaluation || {};
         const ac = raw.action || {};
@@ -1963,6 +2018,7 @@ async function renderChat() {
 }
 
 async function sendMessage() {
+  if ($('#chat-send').disabled) return;
   const txt = $('#chat-input').value.trim();
   if (!txt) {
     if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
@@ -2002,6 +2058,7 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
 }
 
 async function openingFor(sid) {
+  if ($('#chat-send').disabled) return;
   $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
   try {
     const result = await ENGINE.run_opening_turn(sid);
@@ -2625,16 +2682,25 @@ async function saveLlmConfig() {
   refreshHeader();
 }
 async function testLlm() {
-  await saveLlmConfig();
-  $('#cfg-status').textContent = '🔌 测试中…';
-  $('#cfg-status').className = 'text-xs text-neutral-400';
-  const r = await LLM.ping();
-  if (r.ok) {
-    $('#cfg-status').textContent = `✅ 联通 OK（${r.mode} · ${r.model||''}）`;
-    $('#cfg-status').className = 'text-xs text-emerald-400';
-  } else {
-    $('#cfg-status').textContent = `❌ ${r.error || r.reason || '失败'}`;
-    $('#cfg-status').className = 'text-xs text-red-400';
+  const btn = $('#cfg-test');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  try {
+    await saveLlmConfig();
+    $('#cfg-status').textContent = '🔌 测试中…';
+    $('#cfg-status').className = 'text-xs text-neutral-400';
+    const r = await LLM.ping();
+    if (r.ok) {
+      $('#cfg-status').textContent = `✅ 联通 OK（${r.mode} · ${r.model||''}）`;
+      $('#cfg-status').className = 'text-xs text-emerald-400';
+    } else {
+      $('#cfg-status').textContent = `❌ ${r.error || r.reason || '失败'}`;
+      $('#cfg-status').className = 'text-xs text-red-400';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
   }
 }
 async function clearLlm() {

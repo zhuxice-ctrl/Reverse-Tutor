@@ -40,3 +40,20 @@ def test_android_background_job_carries_api_type_and_capability():
     assert "api_type: cfg.api_type" in html
     assert "capability: cfg.capability" in html
     assert "supportsBackgroundChat" in html
+
+
+def test_mobile_llm_accepts_plain_text_when_json_parse_fails():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "fallback_json" in html
+    assert "plain_text_after_json_retry" in html
+    assert "native_plain_text_fallback" in html
+    assert "downloadApkInApp(info.apkUrls || info.apkUrl" in html
+
+
+def test_mobile_llm_ping_uses_plain_text_connectivity_probe():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "连通性检测。请简短回复 ok。" in html
+    assert "const raw = await chat_text" in html
+    assert "btn.disabled = true" in html

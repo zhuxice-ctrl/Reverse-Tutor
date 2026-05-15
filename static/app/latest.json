@@ -1,17 +1,16 @@
 {
-  "versionCode": 5,
-  "versionName": "0.15.0",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.0-debug.apk",
+  "versionCode": 6,
+  "versionName": "0.15.1",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.1-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.0/Back_Teacher-v0.15.0-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.1/Back_Teacher-v0.15.1-debug.apk"
   ],
-  "sha256": "05df93e4de4dece3fc3298f6948bf4aedec61fd65b5e0e63144c96e085b53898",
-  "publishedAt": "2026-05-15",
+  "sha256": "fe2dc2dc456b574be490a34d1faf1c6a3386e3759e369635bba9a51fc89cc491",
+  "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "新增常用 LLM 接口预设：DeepSeek、OpenAI、OpenRouter、硅基流动、通义千问、智谱、月之暗面、火山方舟等，可直接选择官方 URL 和常用模型。",
-    "增强后台 LLM 回复兼容：支持纯文本、Markdown 代码块、数组/对象包裹、非严格 JSON 等多种返回格式，降低偶发解析失败。",
-    "优化更新检查：GitHub 更新源失败时会自动回退到 latest.json，减少一直检查但不出结果的问题。",
-    "刷新应用图标：新的深色书本、对话、闪电图标，同时覆盖 PWA 和 Android 启动器图标。",
-    "保留本地长期配置和后台生成能力：绑定 API 后设备会持续保存配置，退出应用后当前后台回复仍可继续写回。"
+    "修复 LLM 测试连接偶发失败：测试连接不再强制模型返回 JSON，只要模型能正常返回内容就判定连通。",
+    "修复对话和后台回复容易显示 JSON 解析失败的问题：模型返回自然语言时会自动包装成可用的学生回复。",
+    "后台生成导入更稳：历史遗留的纯文本后台结果也会正常写入对话，不再直接显示解析失败。",
+    "防止连续点击测试连接和发送造成并发请求。"
   ]
 }
