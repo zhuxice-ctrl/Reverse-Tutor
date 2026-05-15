@@ -587,7 +587,8 @@ const state = {
 
 const APP_VERSION_CODE = 5;
 const APP_VERSION_NAME = '0.15.0';
-const DEFAULT_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
+const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
+const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
@@ -643,6 +644,9 @@ function updateFeedCandidates() {
   const primary = updateFeedUrl();
   const out = [];
   if (primary) out.push({ label: '主更新源', url: primary });
+  if (primary !== GITHUB_UPDATE_FEED_URL) {
+    out.push({ label: 'GitHub latest.json 备用源', url: GITHUB_UPDATE_FEED_URL });
+  }
   if (primary !== GITHUB_LATEST_RELEASE_URL) {
     out.push({ label: 'GitHub Release 备用源', url: GITHUB_LATEST_RELEASE_URL });
   }
@@ -794,10 +798,16 @@ function normalizeUpdateInfo(raw) {
   const notes = Array.isArray(raw.releaseNotes)
     ? raw.releaseNotes.join('\n')
     : (raw.releaseNotes || raw.body || raw.notes || '');
+  const apkUrl = raw.apkUrl || raw.downloadUrl || asset?.browser_download_url || '';
+  const apkUrls = [apkUrl, ...(Array.isArray(raw.apkMirrors) ? raw.apkMirrors : [])]
+    .map(x => String(x || '').trim())
+    .filter(Boolean)
+    .filter((url, index, all) => all.indexOf(url) === index);
   return {
     versionCode: Number(raw.versionCode || raw.androidVersionCode || 0),
     versionName: String(raw.versionName || raw.tag_name || raw.name || '').replace(/^v/i, ''),
-    apkUrl: raw.apkUrl || raw.downloadUrl || asset?.browser_download_url || '',
+    apkUrl: apkUrls[0] || '',
+    apkUrls,
     releaseNotes: notes,
     publishedAt: raw.publishedAt || raw.published_at || '',
   };
@@ -910,8 +920,17 @@ function closeUpdateDialog() {
 
 function _fmtMB(bytes) { return (bytes / 1048576).toFixed(1); }
 
-async function downloadApkInApp(url, versionName) {
+async function downloadApkInApp(urls, versionName) {
   if (_downloadingUpdate) return;
+  const downloadUrls = (Array.isArray(urls) ? urls : [urls])
+    .map(x => String(x || '').trim())
+    .filter(Boolean)
+    .filter((url, index, all) => all.indexOf(url) === index);
+  if (!downloadUrls.length) {
+    toast('没有可下载的地址');
+    return;
+  }
+  const url = downloadUrls[0];
   _downloadingUpdate = true;
   const prog = $('#update-modal-progress');
   const bar = $('#update-progress-bar');
@@ -969,6 +988,11 @@ async function downloadApkInApp(url, versionName) {
     skipBtn.textContent = '关闭';
     toast('APK 已下载，请在通知栏或文件管理器中打开安装', 5000);
   } catch (e) {
+    if (downloadUrls.length > 1) {
+      _downloadingUpdate = false;
+      sizeEl.textContent = '当前下载源失败，正在切换备用源...';
+      return downloadApkInApp(downloadUrls.slice(1), versionName);
+    }
     goBtn.textContent = '重试下载';
     goBtn.disabled = false;
     skipBtn.classList.remove('hidden');
@@ -2666,7 +2690,7 @@ $('#update-modal-skip').addEventListener('click', closeUpdateDialog);
 $('#update-modal-go').addEventListener('click', () => {
   const info = _pendingUpdateInfo;
   if (!info || !info.apkUrl) { toast('没有可下载的地址'); return; }
-  downloadApkInApp(info.apkUrl, info.versionName);
+  downloadApkInApp(info.apkUrls || info.apkUrl, info.versionName);
 });
 $('#update-modal').addEventListener('click', e => {
   if (e.target.id === 'update-modal') closeUpdateDialog();

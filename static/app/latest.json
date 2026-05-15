@@ -1,7 +1,11 @@
 {
   "versionCode": 5,
   "versionName": "0.15.0",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.0/Back_Teacher-v0.15.0-debug.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.0-debug.apk",
+  "apkMirrors": [
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.0/Back_Teacher-v0.15.0-debug.apk"
+  ],
+  "sha256": "05df93e4de4dece3fc3298f6948bf4aedec61fd65b5e0e63144c96e085b53898",
   "publishedAt": "2026-05-15",
   "releaseNotes": [
     "新增常用 LLM 接口预设：DeepSeek、OpenAI、OpenRouter、硅基流动、通义千问、智谱、月之暗面、火山方舟等，可直接选择官方 URL 和常用模型。",
