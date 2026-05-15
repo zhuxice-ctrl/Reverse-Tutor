@@ -76,3 +76,13 @@ def test_mobile_chat_turns_are_bound_and_rendered_safely():
     assert "pending.turn_id" in html
     assert "safeChatHtml(m.content)" in html
     assert "md(m.content)" not in html
+
+
+def test_mobile_prompt_adapts_when_goal_is_not_learning():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function inferConversationMode" in html
+    assert "goal_support" in html
+    assert "如果当前目标不是学习" in html
+    assert "不要强行要求用户讲知识点" in html
+    assert "本回合相关主题" in html

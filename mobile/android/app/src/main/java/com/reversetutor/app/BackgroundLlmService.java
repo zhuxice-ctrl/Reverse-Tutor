@@ -44,8 +44,11 @@ public class BackgroundLlmService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String jobJson = intent != null ? intent.getStringExtra(EXTRA_JOB_JSON) : null;
         if (jobJson == null || jobJson.trim().isEmpty()) {
-            stopSelf(startId);
-            return START_NOT_STICKY;
+            jobJson = readPending();
+            if (jobJson == null || jobJson.trim().isEmpty()) {
+                stopSelf(startId);
+                return START_NOT_STICKY;
+            }
         }
 
         startForeground(
@@ -53,16 +56,19 @@ public class BackgroundLlmService extends Service {
             buildNotification("LLM 正在回复", "退出应用后仍在继续生成当前回复。", true)
         );
 
+        final String finalJobJson = jobJson;
         new Thread(() -> {
             try {
-                JSONObject job = new JSONObject(jobJson);
+                JSONObject job = new JSONObject(finalJobJson);
                 String rawContent = callOpenAi(job);
                 storeCompleted(job, "success", rawContent, "");
+                clearPending(job);
                 notifyFinished(job, "学生有新回复", "打开应用查看后台生成的回复。");
             } catch (Exception e) {
                 try {
-                    JSONObject job = new JSONObject(jobJson);
+                    JSONObject job = new JSONObject(finalJobJson);
                     storeCompleted(job, "error", "", e.getMessage() == null ? e.toString() : e.getMessage());
+                    clearPending(job);
                     notifyFinished(job, "后台回复失败", e.getMessage() == null ? "打开应用查看错误。" : e.getMessage());
                 } catch (Exception ignored) {
                     notifyFinished(null, "后台回复失败", "任务数据无法读取。");
@@ -73,7 +79,7 @@ public class BackgroundLlmService extends Service {
             }
         }, "background-llm").start();
 
-        return START_NOT_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     @Nullable
@@ -343,6 +349,25 @@ public class BackgroundLlmService extends Service {
             }
         }
         return sb.toString();
+    }
+
+    private String readPending() {
+        JSONArray arr = BackgroundLlmPlugin.readPending(this);
+        JSONObject item = arr.optJSONObject(0);
+        return item == null ? "" : item.toString();
+    }
+
+    private void clearPending(JSONObject job) {
+        String jobId = job.optString("job_id", "");
+        JSONArray current = BackgroundLlmPlugin.readPending(this);
+        JSONArray kept = new JSONArray();
+        for (int i = 0; i < current.length(); i++) {
+            JSONObject item = current.optJSONObject(i);
+            if (item != null && !jobId.equals(item.optString("job_id"))) {
+                kept.put(item);
+            }
+        }
+        BackgroundLlmPlugin.prefs(this).edit().putString(BackgroundLlmPlugin.PENDING_KEY, kept.toString()).apply();
     }
 
     private void storeCompleted(JSONObject job, String status, String rawContent, String error) throws Exception {

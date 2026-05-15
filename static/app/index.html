@@ -98,8 +98,9 @@
   #chat > * { position: relative; z-index: 1; }
   .knowledge-graph {
     position: relative;
-    height: min(68vh, 540px);
-    min-height: 380px;
+    height: clamp(320px, 58vh, 540px);
+    min-height: 320px;
+    min-width: 280px;
     overflow: hidden;
     touch-action: none;
     border-radius: 10px;
@@ -587,8 +588,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 8;
-const APP_VERSION_NAME = '0.15.3';
+const APP_VERSION_CODE = 9;
+const APP_VERSION_NAME = '0.15.4';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -1663,15 +1664,22 @@ const NativeBackgroundLlm = (() => {
 // ============== 引擎（system prompt + 评估-决策-行动）==============
 const ENGINE = (() => {
   const ACTION_TYPES = {
-    ask: '主动提问（请用户讲一个新知识点）',
-    probe: '追问（让用户解释更深）',
+    ask: '主动提问',
+    probe: '追问（让用户解释更深或把目标说清楚）',
     explain_back: '复述（"我是不是这么理解……？"）',
     persuade: '情感说服（用户拒绝时）',
-    encourage: '鼓励（用户进步时）',
-    next: '推进到下一个知识点',
-    wrap: '本节收尾',
+    encourage: '鼓励（用户进展时）',
+    next: '推进到下一个学习点或目标步骤',
+    wrap: '本轮收尾',
   };
   const SUMMARY_THRESHOLD = 30, SUMMARY_KEEP_RECENT = 12;
+
+  function inferConversationMode(session) {
+    const p = session.persona || {};
+    const text = `${p.role || ''} ${p.goal || ''} ${p.personality || ''}`.toLowerCase();
+    const learningWords = ['学习', '考试', '考研', '高考', '雅思', '托福', '英语', '数学', '知识', '课程', '训练', '复习', '提分', '成绩', '证书'];
+    return learningWords.some(w => text.includes(w.toLowerCase())) ? 'learning' : 'goal_support';
+  }
 
   function format_anchors(anchors) {
     if (!anchors || !anchors.length) return '（无主线锚，按通用策略走）';
@@ -1687,6 +1695,7 @@ const ENGINE = (() => {
 
   function build_system_prompt(session, anchors, masteries, summary='') {
     const p = session.persona || {};
+    const conversationMode = inferConversationMode(session);
     let s = `你是 "反转家教 AI" 中的"学生"角色。你的核心使命：通过向用户（老师）请教问题，让用户在教你的过程中加深理解。
 
 # 你的人设
@@ -1724,8 +1733,19 @@ ${format_actions()}
   "anchor_updates": []
 }
 \`\`\`
+ 
+# 开场适配
+当前 mode: ${conversationMode}。如果不是学习目标，第一句不要要求用户讲课或讲知识点；请直接进入该人格关系下的目标推进、陪伴或协作。
 `;
     if (summary) s += `\n\n# 早期对话摘要（已压缩，其后附最近原文）\n${summary}\n`;
+    s += `
+
+# 目标适配规则（重要）
+- 当前 mode: ${conversationMode}
+- 如果当前目标不是学习、考试、训练或知识掌握，不要强行要求用户讲知识点，不要频繁把话题拉回学习。
+- learning 模式：可以像学生一样请教、追问、复述，帮助用户通过讲解加深理解。
+- goal_support 模式：围绕目标推进、情绪陪伴、角色互动、决策辅助或任务协作。
+- action.knowledge_point 表示本回合相关主题；学习模式下才需要是具体知识点，非学习目标下可填写目标主题或留空。`;
     return s;
   }
 
@@ -1815,6 +1835,7 @@ ${format_actions()}
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
     const masteries = await DB.bySid('mastery', sid);
+    const conversationMode = inferConversationMode(session);
     const system_prompt = build_system_prompt(session, anchors, masteries) + `
 
 # 当前情境（重要）
@@ -2339,6 +2360,7 @@ const ForceGraph = (() => {
   let cam = { x:0, y:0, s:1, vx:0, vy:0 };
   let sel = null, anim = null, settled = false, iter = 0;
   const REPUL = 1200, ATTR = 0.0018, GRAV = 0.0008, DAMP = 0.92, MAX_IT = 400, ALPHA_MIN = 0.04, COL_PAD = 6;
+  const GRAPH_MIN_W = 280, GRAPH_MIN_H = 300, TOUCH_PAN_SPEED = 0.55, WHEEL_ZOOM_STEP = 0.06;
   let ts = { down:false, pinch:false, sx:0, sy:0, lx:0, ly:0, moved:false, t0:0, dn:null, sd:0, ss:1 };
   let _onSelect = null;
   let _thm = {};
@@ -2375,7 +2397,9 @@ const ForceGraph = (() => {
     if (!cvs || !box) return;
     const dpr = window.devicePixelRatio || 1;
     const r = box.getBoundingClientRect();
-    cvs.width = r.width * dpr; cvs.height = r.height * dpr;
+    const w = Math.max(GRAPH_MIN_W, r.width || box.clientWidth || 0);
+    const h = Math.max(GRAPH_MIN_H, r.height || box.clientHeight || 0);
+    cvs.width = w * dpr; cvs.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
@@ -2515,12 +2539,12 @@ const ForceGraph = (() => {
   function tdist(e) { const dx=e.touches[1].clientX-e.touches[0].clientX, dy=e.touches[1].clientY-e.touches[0].clientY; return Math.sqrt(dx*dx+dy*dy); }
 
   function onTS(e) { e.preventDefault(); if(e.touches.length===2){ts.pinch=true;ts.sd=tdist(e);ts.ss=cam.s;return;} const p=pos(e); const n=hit(p.x,p.y); ts.down=true;ts.sx=p.x;ts.sy=p.y;ts.lx=p.x;ts.ly=p.y;ts.moved=false;ts.t0=Date.now();ts.dn=n||null; }
-  function onTM(e) { e.preventDefault(); if(ts.pinch&&e.touches.length===2){ const d=tdist(e); const ns=Math.max(.3,Math.min(5,ts.ss*(d/ts.sd))); const r=cvs.getBoundingClientRect(); const cx2=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left; const cy2=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top; const rt=ns/cam.s; cam.x=cx2-(cx2-cam.x)*rt; cam.y=cy2-(cy2-cam.y)*rt; cam.s=ns; render(); return; } if(!ts.down)return; const p=pos(e); const dx=p.x-ts.lx,dy=p.y-ts.ly; if(Math.abs(p.x-ts.sx)>5||Math.abs(p.y-ts.sy)>5) ts.moved=true; if(ts.dn&&ts.moved){const vx=dx/cam.s,vy=dy/cam.s;ts.dn.x+=vx;ts.dn.y+=vy;ts.dn.vx=vx*4;ts.dn.vy=vy*4;render();}else if(!ts.dn){cam.vx=dx;cam.vy=dy;cam.x+=dx;cam.y+=dy;render();} ts.lx=p.x;ts.ly=p.y; }
+  function onTM(e) { e.preventDefault(); if(ts.pinch&&e.touches.length===2){ const d=tdist(e); const raw=ts.ss*(d/ts.sd); const ns=Math.max(.45,Math.min(3.2,ts.ss+(raw-ts.ss)*0.65)); const r=cvs.getBoundingClientRect(); const cx2=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left; const cy2=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top; const rt=ns/cam.s; cam.x=cx2-(cx2-cam.x)*rt; cam.y=cy2-(cy2-cam.y)*rt; cam.s=ns; render(); return; } if(!ts.down)return; const p=pos(e); const dx=(p.x-ts.lx)*TOUCH_PAN_SPEED,dy=(p.y-ts.ly)*TOUCH_PAN_SPEED; if(Math.abs(p.x-ts.sx)>8||Math.abs(p.y-ts.sy)>8) ts.moved=true; if(ts.dn&&ts.moved){const vx=dx/cam.s,vy=dy/cam.s;ts.dn.x+=vx;ts.dn.y+=vy;ts.dn.vx=vx*2;ts.dn.vy=vy*2;render();}else if(!ts.dn){cam.vx=dx*.45;cam.vy=dy*.45;cam.x+=dx;cam.y+=dy;render();} ts.lx=p.x;ts.ly=p.y; }
   function onTE(e) { if(ts.pinch){ts.pinch=false;return;} const tap=!ts.moved&&(Date.now()-ts.t0<300); if(tap&&ts.dn){sel=ts.dn;render();if(_onSelect)_onSelect(ts.dn);}else if(tap){sel=null;cam.vx=0;cam.vy=0;render();if(_onSelect)_onSelect(null);} if(ts.dn)wake(); ts.down=false;ts.dn=null; }
   function onMD(e) { const p={x:e.offsetX,y:e.offsetY}; const n=hit(p.x,p.y); ts.down=true;ts.sx=p.x;ts.sy=p.y;ts.lx=p.x;ts.ly=p.y;ts.moved=false;ts.t0=Date.now();ts.dn=n||null; }
-  function onMM(e) { if(!ts.down)return; const p={x:e.offsetX,y:e.offsetY}; const dx=p.x-ts.lx,dy=p.y-ts.ly; if(Math.abs(p.x-ts.sx)>3||Math.abs(p.y-ts.sy)>3)ts.moved=true; if(ts.dn&&ts.moved){const vx=dx/cam.s,vy=dy/cam.s;ts.dn.x+=vx;ts.dn.y+=vy;ts.dn.vx=vx*4;ts.dn.vy=vy*4;render();}else if(!ts.dn){cam.vx=dx;cam.vy=dy;cam.x+=dx;cam.y+=dy;render();} ts.lx=p.x;ts.ly=p.y; }
+  function onMM(e) { if(!ts.down)return; const p={x:e.offsetX,y:e.offsetY}; const dx=(p.x-ts.lx)*TOUCH_PAN_SPEED,dy=(p.y-ts.ly)*TOUCH_PAN_SPEED; if(Math.abs(p.x-ts.sx)>6||Math.abs(p.y-ts.sy)>6)ts.moved=true; if(ts.dn&&ts.moved){const vx=dx/cam.s,vy=dy/cam.s;ts.dn.x+=vx;ts.dn.y+=vy;ts.dn.vx=vx*2;ts.dn.vy=vy*2;render();}else if(!ts.dn){cam.vx=dx*.45;cam.vy=dy*.45;cam.x+=dx;cam.y+=dy;render();} ts.lx=p.x;ts.ly=p.y; }
   function onMU(e) { const tap=!ts.moved&&(Date.now()-ts.t0<300); if(tap&&ts.dn){sel=ts.dn;render();if(_onSelect)_onSelect(ts.dn);}else if(tap){sel=null;cam.vx=0;cam.vy=0;render();if(_onSelect)_onSelect(null);} if(ts.dn)wake(); ts.down=false;ts.dn=null; }
-  function onWh(e) { e.preventDefault(); const f=e.deltaY>0?.9:1.1; const ns=Math.max(.3,Math.min(5,cam.s*f)); const rt=ns/cam.s; cam.x=e.offsetX-(e.offsetX-cam.x)*rt; cam.y=e.offsetY-(e.offsetY-cam.y)*rt; cam.s=ns; render(); }
+  function onWh(e) { e.preventDefault(); const f=e.deltaY>0 ? 1-WHEEL_ZOOM_STEP : 1+WHEEL_ZOOM_STEP; const ns=Math.max(.45,Math.min(3.2,cam.s*f)); const rt=ns/cam.s; cam.x=e.offsetX-(e.offsetX-cam.x)*rt; cam.y=e.offsetY-(e.offsetY-cam.y)*rt; cam.s=ns; render(); }
 
   function destroy() { stopAnim(); if(cvs){cvs.remove();cvs=null;} nodes=[];links=[];particles=[];sel=null;box=null; }
 
@@ -2993,8 +3017,8 @@ document.addEventListener('touchend', e => {
   const t = e.changedTouches[0];
   const dx = t.clientX - swipeStart.x;
   const dy = Math.abs(t.clientY - swipeStart.y);
-  if (dy < 70 && swipeStart.x < 28 && dx > 70) openDrawer();
-  if (dy < 70 && swipeStart.drawer && dx < -70) closeDrawer();
+  if (dy < 45 && swipeStart.x < 18 && dx > 110) openDrawer();
+  if (dy < 45 && swipeStart.drawer && dx < -110) closeDrawer();
   swipeStart = null;
 }, { passive: true });
 

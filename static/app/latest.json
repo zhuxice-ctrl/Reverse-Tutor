@@ -1,15 +1,16 @@
 {
-  "versionCode": 8,
-  "versionName": "0.15.3",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.3-debug.apk",
+  "versionCode": 9,
+  "versionName": "0.15.4",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.4-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.3/Back_Teacher-v0.15.3-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.4/Back_Teacher-v0.15.4-debug.apk"
   ],
-  "sha256": "926839e14c5c7e5023a7381cd6322ef41ad9dcd6791b2ef217b03dbd4ddca5eb",
+  "sha256": "cbf7b3a7dba294c30af3a1fbae02223bcb73b018ef84e43c0d147a48c8e16010",
   "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "修复旧版本保存过 GitHub 更新源后仍然优先走 GitHub 的问题，启动和检查更新时会自动迁移回自建高速源。",
-    "即使从 GitHub Release 读到新版本，也会优先使用 dl.zeroxcore.tech 的 APK 下载地址。",
-    "更新页文案改为自建高速更新源，避免误以为默认渠道仍是 GitHub。"
+    "人格和目标更灵活：非学习目标会进入 goal_support 模式，不再强行提示用户讲知识点。",
+    "洞察图修复小屏或缩放后不显示的问题，并降低拖动、缩放和侧边栏滑动敏感度。",
+    "后台 LLM 增加 pending 任务缓存和系统重投递机制，应用被系统回收后会尽量继续或恢复当前回复。",
+    "说明：如果用户在系统设置里强行停止应用，Android 不允许任何后台任务继续运行。"
   ]
 }

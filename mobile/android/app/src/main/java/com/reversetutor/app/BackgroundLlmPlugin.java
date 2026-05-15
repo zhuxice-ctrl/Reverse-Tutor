@@ -30,6 +30,7 @@ import org.json.JSONObject;
 public class BackgroundLlmPlugin extends Plugin {
     static final String PREFS_NAME = "BackgroundLlm";
     static final String COMPLETED_KEY = "rt-native-background-llm-completed";
+    static final String PENDING_KEY = "rt-native-background-llm-pending";
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
@@ -71,6 +72,13 @@ public class BackgroundLlmPlugin extends Plugin {
         JSObject data = call.getData();
         if (data == null || !data.has("job_id") || !data.has("sid")) {
             call.reject("missing job_id or sid");
+            return;
+        }
+
+        try {
+            storePending(getContext(), new JSONObject(data.toString()));
+        } catch (Exception e) {
+            call.reject("pending turn cache failed", e);
             return;
         }
 
@@ -121,6 +129,28 @@ public class BackgroundLlmPlugin extends Plugin {
     static JSONArray readCompleted(Context context) {
         try {
             return new JSONArray(prefs(context).getString(COMPLETED_KEY, "[]"));
+        } catch (Exception e) {
+            return new JSONArray();
+        }
+    }
+
+    static void storePending(Context context, JSONObject job) {
+        JSONArray current = readPending(context);
+        JSONArray kept = new JSONArray();
+        String jobId = job.optString("job_id", "");
+        for (int i = 0; i < current.length(); i++) {
+            JSONObject item = current.optJSONObject(i);
+            if (item != null && !jobId.equals(item.optString("job_id"))) {
+                kept.put(item);
+            }
+        }
+        kept.put(job);
+        prefs(context).edit().putString(PENDING_KEY, kept.toString()).apply();
+    }
+
+    static JSONArray readPending(Context context) {
+        try {
+            return new JSONArray(prefs(context).getString(PENDING_KEY, "[]"));
         } catch (Exception e) {
             return new JSONArray();
         }
