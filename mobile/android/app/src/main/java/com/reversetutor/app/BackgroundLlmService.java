@@ -110,6 +110,11 @@ public class BackgroundLlmService extends Service {
             return extracted;
         }
 
+        String fallback = fallbackReplyJson(retryContent);
+        if (fallback != null) {
+            return fallback;
+        }
+
         throw new Exception(
             "LLM did not return valid JSON after background retry: first="
                 + preview(content)
@@ -256,6 +261,50 @@ public class BackgroundLlmService extends Service {
     private String preview(String s) {
         String compact = (s == null ? "" : s).replaceAll("\\s+", " ").trim();
         return compact.length() > 180 ? compact.substring(0, 180) : compact;
+    }
+
+    private String fallbackReplyJson(String raw) {
+        String reply = extractReplyText(raw);
+        if (reply.isEmpty()) {
+            return null;
+        }
+        try {
+            JSONObject root = new JSONObject();
+            JSONObject evaluation = new JSONObject();
+            evaluation.put("correctness", 0);
+            evaluation.put("depth", 0);
+            evaluation.put("user_emotion", "unknown");
+            evaluation.put("new_requirements", new JSONArray());
+
+            JSONObject action = new JSONObject();
+            action.put("type", "ask");
+            action.put("knowledge_point", "后台回复");
+            action.put("difficulty", 0.5);
+            action.put("note", "background_fallback");
+
+            root.put("evaluation", evaluation);
+            root.put("action", action);
+            root.put("reply", reply);
+            root.put("anchor_updates", new JSONArray());
+            return root.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractReplyText(String raw) {
+        String s = raw == null ? "" : raw.trim();
+        s = Pattern.compile("<think>[\\s\\S]*?</think>", Pattern.CASE_INSENSITIVE).matcher(s).replaceAll("").trim();
+        Matcher fence = Pattern.compile("```(?:json|text|markdown|md)?\\s*([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE).matcher(s);
+        if (fence.find()) {
+            s = fence.group(1).trim();
+        }
+        s = s.replaceAll("^\\s*(回复|reply|学生回复|assistant)\\s*[:：]\\s*", "").trim();
+        s = s.replaceAll("\\s+", " ").trim();
+        if (s.startsWith("{") || s.startsWith("[")) {
+            return "";
+        }
+        return s.length() > 1200 ? s.substring(0, 1200) : s;
     }
 
     private HttpResult post(JSONObject job, JSONObject payload) throws Exception {

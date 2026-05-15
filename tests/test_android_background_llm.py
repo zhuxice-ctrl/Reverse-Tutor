@@ -38,6 +38,9 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert "extractJsonObject" in service
     assert "strictJsonSystem" in service
     assert "LLM did not return valid JSON after background retry" in service
+    assert "fallbackReplyJson" in service
+    assert "extractReplyText" in service
+    assert "background_fallback" in service
 
 
 def test_mobile_frontend_enqueues_and_imports_native_background_turns():
