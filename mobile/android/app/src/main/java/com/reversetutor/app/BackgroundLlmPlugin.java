@@ -4,26 +4,32 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.os.Build;
 
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-@CapacitorPlugin(name = "BackgroundLlm")
+@CapacitorPlugin(
+    name = "BackgroundLlm",
+    permissions = {
+        @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS })
+    }
+)
 public class BackgroundLlmPlugin extends Plugin {
     static final String PREFS_NAME = "BackgroundLlm";
     static final String COMPLETED_KEY = "rt-native-background-llm-completed";
-    private static final int REQ_NOTIFICATIONS = 7301;
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
@@ -35,23 +41,28 @@ public class BackgroundLlmPlugin extends Plugin {
     @PluginMethod
     public void requestNotificationPermission(PluginCall call) {
         if (Build.VERSION.SDK_INT < 33) {
-            JSObject ret = new JSObject();
-            ret.put("granted", true);
-            call.resolve(ret);
+            resolveNotificationPermission(call, true, false);
             return;
         }
 
-        boolean granted = ContextCompat.checkSelfPermission(
-            getContext(),
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED;
-        if (!granted && getActivity() != null) {
-            getActivity().requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, REQ_NOTIFICATIONS);
+        if (getPermissionState("notifications") == PermissionState.GRANTED) {
+            resolveNotificationPermission(call, true, false);
+            return;
         }
 
+        requestPermissionForAlias("notifications", call, "notificationPermissionCallback");
+    }
+
+    @PermissionCallback
+    private void notificationPermissionCallback(PluginCall call) {
+        boolean granted = getPermissionState("notifications") == PermissionState.GRANTED;
+        resolveNotificationPermission(call, granted, true);
+    }
+
+    private void resolveNotificationPermission(PluginCall call, boolean granted, boolean requested) {
         JSObject ret = new JSObject();
         ret.put("granted", granted);
-        ret.put("requested", !granted);
+        ret.put("requested", requested);
         call.resolve(ret);
     }
 

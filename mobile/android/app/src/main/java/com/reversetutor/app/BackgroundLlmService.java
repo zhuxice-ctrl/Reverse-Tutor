@@ -25,6 +25,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BackgroundLlmService extends Service {
     static final String EXTRA_JOB_JSON = "job_json";
@@ -91,29 +93,45 @@ public class BackgroundLlmService extends Service {
             throw new Exception("LLM " + first.statusCode + ": " + first.body);
         }
 
-        JSONObject data = new JSONObject(first.body);
-        JSONObject choice = data.getJSONArray("choices").getJSONObject(0);
-        JSONObject msg = choice.getJSONObject("message");
-        String content = msg.optString("content", "");
-        if (content.trim().isEmpty()) {
-            content = msg.optString("reasoning_content", "");
+        String content = contentFromResponse(first.body);
+        String extracted = extractJsonObject(content);
+        if (extracted != null) {
+            return extracted;
         }
-        if (content.trim().isEmpty()) {
-            throw new Exception("LLM returned empty content. finish_reason=" + choice.optString("finish_reason", "unknown"));
+
+        JSONObject retryPayload = buildPayload(job, false, strictJsonSystem(job), Math.min(job.optDouble("temperature", 0.85), 0.3));
+        HttpResult retry = post(job, retryPayload);
+        if (retry.statusCode < 200 || retry.statusCode >= 300) {
+            throw new Exception("LLM retry " + retry.statusCode + ": " + retry.body);
         }
-        return content;
+        String retryContent = contentFromResponse(retry.body);
+        extracted = extractJsonObject(retryContent);
+        if (extracted != null) {
+            return extracted;
+        }
+
+        throw new Exception(
+            "LLM did not return valid JSON after background retry: first="
+                + preview(content)
+                + "; retry="
+                + preview(retryContent)
+        );
     }
 
     private JSONObject buildPayload(JSONObject job, boolean jsonMode) throws Exception {
+        return buildPayload(job, jsonMode, job.optString("system", ""), job.optDouble("temperature", 0.85));
+    }
+
+    private JSONObject buildPayload(JSONObject job, boolean jsonMode, String systemText, double temperature) throws Exception {
         JSONObject payload = new JSONObject();
         payload.put("model", job.optString("model", ""));
-        payload.put("temperature", job.optDouble("temperature", 0.85));
+        payload.put("temperature", temperature);
         payload.put("max_tokens", job.optInt("max_tokens", 900));
 
         JSONArray messages = new JSONArray();
         JSONObject system = new JSONObject();
         system.put("role", "system");
-        system.put("content", job.optString("system", ""));
+        system.put("content", systemText);
         messages.put(system);
 
         JSONArray input = job.optJSONArray("messages");
@@ -133,6 +151,111 @@ public class BackgroundLlmService extends Service {
             payload.put("response_format", responseFormat);
         }
         return payload;
+    }
+
+    private String strictJsonSystem(JSONObject job) {
+        return job.optString("system", "")
+            + "\n\nIMPORTANT: Return only one valid JSON object. Do not use markdown, comments, <think> tags, "
+            + "or explanations before/after the JSON. Start with { and end with }.";
+    }
+
+    private String contentFromResponse(String body) throws Exception {
+        JSONObject data = new JSONObject(body);
+        JSONObject choice = data.getJSONArray("choices").getJSONObject(0);
+        JSONObject msg = choice.getJSONObject("message");
+        String content = msg.optString("content", "");
+        if (content.trim().isEmpty()) {
+            content = msg.optString("reasoning_content", "");
+        }
+        if (content.trim().isEmpty()) {
+            throw new Exception("LLM returned empty content. finish_reason=" + choice.optString("finish_reason", "unknown"));
+        }
+        return content;
+    }
+
+    private String extractJsonObject(String raw) {
+        String s = normalizeJsonText(raw);
+        String parsed = parseObjectOrNull(s);
+        if (parsed != null) return parsed;
+
+        int first = s.indexOf('{');
+        int last = s.lastIndexOf('}');
+        if (first >= 0 && last > first) {
+            parsed = parseObjectOrNull(s.substring(first, last + 1));
+            if (parsed != null) return parsed;
+        }
+
+        String balanced = firstBalancedJsonObject(s, first);
+        if (balanced != null) {
+            parsed = parseObjectOrNull(balanced);
+            if (parsed != null) return parsed;
+        }
+        return null;
+    }
+
+    private String normalizeJsonText(String raw) {
+        String s = raw == null ? "" : raw.trim();
+        s = Pattern.compile("<think>[\\s\\S]*?</think>", Pattern.CASE_INSENSITIVE).matcher(s).replaceAll("").trim();
+        Matcher fence = Pattern.compile("```(?:json)?\\s*([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE).matcher(s);
+        if (fence.find()) {
+            s = fence.group(1).trim();
+        }
+        return s;
+    }
+
+    private String parseObjectOrNull(String candidate) {
+        String[] variants = new String[] {
+            candidate == null ? "" : candidate.trim(),
+            removeTrailingCommas(candidate == null ? "" : candidate.trim())
+        };
+        for (String variant : variants) {
+            try {
+                return new JSONObject(variant).toString();
+            } catch (Exception ignored) {
+                // Try the next variant.
+            }
+        }
+        return null;
+    }
+
+    private String removeTrailingCommas(String s) {
+        return s.replaceAll(",(\\s*[}\\]])", "$1");
+    }
+
+    private String firstBalancedJsonObject(String s, int first) {
+        if (first < 0) return null;
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = first; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else if (ch == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (ch == '"') {
+                inString = true;
+            } else if (ch == '{') {
+                depth += 1;
+            } else if (ch == '}') {
+                depth -= 1;
+                if (depth == 0) {
+                    return s.substring(first, i + 1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private String preview(String s) {
+        String compact = (s == null ? "" : s).replaceAll("\\s+", " ").trim();
+        return compact.length() > 180 ? compact.substring(0, 180) : compact;
     }
 
     private HttpResult post(JSONObject job, JSONObject payload) throws Exception {

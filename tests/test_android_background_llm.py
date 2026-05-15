@@ -24,14 +24,20 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     service = (JAVA / "BackgroundLlmService.java").read_text(encoding="utf-8")
 
     assert "registerPlugin(BackgroundLlmPlugin.class)" in main
-    assert '@CapacitorPlugin(name = "BackgroundLlm")' in plugin
+    assert '@CapacitorPlugin(' in plugin
+    assert 'name = "BackgroundLlm"' in plugin
     assert "enqueueTurn" in plugin
     assert "getCompletedTurns" in plugin
     assert "clearCompletedTurn" in plugin
     assert "requestNotificationPermission" in plugin
+    assert "@PermissionCallback" in plugin
+    assert "requestPermissionForAlias" in plugin
     assert "startForeground" in service
     assert "HttpURLConnection" in service
     assert "rt-native-background-llm-completed" in service
+    assert "extractJsonObject" in service
+    assert "strictJsonSystem" in service
+    assert "LLM did not return valid JSON after background retry" in service
 
 
 def test_mobile_frontend_enqueues_and_imports_native_background_turns():
