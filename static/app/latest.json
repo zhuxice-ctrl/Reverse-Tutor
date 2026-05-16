@@ -1,16 +1,16 @@
 {
-  "versionCode": 11,
-  "versionName": "0.15.6",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.6-debug.apk",
+  "versionCode": 12,
+  "versionName": "0.15.7",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.7-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.6/Back_Teacher-v0.15.6-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.7/Back_Teacher-v0.15.7-debug.apk"
   ],
-  "sha256": "5425fc637a5e486395ac38ebe8660082b8e1accc46d4348548bf0b50abb821dd",
+  "sha256": "f9b6b16f0694a05ba445369f33e597c4a55d0c75fec57078e455521971f86ef2",
   "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "优化 LLM 配置页 UI：服务商改为底部选择面板，接口类型和模型能力改为分段按钮，并增加常用模型快捷选择。",
-    "聊天页前台回复不再弹出局内消息提示框，避免遮挡正在阅读的对话。",
-    "优化角色回复约束：只生成学生 AI 的下一次回复，减少替用户说话、连续多泡和强行教学。",
-    "用户发起但由后台完成的回复在聊天中按普通对话展示，不再误标为后台回复。"
+    "Added Android background APK update downloads. The download can continue after leaving the app and notifies when ready to install.",
+    "Added update mirror fallback, preferring the self-hosted fast mirror before GitHub.",
+    "Improved the LLM settings UI with full-width scrollable option chips to avoid cramped mobile text.",
+    "Shortened provider summaries and helper copy to make the settings screen easier to read."
   ]
 }

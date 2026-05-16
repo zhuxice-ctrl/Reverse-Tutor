@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.15.7 - 2026-05-16
+
+- Added background APK update downloads through an Android foreground service, so downloads can continue after leaving the app and notify when ready to install.
+- Added automatic mirror fallback for update downloads before falling back to browser-based download behavior.
+- Fixed the mobile LLM settings layout by replacing cramped two-column controls with full-width scrollable option chips.
+- Tightened LLM provider summaries and helper copy to reduce visual clutter on small screens.
+
 ## v0.15.6 - 2026-05-16
 
 - Refined the in-session LLM settings UI with a custom provider picker, segmented controls for API type and model capability, and quick model chips.

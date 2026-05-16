@@ -25,7 +25,12 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
 
 def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_selects():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    llm_section = html.split('id="cfg-provider-trigger"', 1)[1].split('id="cfg-base"', 1)[0]
 
+    assert "llm-config-card" in html
+    assert "llm-help" in html
+    assert "config-section" in html
+    assert "segmented-scroll" in html
     assert "native-config-select" in html
     assert 'id="cfg-provider-trigger"' in html
     assert 'id="cfg-provider-summary"' in html
@@ -37,6 +42,7 @@ def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_sele
     assert "function renderConfigPickerUi" in html
     assert "function renderModelPresetChips" in html
     assert "models:[" in html
+    assert '<div class="grid grid-cols-2 gap-2">' not in llm_section
 
 
 def test_mobile_llm_payload_sanitizes_multimodal_messages_by_capability():

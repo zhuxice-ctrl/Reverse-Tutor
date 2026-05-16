@@ -222,12 +222,12 @@
   .config-picker {
     margin-top: 6px;
     width: 100%;
-    min-height: 54px;
+    min-height: 50px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--panel-3) 78%, transparent);
+    background: color-mix(in srgb, var(--panel-2) 76%, transparent);
     color: var(--text);
-    padding: 10px 12px;
+    padding: 9px 11px;
     text-align: left;
     display: flex;
     align-items: center;
@@ -239,28 +239,48 @@
   .config-picker-title { font-size: 14px; font-weight: 700; line-height: 1.2; }
   .config-picker-sub { margin-top: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .config-picker-caret { color: var(--muted); font-size: 18px; line-height: 1; flex: none; }
-  .segmented-control {
-    margin-top: 6px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 6px;
-    padding: 3px;
-    border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  .llm-config-card { padding: 14px !important; }
+  .llm-help {
+    border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--panel) 68%, transparent);
+    padding: 9px 10px;
+    background: color-mix(in srgb, var(--panel-2) 54%, transparent);
   }
+  .config-section {
+    border-top: 1px solid color-mix(in srgb, var(--line) 46%, transparent);
+    padding-top: 11px;
+  }
+  .config-section:first-of-type { border-top: 0; padding-top: 0; }
+  .segmented-control {
+    margin-top: 7px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 1px 2px 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .segmented-control::-webkit-scrollbar, .model-chip-row::-webkit-scrollbar { display: none; }
+  .segmented-scroll { scroll-snap-type: x proximity; }
   .seg-option {
-    min-height: 38px;
-    border-radius: 6px;
-    padding: 6px 7px;
+    flex: 0 0 auto;
+    min-width: 86px;
+    min-height: 36px;
+    border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+    border-radius: 999px;
+    padding: 7px 11px;
     font-size: 11px;
     color: var(--text-soft);
     text-align: center;
     line-height: 1.15;
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--panel-2) 50%, transparent);
+    scroll-snap-align: start;
   }
   .seg-option.active {
     background: var(--accent);
     color: #f8f4ed;
+    border-color: var(--accent);
     font-weight: 700;
   }
   .model-chip-row {
@@ -488,13 +508,11 @@
 
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">LLM 配置</div>
-        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
-          <div class="text-[11px] text-neutral-400 leading-relaxed">
-            填写任意 <b>OpenAI 兼容</b> 端点。<br>
-            <span class="text-amber-400">⚠️ 注意</span>：浏览器直调多数 LLM API 会有 <b>CORS 限制</b>。可用：本机 ollama / 自部署 vLLM / Groq 等。<br>
-            <span class="text-neutral-500">留空则使用智能 mock 模式（零配置可玩）。</span>
+        <div class="llm-config-card bg-neutral-900 border border-neutral-800 rounded-lg space-y-3">
+          <div class="llm-help text-[11px] text-neutral-400 leading-relaxed">
+            选择服务商会自动填入 URL、接口类型和常用模型。API Key 仅保存在本机；留空可回到 mock。
           </div>
-          <label class="block">
+          <label class="block config-section">
             <span class="text-xs text-neutral-400">提供商预设</span>
             <select id="cfg-provider" class="native-config-select"></select>
             <button id="cfg-provider-trigger" type="button" class="config-picker">
@@ -505,28 +523,26 @@
               <span class="config-picker-caret">⌄</span>
             </button>
           </label>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="block min-w-0">
-              <span class="text-xs text-neutral-400">接口类型</span>
-              <select id="cfg-api-type" class="native-config-select">
-                <option value="openai_compatible">OpenAI Compatible</option>
-                <option value="openai_chat">OpenAI Chat Completions</option>
-                <option value="openai_responses">OpenAI Responses</option>
-                <option value="custom">Custom</option>
-              </select>
-              <div id="cfg-api-type-segments" class="segmented-control"></div>
-            </label>
-            <label class="block min-w-0">
-              <span class="text-xs text-neutral-400">模型能力</span>
-              <select id="cfg-capability" class="native-config-select">
-                <option value="text">文本</option>
-                <option value="vision">文本 + 图片</option>
-                <option value="vision_files">文本 + 图片 + 文件</option>
-              </select>
-              <div id="cfg-capability-segments" class="segmented-control"></div>
-            </label>
-          </div>
-          <label class="block">
+          <label class="block config-section">
+            <span class="text-xs text-neutral-400">接口类型</span>
+            <select id="cfg-api-type" class="native-config-select">
+              <option value="openai_compatible">OpenAI Compatible</option>
+              <option value="openai_chat">OpenAI Chat Completions</option>
+              <option value="openai_responses">OpenAI Responses</option>
+              <option value="custom">Custom</option>
+            </select>
+            <div id="cfg-api-type-segments" class="segmented-control segmented-scroll"></div>
+          </label>
+          <label class="block config-section">
+            <span class="text-xs text-neutral-400">模型能力</span>
+            <select id="cfg-capability" class="native-config-select">
+              <option value="text">文本</option>
+              <option value="vision">文本 + 图片</option>
+              <option value="vision_files">文本 + 图片 + 文件</option>
+            </select>
+            <div id="cfg-capability-segments" class="segmented-control segmented-scroll"></div>
+          </label>
+          <label class="block config-section">
             <span class="text-xs text-neutral-400">Base URL</span>
             <input id="cfg-base" type="text" placeholder="http://localhost:11434/v1（ollama 示例）" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
           </label>
@@ -561,12 +577,12 @@
           </label>
           <input id="update-feed" type="hidden">
           <div class="text-[11px] text-neutral-500 leading-relaxed">
-            更新源已经内置在应用里，用户不需要手动填写 URL。
+            更新源已经内置在应用里，用户不需要手动填写 URL。下载会交给 Android 后台服务，完成后通知安装。
           </div>
           <div id="update-status" class="text-xs text-neutral-500 leading-relaxed"></div>
           <div class="flex gap-2">
             <button id="update-check" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">检查更新</button>
-            <button id="update-open" class="hidden flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white">下载新版</button>
+            <button id="update-open" class="hidden flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white">后台下载新版</button>
           </div>
         </div>
       </div>
@@ -658,7 +674,7 @@
     </div>
     <div id="update-modal-actions" class="flex gap-2">
       <button id="update-modal-skip" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">稍后再说</button>
-      <button id="update-modal-go" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">立即下载</button>
+      <button id="update-modal-go" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">后台下载</button>
     </div>
   </div>
 </div>
@@ -746,8 +762,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 11;
-const APP_VERSION_NAME = '0.15.6';
+const APP_VERSION_CODE = 12;
+const APP_VERSION_NAME = '0.15.7';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -777,15 +793,15 @@ const LLM_PROVIDERS = [
   { id:'lmstudio', label:'LM Studio 本机', base_url:'http://localhost:1234/v1', model:'local-model', models:['local-model','qwen2.5-7b-instruct','llama-3.2-3b-instruct'], api_type:'openai_compatible', capability:'text', requires_key:false },
 ];
 const API_TYPE_OPTIONS = [
-  { value:'openai_compatible', label:'兼容', detail:'OpenAI Compatible' },
-  { value:'openai_chat', label:'Chat', detail:'Completions' },
-  { value:'openai_responses', label:'Responses', detail:'OpenAI' },
-  { value:'custom', label:'自定', detail:'Custom' },
+  { value:'openai_compatible', label:'兼容', detail:'通用' },
+  { value:'openai_chat', label:'Chat', detail:'官方' },
+  { value:'openai_responses', label:'Responses', detail:'官方' },
+  { value:'custom', label:'自定义', detail:'手动' },
 ];
 const CAPABILITY_OPTIONS = [
   { value:'text', label:'文本', detail:'聊天' },
-  { value:'vision', label:'图片', detail:'多模态' },
-  { value:'vision_files', label:'文件', detail:'图 + 文件' },
+  { value:'vision', label:'图片', detail:'识图' },
+  { value:'vision_files', label:'文件', detail:'图片/文件' },
 ];
 
 function toast(msg, ms=1800) {
@@ -1134,7 +1150,7 @@ function showUpdateDialog(info) {
   $('#update-modal-progress').classList.add('hidden');
   $('#update-modal-actions').classList.remove('hidden');
   $('#update-modal-go').disabled = false;
-  $('#update-modal-go').textContent = '立即下载';
+  $('#update-modal-go').textContent = '后台下载';
   $('#update-modal-skip').classList.remove('hidden');
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
@@ -1150,8 +1166,14 @@ function closeUpdateDialog() {
 
 function _fmtMB(bytes) { return (bytes / 1048576).toFixed(1); }
 
-async function downloadAndInstallApkNative(url, versionName) {
-  return NativeBackgroundLlm.downloadAndInstallApk(url, versionName);
+async function downloadAndInstallApkNative(urls, versionName) {
+  const downloadUrls = (Array.isArray(urls) ? urls : [urls])
+    .map(x => String(x || '').trim())
+    .filter(Boolean)
+    .filter((url, index, all) => all.indexOf(url) === index);
+  if (!downloadUrls.length) return { available: false };
+  await NativeBackgroundLlm.requestNotificationPermission();
+  return NativeBackgroundLlm.downloadAndInstallApk(downloadUrls, versionName);
 }
 
 async function downloadApkInApp(urls, versionName) {
@@ -1182,7 +1204,7 @@ async function downloadApkInApp(urls, versionName) {
   sizeEl.textContent = '';
 
   try {
-    const nativeInstaller = await downloadAndInstallApkNative(url, versionName);
+    const nativeInstaller = await downloadAndInstallApkNative(downloadUrls, versionName);
     if (nativeInstaller.available) {
       if (nativeInstaller.permissionRequired) {
         goBtn.textContent = '已打开权限设置';
@@ -1190,6 +1212,18 @@ async function downloadApkInApp(urls, versionName) {
         skipBtn.classList.remove('hidden');
         skipBtn.textContent = '关闭';
         toast('请允许本应用安装未知应用后，再点一次安装新版', 5000);
+        return;
+      }
+      if (nativeInstaller.queued || nativeInstaller.background) {
+        bar.style.width = '100%';
+        pctEl.textContent = '后台下载';
+        sizeEl.textContent = '下载完成后会通知安装，可先离开应用';
+        goBtn.textContent = '已转入后台';
+        goBtn.disabled = true;
+        skipBtn.classList.remove('hidden');
+        skipBtn.textContent = '关闭';
+        setUpdateStatus(`新版 ${versionName || ''} 已在后台下载，完成后会通知安装。`, 'ok');
+        toast('已转入后台下载，完成后会通知安装', 5000);
         return;
       }
       if (nativeInstaller.opened) {
@@ -1904,11 +1938,16 @@ const NativeBackgroundLlm = (() => {
     await p.clearCompletedTurn({ job_id });
   }
 
-  async function downloadAndInstallApk(url, versionName) {
+  async function downloadAndInstallApk(urls, versionName) {
     const p = plugin();
     if (!p || !p.downloadAndInstallApk) return { available: false };
+    const downloadUrls = (Array.isArray(urls) ? urls : [urls])
+      .map(x => String(x || '').trim())
+      .filter(Boolean)
+      .filter((url, index, all) => all.indexOf(url) === index);
+    if (!downloadUrls.length) return { available: false };
     try {
-      const r = await p.downloadAndInstallApk({ url, versionName });
+      const r = await p.downloadAndInstallApk({ url: downloadUrls[0], urls: downloadUrls, versionName });
       return { available: true, ...(r || {}) };
     } catch (e) {
       return { available: true, error: String(e.message || e) };
@@ -3224,7 +3263,9 @@ function renderConfigPickerUi() {
   if (title) title.textContent = provider.label;
   if (summary) {
     const keyState = provider.requires_key === false ? '免 Key' : '需 API Key';
-    summary.textContent = `${provider.api_type || 'custom'} · ${provider.capability || 'text'} · ${model || '手动模型'} · ${keyState}`;
+    const apiLabel = (API_TYPE_OPTIONS.find(x => x.value === ($('#cfg-api-type').value || provider.api_type)) || {}).label || provider.api_type || '自定义';
+    const capLabel = (CAPABILITY_OPTIONS.find(x => x.value === ($('#cfg-capability').value || provider.capability)) || {}).label || provider.capability || '文本';
+    summary.textContent = `${apiLabel} · ${capLabel} · ${model || '手动模型'} · ${keyState}`;
   }
   renderSegmentedControl('#cfg-api-type-segments', API_TYPE_OPTIONS, $('#cfg-api-type').value || 'openai_compatible', value => {
     $('#cfg-api-type').value = value;
