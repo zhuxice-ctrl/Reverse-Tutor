@@ -1,195 +1,181 @@
-# Back_Teacher / 反转家教
+<p align="center">
+  <img src="static/app/icon-192.png" width="96" alt="Back Teacher logo">
+</p>
 
-反转家教，让教学成为你最好的学习方式。
+<h1 align="center">反转家教 Back Teacher</h1>
 
-这是一个“反向家教”学习工具：AI 扮演学生，用户扮演老师。用户需要把知识讲清楚，AI 会根据回答质量继续追问、换题、鼓励或推进，从而让用户在“教别人”的过程中加深理解。
+<p align="center">
+  把 AI 从“答案机器”变成会追问、会复盘、会持续推动目标的学生。
+</p>
 
-## 核心功能
+<p align="center">
+  <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">
+    <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Back_Teacher?style=for-the-badge&label=release&color=0f766e">
+  </a>
+  <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
+  <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
+</p>
 
-- **反向教学对话**：AI 扮演你设定的学生角色，主动请教你。
-- **结构化评估**：每轮对话都会评估正确度、深度、情绪和下一步动作。
-- **锚点防漂移**：用户目标、学习重点和新增诉求会写入 anchor，后续对话不会跑偏。
-- **掌握度追踪**：按知识点维护 mastery，动态调整难度。
-- **Mock 模式**：没有配置 LLM API 也能本地体验。
-- **OpenAI 兼容接口**：支持 DeepSeek、Qwen、Moonshot、自部署 vLLM、Ollama 等兼容接口。
-- **Web + 移动端**：提供桌面 Web UI、移动 PWA，并可用 Capacitor 打包 APK。
-- **本地数据**：服务端使用 SQLite，移动 PWA 使用 IndexedDB。
-- **检查更新**：移动端内置 GitHub `latest.json` 更新源，手动或启动时检查新版 APK。
+<p align="center">
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk"><strong>下载 Android APK</strong></a>
+  ·
+  <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">查看最新版本</a>
+  ·
+  <a href="#快速开始">本地运行</a>
+  ·
+  <a href="#移动端打包">自己打包</a>
+</p>
 
-## 项目结构
+<p align="center">
+  <img src="docs/assets/readme-showcase.svg" alt="Back Teacher showcase">
+</p>
+
+## 这是什么
+
+反转家教是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话中推动你把事情做完。
+
+它最初适合学习场景：用“教别人”的方式逼自己真正理解。现在也支持更宽泛的目标型使用，例如项目推进、方案打磨、习惯监督、面试训练、产品讨论和个人任务复盘。
+
+## 核心能力
+
+| 能力 | 说明 |
+|---|---|
+| 反向教学对话 | AI 扮演你设定的人格，用追问和反馈逼近清晰表达，而不是直接替你完成。 |
+| 目标锚点 | 记录目标、要求、知识点和新增约束，减少长对话中的跑偏。 |
+| 洞察窗口 | 汇总掌握度、重点、下一步动作和对话中的结构化信息。 |
+| 主动对话 | 在线模式下可按间隔主动发起提醒，离线模式保持静默，睡眠模式降低频率。 |
+| 多模型接入 | 移动端支持 OpenAI Chat API 与 Anthropic Messages API 两类协议，内置 DeepSeek、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio 等预设。 |
+| 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
+| Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务。 |
+| 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
+
+## 产品结构
+
+<p align="center">
+  <img src="docs/assets/readme-architecture.svg" alt="Back Teacher architecture">
+</p>
 
 ```text
 .
-├─ server.py                 # FastAPI 服务入口
-├─ engine.py                 # 反转家教核心对话引擎
-├─ llm.py                    # LLM / mock 模式封装
-├─ db.py                     # SQLite 数据模型与操作
-├─ adapters/                 # 飞书 / QQ / Hermes 等平台适配
-├─ static/index.html         # 桌面 Web UI
-├─ static/app/               # 移动 PWA 源码
-├─ mobile/                   # Capacitor Android APK 工程
-├─ tests/                    # pytest 测试
-└─ examples/cli_chat.py      # CLI 对话示例
+├── server.py                 # FastAPI 服务入口
+├── engine.py                 # 反转家教核心对话引擎
+├── llm.py                    # 服务端 LLM / mock 适配层
+├── db.py                     # SQLite 数据模型与操作
+├── adapters/                 # 飞书 / QQ / Hermes 等平台适配
+├── static/index.html         # 桌面 Web UI
+├── static/app/               # 移动端 PWA 源码
+├── mobile/                   # Capacitor Android APK 工程
+└── tests/                    # pytest 测试
 ```
 
-## 快速启动
+## 快速开始
 
 环境要求：
 
 - Python 3.10+
-- Node.js 18+（仅打包移动端时需要）
-- Android Studio / Android SDK（仅打包 APK 时需要）
+- Node.js 18+，仅在打包移动端时需要
+- Android Studio / Android SDK，仅在打包 APK 时需要
 
-安装 Python 依赖：
+安装依赖并启动服务：
 
 ```powershell
 pip install -r requirements.txt
 copy .env.example .env
-```
-
-启动服务：
-
-```powershell
 python -m uvicorn server:app --reload --host 127.0.0.1 --port 8000
 ```
 
 打开：
 
-- 桌面 Web：<http://127.0.0.1:8000>
-- 移动 PWA：<http://127.0.0.1:8000/app/>
+- 桌面 Web：http://127.0.0.1:8000
+- 移动 PWA：http://127.0.0.1:8000/app/
+
+不配置 LLM 也能运行。项目会自动使用 mock 模式，适合本地演示、测试和开发。
 
 ## LLM 配置
 
-如果不配置 LLM，应用会自动使用 mock 模式，适合调试和演示。
-
-如需接入真实模型，在 `.env` 或 Web 设置中配置：
+服务端 `.env` 使用 OpenAI 兼容协议：
 
 ```env
 LLM_BASE_URL=https://api.deepseek.com/v1
 LLM_API_KEY=sk-your-key-here
-LLM_MODEL=deepseek-chat
+LLM_MODEL=deepseek-v4-flash
 ```
 
-也可以在运行中的 Web UI 里打开 LLM 设置，直接保存配置。
+移动端可以直接在应用内配置模型。当前移动端把“接口类型”明确分成两类：
 
-## APK 打包
+| 接口类型 | 典型 URL | 适用模型 |
+|---|---|---|
+| OpenAI | `https://api.deepseek.com` | DeepSeek、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio |
+| Anthropic | `https://api.deepseek.com/anthropic` | 支持 Anthropic Messages API 的模型或兼容代理 |
 
-移动端工程位于 `mobile/`。
+如果模型不支持图片，发送图片或表情时不会让 DeepSeek 这类文本模型强行识图；多模态能力由你选择的模型预设决定。
 
-常用命令：
+## 移动端打包
 
 ```powershell
 cd mobile
 npm install
-npm run sync
-cd android
-.\gradlew.bat assembleDebug
+npm run build:apk
 ```
 
-产物：
+产物位置：
 
 ```text
 mobile/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-当前项目已经配置过 Android SDK 和 Gradle wrapper。若换电脑，需要参考 [mobile/BUILD_APK.md](mobile/BUILD_APK.md) 重新配置 JDK / Android SDK。
+当前公开测试包：
 
-## 检查更新
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk
+- GitHub Release：https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest
 
-移动端设置页有「软件更新」：
+## 应用更新
 
-1. 在 GitHub Releases 上传新版 APK。
-2. 提供一个公网可访问的 `latest.json`。
-3. 默认更新源已经内置到应用中，用户无需手动填写。
-4. 高级用户仍可在应用设置页改成自己的 `latest.json` 地址。
-5. 应用可手动检查，也可启动时自动检查。
+移动端默认使用自建更新源：
+
+```text
+https://dl.zeroxcore.tech/reverse-tutor/latest.json
+```
+
+更新规则：
+
+- 优先比较 `versionCode`，新版必须大于当前 APK 的 `versionCode`。
+- 如果没有 `versionCode`，再比较 `versionName`。
+- 下载源优先使用自建源，失败后再尝试 GitHub Release 备用源。
+- Android 侧不能静默安装 APK，下载完成后会打开系统安装器，由用户确认安装。
 
 `latest.json` 示例：
 
 ```json
 {
-  "versionCode": 2,
-  "versionName": "0.12.0",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.12.0/app-release.apk",
-  "publishedAt": "2026-05-14",
+  "versionCode": 13,
+  "versionName": "0.15.8",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk",
+  "apkMirrors": [
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.8/Back_Teacher-v0.15.8-debug.apk"
+  ],
+  "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "新增检查更新功能",
-    "优化移动端会话抽屉"
+    "重做接口类型配置",
+    "替换启动封面并加入进入动画"
   ]
 }
 ```
 
-规则：
-
-- 优先比较 `versionCode`，新版必须大于当前 APK 的 `versionCode`。
-- 如果没有 `versionCode`，再比较 `versionName`。
-- 安卓侧载 APK 不能静默自动安装，只能提示用户下载并手动安装。
-
-模板文件在 [static/app/latest.json](static/app/latest.json)。
-
-当前默认更新源：
-
-```text
-https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json
-```
-
-## 版本更新管理
-
-建议使用语义化版本：
-
-- `0.11.0`：功能版本
-- `0.11.1`：修复版本
-- `0.12.0`：新增功能
-- `1.0.0`：稳定发布
-
-每次发布新版建议按这个顺序：
+## 开发与测试
 
 ```powershell
-# 1. 修改版本号
-# mobile/package.json: version
-# mobile/android/app/build.gradle: versionCode + versionName
-# static/app/index.html: APP_VERSION_CODE + APP_VERSION_NAME
-# static/app/latest.json: versionCode + versionName + apkUrl + releaseNotes
+pytest -q
+```
 
-# 2. 跑测试
-pytest
+移动端改动建议至少跑：
 
-# 3. 同步并打 APK
+```powershell
+pytest -q tests/test_mobile_persistence.py tests/test_android_background_llm.py tests/test_update_check_resilience.py
 cd mobile
-npm run sync
-cd android
-.\gradlew.bat assembleDebug
-
-# 4. 提交
-git status
-git add .
-git commit -m "release: v0.12.0"
-git tag v0.12.0
-git push
-git push origin v0.12.0
+npm run build:apk
 ```
-
-然后到 GitHub Releases：
-
-1. 选择 tag，例如 `v0.12.0`。
-2. 上传 APK。
-3. 写更新说明。
-4. 更新 `latest.json` 的 `apkUrl`。
-
-## 测试
-
-```powershell
-pytest
-```
-
-当前测试覆盖：
-
-- 核心对话引擎
-- LLM mock / live 配置
-- 数据库 CRUD
-- 平台 onboarding
-- FastAPI 接口
-- persona 模板
 
 ## API 简表
 
@@ -202,13 +188,11 @@ pytest
 | DELETE | `/api/sessions/{id}` | 删除会话 |
 | POST | `/api/sessions/{id}/chat` | 发送一轮对话 |
 | POST | `/api/sessions/{id}/opening` | 触发开场 |
-| GET / POST | `/api/sessions/{id}/anchors` | 查看 / 添加锚点 |
+| GET / POST | `/api/sessions/{id}/anchors` | 查看或添加锚点 |
 | GET | `/api/sessions/{id}/export` | 导出会话 |
 | POST | `/api/adapters/{platform}/webhook` | 平台 webhook |
 | GET | `/api/bindings` | 查看平台绑定 |
 
-## 当前限制
+## 当前状态
 
-- 飞书 / QQ 回推目前是适配层 stub，生产使用前要补签名校验和真实发送 worker。
-- 移动端直连云端 LLM API 可能遇到 CORS 限制，本地 Ollama 或自部署 API 更适合 PWA。
-- Debug APK 适合自用测试；正式分发需要 release 签名。
+这个项目还处在快速迭代阶段，Debug APK 适合自用测试。正式分发仍需要 release 签名、权限说明、隐私政策和更完整的设备兼容测试。

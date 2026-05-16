@@ -1,0 +1,35 @@
+<svg width="1200" height="430" viewBox="0 0 1200 430" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="430" rx="28" fill="#F8FAFC"/>
+  <rect x="70" y="72" width="250" height="286" rx="24" fill="#FFFFFF" stroke="#D9E4E0"/>
+  <text x="108" y="122" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25" font-weight="800">体验层</text>
+  <rect x="104" y="154" width="182" height="46" rx="14" fill="#ECFDF5"/>
+  <text x="128" y="184" fill="#0F766E" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">Web UI</text>
+  <rect x="104" y="218" width="182" height="46" rx="14" fill="#E0F2FE"/>
+  <text x="128" y="248" fill="#0369A1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">PWA / APK</text>
+  <rect x="104" y="282" width="182" height="46" rx="14" fill="#F5F3FF"/>
+  <text x="128" y="312" fill="#6D28D9" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">平台适配器</text>
+
+  <path d="M340 215H430" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M420 202L438 215L420 228" stroke="#94A3B8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="452" y="72" width="296" height="286" rx="24" fill="#0F332D"/>
+  <text x="490" y="122" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25" font-weight="800">反转家教核心</text>
+  <rect x="490" y="154" width="220" height="44" rx="14" fill="#134E45"/>
+  <text x="518" y="183" fill="#CCFBF1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">目标锚点与人格设定</text>
+  <rect x="490" y="216" width="220" height="44" rx="14" fill="#134E45"/>
+  <text x="518" y="245" fill="#CCFBF1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">对话引擎与复盘评分</text>
+  <rect x="490" y="278" width="220" height="44" rx="14" fill="#134E45"/>
+  <text x="518" y="307" fill="#CCFBF1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">记忆、洞察与主动触发</text>
+
+  <path d="M770 215H860" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M850 202L868 215L850 228" stroke="#94A3B8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="890" y="72" width="240" height="286" rx="24" fill="#FFFFFF" stroke="#D9E4E0"/>
+  <text x="928" y="122" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25" font-weight="800">模型与数据</text>
+  <rect x="924" y="154" width="172" height="46" rx="14" fill="#EFF6FF"/>
+  <text x="948" y="184" fill="#1D4ED8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">OpenAI API</text>
+  <rect x="924" y="218" width="172" height="46" rx="14" fill="#FEF3C7"/>
+  <text x="948" y="248" fill="#B45309" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">Anthropic API</text>
+  <rect x="924" y="282" width="172" height="46" rx="14" fill="#F1F5F9"/>
+  <text x="948" y="312" fill="#334155" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="700">SQLite / IndexedDB</text>
+</svg>
