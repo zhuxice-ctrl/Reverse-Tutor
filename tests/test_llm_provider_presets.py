@@ -15,12 +15,42 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "cfg-capability" in html
     assert "applyLlmProviderPreset" in html
     assert "https://api.openai.com/v1" in html
-    assert "https://api.deepseek.com/v1" in html
+    assert "https://api.deepseek.com" in html
+    assert "https://api.deepseek.com/anthropic" in html
     assert "https://dashscope.aliyuncs.com/compatible-mode/v1" in html
     assert "https://api.moonshot.ai/v1" in html
     assert "https://api.groq.com/openai/v1" in html
     assert "https://openrouter.ai/api/v1" in html
     assert "http://localhost:11434/v1" in html
+
+
+def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    provider_block = html.split("const LLM_PROVIDERS", 1)[1].split("const API_TYPE_OPTIONS", 1)[0]
+    api_options = html.split("const API_TYPE_OPTIONS", 1)[1].split("const CAPABILITY_OPTIONS", 1)[0]
+    api_select = html.split('id="cfg-api-type"', 1)[1].split('id="cfg-api-type-segments"', 1)[0]
+
+    assert "{ value:'openai', label:'OpenAI'" in api_options
+    assert "{ value:'anthropic', label:'Anthropic'" in api_options
+    assert "openai_compatible" not in api_select
+    assert "openai_chat" not in api_select
+    assert "openai_responses" not in api_select
+    assert "https://api.deepseek.com/anthropic" in provider_block
+    assert "deepseek-v4-flash" in provider_block
+    assert "deepseek-v4-pro" in provider_block
+    assert "deepseek-chat" not in provider_block
+    assert "deepseek-reasoner" not in provider_block
+
+
+def test_mobile_llm_supports_anthropic_protocol_family():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function normalizeApiType" in html
+    assert "function anthropic_text" in html
+    assert "/v1/messages" in html
+    assert "x-api-key" in html
+    assert "anthropic-version" in html
+    assert "cfg.api_type === 'anthropic'" in html
 
 
 def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_selects():
@@ -52,8 +82,8 @@ def test_mobile_llm_payload_sanitizes_multimodal_messages_by_capability():
     assert "normalizeContentParts" in html
     assert "当前模型不支持识别图片" in html
     assert "image_url" in html
-    assert "openai_responses" in html
-    assert "responses_chat" in html
+    assert "anthropic_text" in html
+    assert "extractAnthropicText" in html
 
 
 def test_android_background_job_carries_api_type_and_capability():

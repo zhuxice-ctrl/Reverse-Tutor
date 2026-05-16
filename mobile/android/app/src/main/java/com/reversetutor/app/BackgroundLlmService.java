@@ -91,6 +91,10 @@ public class BackgroundLlmService extends Service {
     }
 
     private String callOpenAi(JSONObject job) throws Exception {
+        if (isAnthropic(job)) {
+            return callAnthropic(job);
+        }
+
         JSONObject payload = buildPayload(job, true);
         HttpResult first = post(job, payload);
         if (first.statusCode >= 400 && (first.statusCode == 400 || first.statusCode == 422)) {
@@ -131,6 +135,51 @@ public class BackgroundLlmService extends Service {
         );
     }
 
+    private String callAnthropic(JSONObject job) throws Exception {
+        JSONObject payload = buildAnthropicPayload(job, job.optString("system", ""), job.optDouble("temperature", 0.85));
+        HttpResult first = postAnthropic(job, payload);
+        if (first.statusCode < 200 || first.statusCode >= 300) {
+            throw new Exception("LLM " + first.statusCode + ": " + first.body);
+        }
+
+        String content = contentFromAnthropicResponse(first.body);
+        String extracted = extractJsonObject(content);
+        if (extracted != null) {
+            return extracted;
+        }
+
+        JSONObject retryPayload = buildAnthropicPayload(
+            job,
+            strictJsonSystem(job),
+            Math.min(job.optDouble("temperature", 0.85), 0.3)
+        );
+        HttpResult retry = postAnthropic(job, retryPayload);
+        if (retry.statusCode < 200 || retry.statusCode >= 300) {
+            throw new Exception("LLM retry " + retry.statusCode + ": " + retry.body);
+        }
+        String retryContent = contentFromAnthropicResponse(retry.body);
+        extracted = extractJsonObject(retryContent);
+        if (extracted != null) {
+            return extracted;
+        }
+
+        String fallback = fallbackReplyJson(retryContent);
+        if (fallback != null) {
+            return fallback;
+        }
+
+        throw new Exception(
+            "LLM did not return valid JSON after background retry: first="
+                + preview(content)
+                + "; retry="
+                + preview(retryContent)
+        );
+    }
+
+    private boolean isAnthropic(JSONObject job) {
+        return "anthropic".equalsIgnoreCase(job.optString("api_type", ""));
+    }
+
     private JSONObject buildPayload(JSONObject job, boolean jsonMode) throws Exception {
         return buildPayload(job, jsonMode, job.optString("system", ""), job.optDouble("temperature", 0.85));
     }
@@ -166,6 +215,80 @@ public class BackgroundLlmService extends Service {
         return payload;
     }
 
+    private JSONObject buildAnthropicPayload(JSONObject job, String systemText, double temperature) throws Exception {
+        JSONObject payload = new JSONObject();
+        payload.put("model", job.optString("model", ""));
+        payload.put("temperature", temperature);
+        payload.put("max_tokens", job.optInt("max_tokens", 900));
+
+        StringBuilder system = new StringBuilder(systemText == null ? "" : systemText);
+        JSONArray messages = new JSONArray();
+        JSONArray input = job.optJSONArray("messages");
+        if (input != null) {
+            for (int i = 0; i < input.length(); i++) {
+                JSONObject item = input.optJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                String role = item.optString("role", "user");
+                String content = contentAsText(item.opt("content")).trim();
+                if (content.isEmpty()) {
+                    continue;
+                }
+                if ("system".equals(role)) {
+                    if (system.length() > 0) {
+                        system.append("\n\n");
+                    }
+                    system.append(content);
+                    continue;
+                }
+                JSONObject msg = new JSONObject();
+                msg.put("role", "assistant".equals(role) ? "assistant" : "user");
+                msg.put("content", content);
+                messages.put(msg);
+            }
+        }
+        if (messages.length() == 0) {
+            JSONObject msg = new JSONObject();
+            msg.put("role", "user");
+            msg.put("content", "ping");
+            messages.put(msg);
+        }
+
+        payload.put("system", system.toString());
+        payload.put("messages", messages);
+        return payload;
+    }
+
+    private String contentAsText(Object content) {
+        if (content == null || JSONObject.NULL.equals(content)) {
+            return "";
+        }
+        if (content instanceof String) {
+            return (String) content;
+        }
+        if (content instanceof JSONArray) {
+            JSONArray arr = (JSONArray) content;
+            StringBuilder out = new StringBuilder();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject part = arr.optJSONObject(i);
+                if (part == null) {
+                    continue;
+                }
+                String type = part.optString("type", "");
+                String text = "text".equals(type) ? part.optString("text", "") : "";
+                if (!text.trim().isEmpty()) {
+                    if (out.length() > 0) {
+                        out.append("\n");
+                    }
+                    out.append(text.trim());
+                }
+            }
+            return out.toString();
+        }
+        return String.valueOf(content);
+    }
+
     private String strictJsonSystem(JSONObject job) {
         return job.optString("system", "")
             + "\n\nIMPORTANT: Return only one valid JSON object. Do not use markdown, comments, <think> tags, "
@@ -184,6 +307,40 @@ public class BackgroundLlmService extends Service {
             throw new Exception("LLM returned empty content. finish_reason=" + choice.optString("finish_reason", "unknown"));
         }
         return content;
+    }
+
+    private String contentFromAnthropicResponse(String body) throws Exception {
+        JSONObject data = new JSONObject(body);
+        StringBuilder out = new StringBuilder();
+        Object content = data.opt("content");
+        if (content instanceof String) {
+            out.append((String) content);
+        } else if (content instanceof JSONArray) {
+            JSONArray arr = (JSONArray) content;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject item = arr.optJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                String text = item.optString("text", "");
+                if (text.trim().isEmpty()) {
+                    text = item.optString("content", "");
+                }
+                if (!text.trim().isEmpty()) {
+                    if (out.length() > 0) {
+                        out.append("\n");
+                    }
+                    out.append(text.trim());
+                }
+            }
+        }
+        if (out.length() == 0 && !data.optString("completion", "").trim().isEmpty()) {
+            out.append(data.optString("completion", ""));
+        }
+        if (out.toString().trim().isEmpty()) {
+            throw new Exception("LLM returned empty anthropic content. stop_reason=" + data.optString("stop_reason", "unknown"));
+        }
+        return out.toString();
     }
 
     private String extractJsonObject(String raw) {
@@ -340,6 +497,31 @@ public class BackgroundLlmService extends Service {
         String apiKey = job.optString("api_key", "");
         if (!apiKey.isEmpty()) {
             conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+        }
+
+        byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+        try (OutputStream out = conn.getOutputStream()) {
+            out.write(body);
+        }
+
+        int code = conn.getResponseCode();
+        InputStream stream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+        return new HttpResult(code, readStream(stream));
+    }
+
+    private HttpResult postAnthropic(JSONObject job, JSONObject payload) throws Exception {
+        String baseUrl = job.optString("base_url", "").replaceAll("/+$", "");
+        URL url = new URL(baseUrl + "/v1/messages");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setConnectTimeout(20000);
+        conn.setReadTimeout(90000);
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("anthropic-version", "2023-06-01");
+        String apiKey = job.optString("api_key", "");
+        if (!apiKey.isEmpty()) {
+            conn.setRequestProperty("x-api-key", apiKey);
         }
 
         byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.15.8 - 2026-05-16
+
+- 重做接口类型配置：现在明确分为 OpenAI 和 Anthropic 两类协议，不再把接口类型写成含糊的兼容模式。
+- 更新 DeepSeek 预设：提供 OpenAI / Anthropic 两个入口，并把默认模型调整为 deepseek-v4-flash 和 deepseek-v4-pro。
+- Android 后台 LLM 服务补齐 Anthropic Messages API 支持，让后台回复和前台测试走同一套协议语义。
+- 替换 Capacitor 默认启动封面，并加入应用自己的进入动画。
+
 ## v0.15.7 - 2026-05-16
 
 - Added background APK update downloads through an Android foreground service, so downloads can continue after leaving the app and notify when ready to install.
