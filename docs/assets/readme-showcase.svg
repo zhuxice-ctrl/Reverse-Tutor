@@ -45,27 +45,27 @@
   <text x="480" y="154" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="46" font-weight="800">反转家教</text>
   <text x="480" y="196" fill="#334155" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600">把 AI 变成会追问、会复盘、会持续推动目标的学生。</text>
 
-  <rect x="480" y="244" width="250" height="116" rx="22" fill="#FFFFFF"/>
+  <rect x="480" y="244" width="270" height="116" rx="22" fill="#FFFFFF"/>
   <rect x="508" y="272" width="44" height="44" rx="12" fill="#CCFBF1"/>
   <text x="530" y="294" text-anchor="middle" dominant-baseline="middle" fill="#0F766E" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">01</text>
-  <text x="574" y="286" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">目标型对话</text>
-  <text x="574" y="318" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">学习与任务推进</text>
+  <text x="562" y="286" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">目标型对话</text>
+  <text x="562" y="318" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">不只学习，也能推进任务</text>
 
-  <rect x="762" y="244" width="250" height="116" rx="22" fill="#FFFFFF"/>
+  <rect x="762" y="244" width="290" height="116" rx="22" fill="#FFFFFF"/>
   <rect x="790" y="272" width="44" height="44" rx="12" fill="#DBEAFE"/>
   <text x="812" y="294" text-anchor="middle" dominant-baseline="middle" fill="#2563EB" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">02</text>
-  <text x="856" y="286" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">本地长期配置</text>
-  <text x="856" y="318" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">API 与会话本地保存</text>
+  <text x="844" y="286" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">本地长期配置</text>
+  <text x="844" y="318" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">API 和会话保存在设备侧</text>
 
-  <rect x="480" y="390" width="250" height="116" rx="22" fill="#FFFFFF"/>
+  <rect x="480" y="390" width="270" height="116" rx="22" fill="#FFFFFF"/>
   <rect x="508" y="418" width="44" height="44" rx="12" fill="#FDE68A"/>
   <text x="530" y="440" text-anchor="middle" dominant-baseline="middle" fill="#B45309" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">03</text>
-  <text x="574" y="432" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">多协议 LLM</text>
-  <text x="574" y="464" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">OpenAI / Anthropic</text>
+  <text x="562" y="432" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">多协议 LLM</text>
+  <text x="562" y="464" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">OpenAI 与 Anthropic 可选</text>
 
-  <rect x="762" y="390" width="250" height="116" rx="22" fill="#FFFFFF"/>
+  <rect x="762" y="390" width="290" height="116" rx="22" fill="#FFFFFF"/>
   <rect x="790" y="418" width="44" height="44" rx="12" fill="#E9D5FF"/>
   <text x="812" y="440" text-anchor="middle" dominant-baseline="middle" fill="#7E22CE" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">04</text>
-  <text x="856" y="432" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">Android APK</text>
-  <text x="856" y="464" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13">后台回复 / 应用更新</text>
+  <text x="844" y="432" dominant-baseline="middle" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="750">Android APK</text>
+  <text x="844" y="464" dominant-baseline="middle" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">后台回复与应用内更新</text>
 </svg>

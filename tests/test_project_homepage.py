@@ -31,5 +31,7 @@ def test_readme_showcase_text_uses_explicit_alignment():
     assert 'dominant-baseline="middle"' in svg
     assert '今天你想达成什么目标？' in svg
     assert '多协议 LLM' in svg
-    assert 'OpenAI / Anthropic' in svg
-    assert '后台回复 / 应用更新' in svg
+    assert 'OpenAI 与 Anthropic 可选' in svg
+    assert '后台回复与应用内更新' in svg
+    assert 'x="844" y="464"' in svg
+    assert 'x="762" y="390" width="290"' in svg
