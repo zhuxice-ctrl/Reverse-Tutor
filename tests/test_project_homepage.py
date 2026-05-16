@@ -11,6 +11,7 @@ def test_readme_includes_qq_group_entry_and_asset():
     assert "欢迎入qq群反馈给我更新动力" in readme
     assert "QQ 群：<strong>897804938</strong>" in readme
     assert "docs/assets/qq-group.jpg" in readme
+    assert readme.index("## 当前状态") < readme.index("## 加入交流群")
     assert qq_asset.exists()
     assert qq_asset.stat().st_size > 50_000
 
@@ -30,3 +31,5 @@ def test_readme_showcase_text_uses_explicit_alignment():
     assert 'dominant-baseline="middle"' in svg
     assert '今天你想达成什么目标？' in svg
     assert '多协议 LLM' in svg
+    assert 'OpenAI / Anthropic' in svg
+    assert '后台回复 / 应用更新' in svg
