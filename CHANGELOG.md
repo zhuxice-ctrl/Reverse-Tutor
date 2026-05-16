@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.15.6 - 2026-05-16
+
+- Refined the in-session LLM settings UI with a custom provider picker, segmented controls for API type and model capability, and quick model chips.
+- Suppressed in-chat popups for foreground replies when the user is already viewing the chat.
+- Added post-history reply instructions to keep role replies shorter, single-turn, and aligned with non-learning goals.
+- Displayed user-initiated background-completed turns as regular chat replies instead of generic background replies.
+
 ## v0.15.5 - 2026-05-16
 
 - Added proactive conversation controls with online, offline, and sleep modes. Online mode triggers naturally every 30-60 minutes, while offline mode stays silent.

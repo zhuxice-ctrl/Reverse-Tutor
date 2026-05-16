@@ -23,6 +23,22 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "http://localhost:11434/v1" in html
 
 
+def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_selects():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "native-config-select" in html
+    assert 'id="cfg-provider-trigger"' in html
+    assert 'id="cfg-provider-summary"' in html
+    assert 'id="cfg-api-type-segments"' in html
+    assert 'id="cfg-capability-segments"' in html
+    assert 'id="cfg-model-presets"' in html
+    assert 'id="choice-sheet"' in html
+    assert "function openChoiceSheet" in html
+    assert "function renderConfigPickerUi" in html
+    assert "function renderModelPresetChips" in html
+    assert "models:[" in html
+
+
 def test_mobile_llm_payload_sanitizes_multimodal_messages_by_capability():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
@@ -109,11 +125,28 @@ def test_mobile_proactive_conversation_has_three_modes_and_local_dispatch():
     assert "主动对话引导" in html
 
 
-def test_mobile_message_popup_shows_actual_reply_content():
+def test_mobile_message_popup_shows_actual_reply_content_without_covering_active_chat():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert "function messagePopupPreview" in html
+    assert "function shouldShowMessagePopup" in html
     assert "slice(0, 360)" in html
     assert "messagePopupPreview(text)" in html
-    assert "document.visibilityState === 'visible' && state.currentTab === 'chat'" not in html
+    assert "document.visibilityState === 'visible' && state.currentTab === 'chat'" in html
+    assert "source === 'foreground_llm'" in html
+    assert "showMessagePopup('学生 AI 回复'" not in html
+    assert "showMessagePopup('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' })" in html
+    assert "showMessagePopup('主动对话', result.reply, 4200, { source: 'proactive' })" in html
     assert 'id="message-popup-body" class="text-sm leading-snug max-h-28 overflow-y-auto whitespace-pre-wrap break-words"' in html
+
+
+def test_mobile_prompt_uses_post_history_instruction_for_better_role_replies():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function finalReplyInstruction" in html
+    assert "Post-History Instructions" in html
+    assert "只写学生 AI 的下一次回复" in html
+    assert "尊重用户自主权" in html
+    assert "不要把非学习目标强行改成教学/知识点讲解" in html
+    assert "messages.push({ role: 'system', content: finalReplyInstruction" in html
+    assert "shapeReplyBubbles(reply, 1)" in html

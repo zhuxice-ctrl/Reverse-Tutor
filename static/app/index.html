@@ -212,6 +212,121 @@
   .text-emerald-400 { color: var(--accent) !important; }
   .text-amber-400 { color: var(--warn) !important; }
   .theme-choice.active { background: var(--accent) !important; color: #f8f4ed !important; border-color: var(--accent) !important; }
+  .native-config-select {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  .config-picker {
+    margin-top: 6px;
+    width: 100%;
+    min-height: 54px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-3) 78%, transparent);
+    color: var(--text);
+    padding: 10px 12px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .config-picker:active, .model-chip:active, .seg-option:active { background: var(--accent-soft); }
+  .config-picker-main { min-width: 0; }
+  .config-picker-title { font-size: 14px; font-weight: 700; line-height: 1.2; }
+  .config-picker-sub { margin-top: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .config-picker-caret { color: var(--muted); font-size: 18px; line-height: 1; flex: none; }
+  .segmented-control {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 6px;
+    padding: 3px;
+    border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel) 68%, transparent);
+  }
+  .seg-option {
+    min-height: 38px;
+    border-radius: 6px;
+    padding: 6px 7px;
+    font-size: 11px;
+    color: var(--text-soft);
+    text-align: center;
+    line-height: 1.15;
+  }
+  .seg-option.active {
+    background: var(--accent);
+    color: #f8f4ed;
+    font-weight: 700;
+  }
+  .model-chip-row {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .model-chip {
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--text-soft);
+    background: color-mix(in srgb, var(--panel-3) 60%, transparent);
+    white-space: nowrap;
+  }
+  .model-chip.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+    font-weight: 700;
+  }
+  .choice-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(0,0,0,.38);
+    display: flex;
+    align-items: flex-end;
+  }
+  .choice-sheet {
+    width: 100%;
+    max-height: 78vh;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -16px 48px rgba(0,0,0,.28);
+    overflow: hidden;
+  }
+  .choice-sheet-list {
+    max-height: 58vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .choice-row {
+    width: 100%;
+    padding: 12px 16px;
+    border-top: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    text-align: left;
+  }
+  .choice-row.active { background: var(--accent-soft); }
+  .choice-row-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    flex: none;
+  }
+  .choice-row.active .choice-row-dot { background: var(--accent); border-color: var(--accent); }
   #message-popup {
     top: calc(env(safe-area-inset-top) + 72px);
     bottom: auto;
@@ -381,25 +496,34 @@
           </div>
           <label class="block">
             <span class="text-xs text-neutral-400">提供商预设</span>
-            <select id="cfg-provider" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm"></select>
+            <select id="cfg-provider" class="native-config-select"></select>
+            <button id="cfg-provider-trigger" type="button" class="config-picker">
+              <span class="config-picker-main">
+                <span id="cfg-provider-title" class="config-picker-title">手动填写</span>
+                <span id="cfg-provider-summary" class="config-picker-sub">自定义 Base URL 和模型</span>
+              </span>
+              <span class="config-picker-caret">⌄</span>
+            </button>
           </label>
           <div class="grid grid-cols-2 gap-2">
             <label class="block min-w-0">
               <span class="text-xs text-neutral-400">接口类型</span>
-              <select id="cfg-api-type" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+              <select id="cfg-api-type" class="native-config-select">
                 <option value="openai_compatible">OpenAI Compatible</option>
                 <option value="openai_chat">OpenAI Chat Completions</option>
                 <option value="openai_responses">OpenAI Responses</option>
                 <option value="custom">Custom</option>
               </select>
+              <div id="cfg-api-type-segments" class="segmented-control"></div>
             </label>
             <label class="block min-w-0">
               <span class="text-xs text-neutral-400">模型能力</span>
-              <select id="cfg-capability" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+              <select id="cfg-capability" class="native-config-select">
                 <option value="text">文本</option>
                 <option value="vision">文本 + 图片</option>
                 <option value="vision_files">文本 + 图片 + 文件</option>
               </select>
+              <div id="cfg-capability-segments" class="segmented-control"></div>
             </label>
           </div>
           <label class="block">
@@ -413,6 +537,7 @@
           <label class="block">
             <span class="text-xs text-neutral-400">Model</span>
             <input id="cfg-model" type="text" placeholder="llama3 / qwen2.5 / gpt-4o-mini ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+            <div id="cfg-model-presets" class="model-chip-row"></div>
           </label>
           <div id="cfg-status" class="text-xs text-neutral-500"></div>
           <div class="flex gap-2">
@@ -591,6 +716,20 @@
   </div>
 </div>
 
+<div id="choice-sheet" class="choice-sheet-overlay hidden">
+  <div class="choice-sheet safe-bottom">
+    <div class="graph-sheet-handle"></div>
+    <div class="p-4 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <div id="choice-sheet-title" class="text-sm font-semibold">选择</div>
+        <div id="choice-sheet-subtitle" class="text-xs text-neutral-500 mt-1"></div>
+      </div>
+      <button id="choice-sheet-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+    </div>
+    <div id="choice-sheet-list" class="choice-sheet-list"></div>
+  </div>
+</div>
+
 <script>
 // ============== 状态与工具 ==============
 const $ = s => document.querySelector(s);
@@ -607,8 +746,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 10;
-const APP_VERSION_NAME = '0.15.5';
+const APP_VERSION_CODE = 11;
+const APP_VERSION_NAME = '0.15.6';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -626,16 +765,27 @@ const PROACTIVE_MODES = {
   sleep: { label: '睡眠', intervalMs: 6 * 60 * 60 * 1000 },
 };
 const LLM_PROVIDERS = [
-  { id:'custom', label:'手动填写', base_url:'', model:'', api_type:'custom', capability:'text', requires_key:true },
-  { id:'openai', label:'OpenAI', base_url:'https://api.openai.com/v1', model:'gpt-4o-mini', api_type:'openai_chat', capability:'vision' },
-  { id:'openai-responses', label:'OpenAI Responses', base_url:'https://api.openai.com/v1', model:'gpt-4.1-mini', api_type:'openai_responses', capability:'vision' },
-  { id:'deepseek', label:'DeepSeek', base_url:'https://api.deepseek.com/v1', model:'deepseek-chat', api_type:'openai_compatible', capability:'text' },
-  { id:'qwen', label:'Qwen / DashScope', base_url:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus', api_type:'openai_compatible', capability:'vision' },
-  { id:'kimi', label:'Kimi / Moonshot', base_url:'https://api.moonshot.ai/v1', model:'moonshot-v1-8k', api_type:'openai_compatible', capability:'text' },
-  { id:'groq', label:'Groq', base_url:'https://api.groq.com/openai/v1', model:'llama-3.1-8b-instant', api_type:'openai_compatible', capability:'text' },
-  { id:'openrouter', label:'OpenRouter', base_url:'https://openrouter.ai/api/v1', model:'openai/gpt-4o-mini', api_type:'openai_compatible', capability:'vision' },
-  { id:'ollama', label:'Ollama 本机', base_url:'http://localhost:11434/v1', model:'llama3.2', api_type:'openai_compatible', capability:'text', requires_key:false },
-  { id:'lmstudio', label:'LM Studio 本机', base_url:'http://localhost:1234/v1', model:'local-model', api_type:'openai_compatible', capability:'text', requires_key:false },
+  { id:'custom', label:'手动填写', base_url:'', model:'', models:['gpt-4o-mini','deepseek-chat','qwen-plus','local-model'], api_type:'custom', capability:'text', requires_key:true },
+  { id:'openai', label:'OpenAI', base_url:'https://api.openai.com/v1', model:'gpt-4o-mini', models:['gpt-4o-mini','gpt-4.1-mini','gpt-4o'], api_type:'openai_chat', capability:'vision' },
+  { id:'openai-responses', label:'OpenAI Responses', base_url:'https://api.openai.com/v1', model:'gpt-4.1-mini', models:['gpt-4.1-mini','gpt-4.1','gpt-4o-mini'], api_type:'openai_responses', capability:'vision' },
+  { id:'deepseek', label:'DeepSeek', base_url:'https://api.deepseek.com/v1', model:'deepseek-chat', models:['deepseek-chat','deepseek-reasoner'], api_type:'openai_compatible', capability:'text' },
+  { id:'qwen', label:'Qwen / DashScope', base_url:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus', models:['qwen-plus','qwen-turbo','qwen-vl-plus'], api_type:'openai_compatible', capability:'vision' },
+  { id:'kimi', label:'Kimi / Moonshot', base_url:'https://api.moonshot.ai/v1', model:'moonshot-v1-8k', models:['moonshot-v1-8k','moonshot-v1-32k','moonshot-v1-128k'], api_type:'openai_compatible', capability:'text' },
+  { id:'groq', label:'Groq', base_url:'https://api.groq.com/openai/v1', model:'llama-3.1-8b-instant', models:['llama-3.1-8b-instant','llama-3.3-70b-versatile'], api_type:'openai_compatible', capability:'text' },
+  { id:'openrouter', label:'OpenRouter', base_url:'https://openrouter.ai/api/v1', model:'openai/gpt-4o-mini', models:['openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','google/gemini-flash-1.5'], api_type:'openai_compatible', capability:'vision' },
+  { id:'ollama', label:'Ollama 本机', base_url:'http://localhost:11434/v1', model:'llama3.2', models:['llama3.2','qwen2.5','gemma2'], api_type:'openai_compatible', capability:'text', requires_key:false },
+  { id:'lmstudio', label:'LM Studio 本机', base_url:'http://localhost:1234/v1', model:'local-model', models:['local-model','qwen2.5-7b-instruct','llama-3.2-3b-instruct'], api_type:'openai_compatible', capability:'text', requires_key:false },
+];
+const API_TYPE_OPTIONS = [
+  { value:'openai_compatible', label:'兼容', detail:'OpenAI Compatible' },
+  { value:'openai_chat', label:'Chat', detail:'Completions' },
+  { value:'openai_responses', label:'Responses', detail:'OpenAI' },
+  { value:'custom', label:'自定', detail:'Custom' },
+];
+const CAPABILITY_OPTIONS = [
+  { value:'text', label:'文本', detail:'聊天' },
+  { value:'vision', label:'图片', detail:'多模态' },
+  { value:'vision_files', label:'文件', detail:'图 + 文件' },
 ];
 
 function toast(msg, ms=1800) {
@@ -1115,9 +1265,18 @@ function messagePopupPreview(text) {
   return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 360);
 }
 
-function showMessagePopup(title, text, ms=4200) {
+function shouldShowMessagePopup(source='', opts={}) {
+  if (opts.force) return true;
+  if (source === 'foreground_llm') return false;
+  if (document.visibilityState === 'visible' && state.currentTab === 'chat') return false;
+  return true;
+}
+
+function showMessagePopup(title, text, ms=4200, opts={}) {
   const preview = messagePopupPreview(text);
   if (!popupEnabled() || !preview) return;
+  const source = opts.source || '';
+  if (!shouldShowMessagePopup(source, opts)) return;
   $('#message-popup-title').textContent = title || '学生 AI';
   $('#message-popup-body').textContent = preview;
   $('#message-popup').classList.remove('hidden');
@@ -1796,7 +1955,10 @@ const ENGINE = (() => {
   function build_system_prompt(session, anchors, masteries, summary='') {
     const p = session.persona || {};
     const conversationMode = inferConversationMode(session);
-    let s = `你是 "反转家教 AI" 中的"学生"角色。你的核心使命：通过向用户（老师）请教问题，让用户在教你的过程中加深理解。
+    const coreMission = conversationMode === 'learning'
+      ? `你是 "反转家教 AI" 中的"学生"角色。你的核心使命：通过向用户（老师）请教问题，让用户在教你的过程中加深理解。`
+      : `你是 "反转家教 AI" 中的"学生 AI"角色。你的核心使命：稳定扮演用户设定的人格，围绕目标推进关系、协作或陪伴；必要时可以请用户帮忙，但不要把普通目标都改造成学习任务。`;
+    let s = `${coreMission}
 
 # 你的人设
 - 角色: ${p.role||''}
@@ -1847,6 +2009,19 @@ ${format_actions()}
 - goal_support 模式：围绕目标推进、情绪陪伴、角色互动、决策辅助或任务协作。
 - action.knowledge_point 表示本回合相关主题；学习模式下才需要是具体知识点，非学习目标下可填写目标主题或留空。`;
     return s;
+  }
+
+  function finalReplyInstruction(session, kind='turn') {
+    const mode = inferConversationMode(session);
+    const concise = kind === 'proactive'
+      ? '只说 1 句，最多 90 个中文字符。'
+      : '说 1 到 3 句，最多 160 个中文字符；除非用户明确要求长解释。';
+    return `# Post-History Instructions
+- 只写学生 AI 的下一次回复，不写用户/老师的台词，不替用户行动、感受或决定。
+- 尊重用户自主权：用户说不会、拒绝、索要不现实内容或偏离目标时，先承接情绪，再用角色关系把话题推回一个现实可回应的小目标。
+- 当前 mode: ${mode}。${mode === 'goal_support' ? '不要把非学习目标强行改成教学/知识点讲解；围绕人格、关系和目标自然推进。' : '可以请教、追问或复述，但每次只推进一个具体知识点。'}
+- 回复像即时聊天：${concise}不要连续输出多个独立段落，不要重复称呼或重复同一个请求。
+- 输出仍然只能是一个 JSON 对象，reply 字段放最终自然语言回复。`;
   }
 
   function find_latest_summary(msgs) {
@@ -1936,16 +2111,23 @@ ${format_actions()}
     const anchors = await DB.bySid('anchors', sid);
     const masteries = await DB.bySid('mastery', sid);
     const conversationMode = inferConversationMode(session);
+    const openingTask = conversationMode === 'learning'
+      ? `1. 用你角色的口吻自然打招呼（一句话）。
+2. 立刻提出第一个真实的知识点问题，与你的 goal 直接相关。
+3. action.type 设为 "ask"。
+4. action.knowledge_point 是具体知识点。`
+      : `1. 用你角色的口吻自然开场（一句话）。
+2. 立刻提出一个与目标、关系或场景有关的真实小请求/问题，不要强行讲课、求知识点或问心理学技巧。
+3. action.type 优先设为 "ask" 或 "probe"。
+4. action.knowledge_point 可填写目标主题，不能编成学科知识点。`;
     const system_prompt = build_system_prompt(session, anchors, masteries) + `
 
 # 当前情境（重要）
 这是会话的**第一句话**，用户（老师）还没说话。请你作为"学生"主动开场：
-1. 用你角色的口吻自然打招呼（一句话）。
-2. 立刻提出**第一个真实的知识点问题**，与你的 goal 直接相关。
-3. action.type 设为 "ask"。
-4. action.knowledge_point 是具体知识点。
+${openingTask}
 `;
-    const raw = await LLM.chat_json(system_prompt, [], { temperature: 0.85 });
+    const messages = [{ role: 'system', content: finalReplyInstruction(session, 'opening') }];
+    const raw = await LLM.chat_json(system_prompt, messages, { temperature: 0.85 });
     const reply = (raw.reply||'').trim() || '（站在讲台前傻笑）……老师好，咱开始吧！';
     const action = raw.action || { type:'ask', knowledge_point:'?' };
     await add_message(sid, 'assistant', reply, { action, evaluation: raw.evaluation || {}, opening: true });
@@ -2051,7 +2233,7 @@ ${format_actions()}
         const reply = (raw.reply || '').trim() || '（后台回复已生成，但内容为空）';
         const updates = raw.anchor_updates || [];
 
-        const bubbles = shapeReplyBubbles(reply);
+        const bubbles = shapeReplyBubbles(reply, 1);
         for (let i = 0; i < bubbles.length; i++) {
           await add_message(job.sid, 'assistant', bubbles[i], {
             action: ac,
@@ -2124,6 +2306,7 @@ ${format_actions()}
     const system = build_system_prompt(session, anchors, masteries, summary_text);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
+    messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
 
     const nativeQueued = await maybe_enqueue_native_background_turn(sid, system, messages, 0.85, 900, {
       turn_id: turnId,
@@ -2138,7 +2321,7 @@ ${format_actions()}
     const reply = (raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
     const updates = raw.anchor_updates || [];
 
-    const bubbles = shapeReplyBubbles(reply);
+    const bubbles = shapeReplyBubbles(reply, 1);
     for (let i = 0; i < bubbles.length; i++) {
       await add_message(sid, 'assistant', bubbles[i], {
         action: ac,
@@ -2188,12 +2371,13 @@ ${format_actions()}
       role: 'user',
       content: `[主动对话引导] 当前触发状态：${modeLabel}。请主动发起一句自然对话。`,
     });
+    messages.push({ role: 'system', content: finalReplyInstruction(session, 'proactive') });
     const raw = await LLM.chat_json(system, messages, { temperature: 0.9, max_tokens: 360 });
     const ev = raw.evaluation || {};
     const ac = normalizeAction(raw.action || {}, `主动对话:${mode}`);
     ac.note = ac.note || `is_system_trigger:${mode}`;
     const reply = (raw.reply || '').trim() || '刚想起你这边，顺手问一句，刚才那件事后来怎么样了？';
-    const bubbles = shapeReplyBubbles(reply, mode === 'sleep' ? 2 : 3);
+    const bubbles = shapeReplyBubbles(reply, 1);
     for (let i = 0; i < bubbles.length; i++) {
       await add_message(sid, 'assistant', bubbles[i], {
         action: ac,
@@ -2322,7 +2506,7 @@ async function renderChat() {
       const a = hasActionMeta ? normalizeAction(msgMeta.action || {}, msgMeta.native_background ? '后台回复' : '自由回复') : {};
       const ev = msgMeta.evaluation || {};
       const source = msgMeta.source || m.source || '';
-      const sourceLabel = source === 'native_background' ? '后台回复' : (source === 'foreground_llm' ? '对话' : (source === 'proactive' ? '主动对话' : ''));
+      const sourceLabel = source === 'native_background' ? (msgMeta.reply_to_message_id ? '对话' : '后台回复') : (source === 'foreground_llm' ? '对话' : (source === 'proactive' ? '主动对话' : ''));
       const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;
       const messageTotal = msgMeta.message_total ?? m.message_total ?? 1;
       const kp = a.knowledge_point ? `<span>${esc(a.knowledge_point)}</span>` : '';
@@ -2362,8 +2546,7 @@ async function sendMessage() {
   $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
   try {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
-    const result = await ENGINE.run_turn(state.sid, txt, renderChat);
-    showMessagePopup('学生 AI 回复', result.reply);
+    await ENGINE.run_turn(state.sid, txt, renderChat);
   } catch(e) {
     toast('LLM 失败: ' + (e.message||e), 4000);
   } finally {
@@ -2379,7 +2562,7 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
     if (r.imported) {
       if (state.sid) await renderChat();
       refreshHeader();
-      if (!silent && r.lastReply) showMessagePopup('后台 LLM 回复', r.lastReply);
+      if (!silent && r.lastReply) showMessagePopup('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' });
     }
     return r;
   } catch (e) {
@@ -2393,7 +2576,8 @@ async function openingFor(sid) {
   $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
   try {
     const result = await ENGINE.run_opening_turn(sid);
-    showMessagePopup('学生 AI 主动开场', result.reply);
+    await renderChat();
+    showMessagePopup('学生 AI 主动开场', result.reply, 4200, { source: 'opening' });
   }
   catch(e) { toast('开场失败: ' + (e.message||e), 4000); }
   finally {
@@ -2426,7 +2610,7 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
     setProactiveConfig({ lastAt: Date.now() });
     await renderChat();
     renderProactiveSettings();
-    showMessagePopup('主动对话', result.reply);
+    showMessagePopup('主动对话', result.reply, 4200, { source: 'proactive' });
     return { triggered: true, reason, mode: cfg.mode };
   } catch (err) {
     console.warn('proactive turn failed', err);
@@ -2975,6 +3159,84 @@ function renderLlmProviderOptions() {
   select.innerHTML = LLM_PROVIDERS.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');
 }
 
+function llmProviderById(id) {
+  return LLM_PROVIDERS.find(p => p.id === id) || LLM_PROVIDERS[0];
+}
+
+function openChoiceSheet({ title, subtitle='', options=[], value='', onPick }) {
+  const sheet = $('#choice-sheet');
+  $('#choice-sheet-title').textContent = title || '选择';
+  $('#choice-sheet-subtitle').textContent = subtitle || '';
+  $('#choice-sheet-list').innerHTML = options.map(opt => `
+    <button type="button" class="choice-row ${opt.value === value ? 'active' : ''}" data-choice-value="${esc(opt.value)}">
+      <span class="choice-row-dot"></span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-semibold truncate">${esc(opt.label)}</span>
+        <span class="block text-xs text-neutral-500 truncate">${esc(opt.detail || '')}</span>
+      </span>
+      ${opt.badge ? `<span class="text-[10px] text-neutral-500 border border-neutral-700 rounded-full px-2 py-0.5">${esc(opt.badge)}</span>` : ''}
+    </button>
+  `).join('');
+  sheet.classList.remove('hidden');
+  $$('#choice-sheet-list [data-choice-value]').forEach(btn => btn.addEventListener('click', () => {
+    const picked = options.find(opt => opt.value === btn.dataset.choiceValue);
+    if (picked && typeof onPick === 'function') onPick(picked);
+    closeChoiceSheet();
+  }));
+}
+
+function closeChoiceSheet() {
+  $('#choice-sheet').classList.add('hidden');
+}
+
+function renderSegmentedControl(target, options, value, onPick) {
+  const el = typeof target === 'string' ? $(target) : target;
+  if (!el) return;
+  el.innerHTML = options.map(opt => `
+    <button type="button" class="seg-option ${opt.value === value ? 'active' : ''}" data-seg-value="${esc(opt.value)}">
+      <span class="block">${esc(opt.label)}</span>
+      <span class="block opacity-70 mt-0.5">${esc(opt.detail || '')}</span>
+    </button>
+  `).join('');
+  el.querySelectorAll('[data-seg-value]').forEach(btn => btn.addEventListener('click', () => onPick(btn.dataset.segValue)));
+}
+
+function renderModelPresetChips(provider=llmProviderById($('#cfg-provider')?.value || 'custom')) {
+  const row = $('#cfg-model-presets');
+  const input = $('#cfg-model');
+  if (!row || !input) return;
+  const current = input.value.trim();
+  const models = Array.from(new Set([...(provider.models || []), current].filter(Boolean)));
+  row.innerHTML = models.map(model => `
+    <button type="button" class="model-chip ${model === current ? 'active' : ''}" data-model-preset="${esc(model)}">${esc(model)}</button>
+  `).join('');
+  row.querySelectorAll('[data-model-preset]').forEach(btn => btn.addEventListener('click', () => {
+    input.value = btn.dataset.modelPreset;
+    renderModelPresetChips(provider);
+  }));
+}
+
+function renderConfigPickerUi() {
+  const provider = llmProviderById($('#cfg-provider')?.value || 'custom');
+  const model = $('#cfg-model')?.value || provider.model || '';
+  const title = $('#cfg-provider-title');
+  const summary = $('#cfg-provider-summary');
+  if (title) title.textContent = provider.label;
+  if (summary) {
+    const keyState = provider.requires_key === false ? '免 Key' : '需 API Key';
+    summary.textContent = `${provider.api_type || 'custom'} · ${provider.capability || 'text'} · ${model || '手动模型'} · ${keyState}`;
+  }
+  renderSegmentedControl('#cfg-api-type-segments', API_TYPE_OPTIONS, $('#cfg-api-type').value || 'openai_compatible', value => {
+    $('#cfg-api-type').value = value;
+    renderConfigPickerUi();
+  });
+  renderSegmentedControl('#cfg-capability-segments', CAPABILITY_OPTIONS, $('#cfg-capability').value || 'text', value => {
+    $('#cfg-capability').value = value;
+    renderConfigPickerUi();
+  });
+  renderModelPresetChips(provider);
+}
+
 function applyLlmProviderPreset(providerId) {
   const preset = LLM_PROVIDERS.find(p => p.id === providerId) || LLM_PROVIDERS[0];
   $('#cfg-provider').value = preset.id;
@@ -2982,6 +3244,7 @@ function applyLlmProviderPreset(providerId) {
   $('#cfg-capability').value = preset.capability || 'text';
   if (preset.base_url) $('#cfg-base').value = preset.base_url;
   if (preset.model) $('#cfg-model').value = preset.model;
+  renderConfigPickerUi();
 }
 
 async function renderSettings() {
@@ -3018,6 +3281,7 @@ async function renderSettings() {
   $('#cfg-capability').value = cfg.capability || 'text';
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
+  renderConfigPickerUi();
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   $('#cfg-status').textContent = cfg.mode === 'live'
@@ -3105,6 +3369,26 @@ $('#cfg-save').addEventListener('click', saveLlmConfig);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
 $('#cfg-provider').addEventListener('change', e => applyLlmProviderPreset(e.target.value));
+$('#cfg-provider-trigger').addEventListener('click', () => {
+  const current = $('#cfg-provider').value || 'custom';
+  openChoiceSheet({
+    title: '选择 LLM 服务商',
+    subtitle: '会自动填入接口类型、Base URL 和常用模型；仍可手动改。',
+    value: current,
+    options: LLM_PROVIDERS.map(p => ({
+      value: p.id,
+      label: p.label,
+      detail: `${p.base_url || '手动填写地址'} · ${p.model || '手动模型'}`,
+      badge: p.requires_key === false ? '免 Key' : 'API Key',
+    })),
+    onPick: opt => applyLlmProviderPreset(opt.value),
+  });
+});
+$('#cfg-model').addEventListener('input', () => renderModelPresetChips());
+$('#choice-sheet-close').addEventListener('click', closeChoiceSheet);
+$('#choice-sheet').addEventListener('click', e => {
+  if (e.target.id === 'choice-sheet') closeChoiceSheet();
+});
 async function restoreRuntimeConfigOnResume() {
   try {
     await restoreLlmConfig();

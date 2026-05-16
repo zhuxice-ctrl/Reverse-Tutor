@@ -1,16 +1,16 @@
 {
-  "versionCode": 10,
-  "versionName": "0.15.5",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.5-debug.apk",
+  "versionCode": 11,
+  "versionName": "0.15.6",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.6-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.5/Back_Teacher-v0.15.5-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.6/Back_Teacher-v0.15.6-debug.apk"
   ],
-  "sha256": "b8c81f8b56316337609987bab9977af99838b0e39cc752cece47397445d8c66c",
+  "sha256": "5425fc637a5e486395ac38ebe8660082b8e1accc46d4348548bf0b50abb821dd",
   "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "新增主动对话配置：在线状态按 30-60 分钟随机触发，离线状态不主动发送，睡眠状态低频触发。",
-    "消息提示改为显示真实回复内容；后台 LLM 完成后，系统通知也会展示实际回复预览。",
-    "修复应用内更新体验：APK 下载完成后优先直接打开系统安装页面，首次会引导开启安装未知应用权限。",
-    "优化普通目标场景：非学习人格会进入 goal_support 模式，不再强行要求用户讲知识点。"
+    "优化 LLM 配置页 UI：服务商改为底部选择面板，接口类型和模型能力改为分段按钮，并增加常用模型快捷选择。",
+    "聊天页前台回复不再弹出局内消息提示框，避免遮挡正在阅读的对话。",
+    "优化角色回复约束：只生成学生 AI 的下一次回复，减少替用户说话、连续多泡和强行教学。",
+    "用户发起但由后台完成的回复在聊天中按普通对话展示，不再误标为后台回复。"
   ]
 }
