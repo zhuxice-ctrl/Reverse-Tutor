@@ -31,6 +31,18 @@
   <img src="docs/assets/readme-showcase.svg" alt="Back Teacher showcase">
 </p>
 
+## 加入交流群
+
+欢迎入qq群反馈给我更新动力。
+
+<p align="center">
+  <img src="docs/assets/qq-group.jpg" width="320" alt="反转家教 QQ 群二维码">
+</p>
+
+<p align="center">
+  QQ 群：<strong>897804938</strong>
+</p>
+
 ## 这是什么
 
 反转家教是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话中推动你把事情做完。

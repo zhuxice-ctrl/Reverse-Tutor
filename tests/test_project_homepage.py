@@ -1,0 +1,32 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_readme_includes_qq_group_entry_and_asset():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    qq_asset = ROOT / "docs" / "assets" / "qq-group.jpg"
+
+    assert "欢迎入qq群反馈给我更新动力" in readme
+    assert "QQ 群：<strong>897804938</strong>" in readme
+    assert "docs/assets/qq-group.jpg" in readme
+    assert qq_asset.exists()
+    assert qq_asset.stat().st_size > 50_000
+
+
+def test_mobile_settings_footer_includes_qq_group_number():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "欢迎入qq群反馈给我更新动力" in html
+    assert "QQ群：897804938" in html
+    assert "反转家教 v0.15.8 · 移动 PWA" in html
+
+
+def test_readme_showcase_text_uses_explicit_alignment():
+    svg = (ROOT / "docs" / "assets" / "readme-showcase.svg").read_text(encoding="utf-8")
+
+    assert 'text-anchor="middle"' in svg
+    assert 'dominant-baseline="middle"' in svg
+    assert '今天你想达成什么目标？' in svg
+    assert '多协议 LLM' in svg
