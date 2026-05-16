@@ -1476,6 +1476,13 @@ function normalizeAction(rawAction={}, fallbackNote='自由回复') {
   return action;
 }
 
+function cleanEvaluation(rawEvaluation={}) {
+  const ev = (rawEvaluation && typeof rawEvaluation === 'object') ? { ...rawEvaluation } : {};
+  const emotion = String(ev.user_emotion || '').trim();
+  if (!emotion || /^(unknown|\?|未知)$/i.test(emotion)) delete ev.user_emotion;
+  return ev;
+}
+
 function safeChatHtml(content) {
   return `<div class="whitespace-pre-wrap break-words">${esc(String(content || ''))}</div>`;
 }
@@ -2329,7 +2336,7 @@ ${openingTask}
     const raw = await LLM.chat_json(system_prompt, messages, { temperature: 0.85 });
     const reply = (raw.reply||'').trim() || '（站在讲台前傻笑）……老师好，咱开始吧！';
     const action = raw.action || { type:'ask', knowledge_point:'?' };
-    await add_message(sid, 'assistant', reply, { action, evaluation: raw.evaluation || {}, opening: true });
+    await add_message(sid, 'assistant', reply, { action, evaluation: cleanEvaluation(raw.evaluation || {}), opening: true });
     return { reply, action };
   }
 
@@ -2409,26 +2416,25 @@ ${openingTask}
         } catch (e) {
           raw = LLM.fallback_json(job.raw_content || '', 'native_plain_text_fallback');
           if (!raw) {
-            await add_message(job.sid, 'assistant', `后台回复解析失败：${e.message || e}`, {
-              action: { type: 'error', knowledge_point: '后台生成' },
-              evaluation: {},
-              native_background_job_id: jobId,
-              native_background: true,
-              turn_id,
-              reply_to_message_id,
-              message_index: 0,
-              message_total: 1,
-              source:'native_background',
-              status: 'completed',
-            });
+            if (pending && pending.id) {
+              pending.status = 'error';
+              pending.meta = {
+                ...(pending.meta || {}),
+                status: 'error',
+                error: `background reply parse failed: ${e.message || e}`,
+                completed_at: Date.now(),
+              };
+              await DB.put('messages', pending);
+            }
+            console.warn('native background llm failed', e);
             imported += 1;
-            lastReply = `后台回复解析失败：${e.message || e}`;
+            lastReply = '';
             await NativeBackgroundLlm.clearCompletedTurn(jobId);
             continue;
           }
         }
-        const ev = raw.evaluation || {};
-        const ac = normalizeAction(raw.action || {}, '后台回复');
+        const ev = cleanEvaluation(raw.evaluation || {});
+        const ac = normalizeAction(raw.action || {}, '');
         const reply = (raw.reply || '').trim() || '（后台回复已生成，但内容为空）';
         const updates = raw.anchor_updates || [];
 
@@ -2458,20 +2464,19 @@ ${openingTask}
         imported += 1;
         lastReply = reply;
       } else if (job.status === 'error') {
-        await add_message(job.sid, 'assistant', `后台回复失败：${job.error || '未知错误'}`, {
-          action: { type: 'error', knowledge_point: '后台生成' },
-          evaluation: {},
-          native_background_job_id: jobId,
-          native_background: true,
-          turn_id,
-          reply_to_message_id,
-          message_index: 0,
-          message_total: 1,
-          source:'native_background',
-          status: 'completed',
-        });
+        if (pending && pending.id) {
+          pending.status = 'error';
+          pending.meta = {
+            ...(pending.meta || {}),
+            status: 'error',
+            error: job.error || '未知错误',
+            completed_at: Date.now(),
+          };
+          await DB.put('messages', pending);
+        }
+        console.warn('native background llm failed', job.error || 'unknown error');
         imported += 1;
-        lastReply = `后台回复失败：${job.error || '未知错误'}`;
+        lastReply = '';
       }
       await NativeBackgroundLlm.clearCompletedTurn(jobId);
     }
@@ -2515,7 +2520,7 @@ ${openingTask}
     if (nativeQueued) return nativeQueued;
 
     const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
-    const ev = raw.evaluation || {};
+    const ev = cleanEvaluation(raw.evaluation || {});
     const ac = normalizeAction(raw.action || {}, '自由回复');
     const reply = (raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
     const updates = raw.anchor_updates || [];
@@ -2572,7 +2577,7 @@ ${openingTask}
     });
     messages.push({ role: 'system', content: finalReplyInstruction(session, 'proactive') });
     const raw = await LLM.chat_json(system, messages, { temperature: 0.9, max_tokens: 360 });
-    const ev = raw.evaluation || {};
+    const ev = cleanEvaluation(raw.evaluation || {});
     const ac = normalizeAction(raw.action || {}, `主动对话:${mode}`);
     ac.note = ac.note || `is_system_trigger:${mode}`;
     const reply = (raw.reply || '').trim() || '刚想起你这边，顺手问一句，刚才那件事后来怎么样了？';
@@ -2703,7 +2708,7 @@ async function renderChat() {
       const msgMeta = m.meta || {};
       const hasActionMeta = !!msgMeta.action || msgMeta.native_background || m.source === 'foreground_llm' || m.source === 'native_background';
       const a = hasActionMeta ? normalizeAction(msgMeta.action || {}, msgMeta.native_background ? '后台回复' : '自由回复') : {};
-      const ev = msgMeta.evaluation || {};
+      const ev = cleanEvaluation(msgMeta.evaluation || {});
       const source = msgMeta.source || m.source || '';
       const sourceLabel = source === 'native_background' ? (msgMeta.reply_to_message_id ? '对话' : '后台回复') : (source === 'foreground_llm' ? '对话' : (source === 'proactive' ? '主动对话' : ''));
       const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;

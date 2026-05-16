@@ -19,10 +19,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
@@ -486,52 +489,102 @@ public class BackgroundLlmService extends Service {
     }
 
     private HttpResult post(JSONObject job, JSONObject payload) throws Exception {
-        String baseUrl = job.optString("base_url", "").replaceAll("/+$", "");
-        URL url = new URL(baseUrl + "/chat/completions");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setConnectTimeout(20000);
-        conn.setReadTimeout(90000);
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json");
-        String apiKey = job.optString("api_key", "");
-        if (!apiKey.isEmpty()) {
-            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-        }
-
-        byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
-        try (OutputStream out = conn.getOutputStream()) {
-            out.write(body);
-        }
-
-        int code = conn.getResponseCode();
-        InputStream stream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
-        return new HttpResult(code, readStream(stream));
+        return postWithRetry(job, payload, false);
     }
 
     private HttpResult postAnthropic(JSONObject job, JSONObject payload) throws Exception {
+        return postWithRetry(job, payload, true);
+    }
+
+    private HttpResult postWithRetry(JSONObject job, JSONObject payload, boolean anthropic) throws Exception {
+        IOException last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                return anthropic ? postAnthropicOnce(job, payload) : postOpenAiOnce(job, payload);
+            } catch (IOException e) {
+                last = e;
+                if (!isTransientNetworkError(e) || attempt >= 2) {
+                    throw e;
+                }
+                sleepBeforeRetry(attempt);
+            }
+        }
+        throw last == null ? new IOException("background llm network retry failed") : last;
+    }
+
+    private boolean isTransientNetworkError(IOException e) {
+        String message = String.valueOf(e.getMessage()).toLowerCase();
+        return e instanceof SocketException
+            || e instanceof SocketTimeoutException
+            || message.contains("connection abort")
+            || message.contains("connection reset")
+            || message.contains("unexpected end of stream")
+            || message.contains("timeout");
+    }
+
+    private void sleepBeforeRetry(int attempt) {
+        try {
+            Thread.sleep(650L * (attempt + 1));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private HttpResult postOpenAiOnce(JSONObject job, JSONObject payload) throws Exception {
+        String baseUrl = job.optString("base_url", "").replaceAll("/+$", "");
+        URL url = new URL(baseUrl + "/chat/completions");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        try {
+            conn.setConnectTimeout(20000);
+            conn.setReadTimeout(90000);
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json");
+            String apiKey = job.optString("api_key", "");
+            if (!apiKey.isEmpty()) {
+                conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+            }
+
+            byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(body);
+            }
+
+            int code = conn.getResponseCode();
+            InputStream stream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            return new HttpResult(code, readStream(stream));
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    private HttpResult postAnthropicOnce(JSONObject job, JSONObject payload) throws Exception {
         String baseUrl = job.optString("base_url", "").replaceAll("/+$", "");
         URL url = new URL(baseUrl + "/v1/messages");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setConnectTimeout(20000);
-        conn.setReadTimeout(90000);
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setRequestProperty("anthropic-version", "2023-06-01");
-        String apiKey = job.optString("api_key", "");
-        if (!apiKey.isEmpty()) {
-            conn.setRequestProperty("x-api-key", apiKey);
-        }
+        try {
+            conn.setConnectTimeout(20000);
+            conn.setReadTimeout(90000);
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("anthropic-version", "2023-06-01");
+            String apiKey = job.optString("api_key", "");
+            if (!apiKey.isEmpty()) {
+                conn.setRequestProperty("x-api-key", apiKey);
+            }
 
-        byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
-        try (OutputStream out = conn.getOutputStream()) {
-            out.write(body);
-        }
+            byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(body);
+            }
 
-        int code = conn.getResponseCode();
-        InputStream stream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
-        return new HttpResult(code, readStream(stream));
+            int code = conn.getResponseCode();
+            InputStream stream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            return new HttpResult(code, readStream(stream));
+        } finally {
+            conn.disconnect();
+        }
     }
 
     private String readStream(InputStream stream) throws Exception {

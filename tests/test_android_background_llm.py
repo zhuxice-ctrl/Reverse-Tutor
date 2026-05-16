@@ -62,6 +62,10 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert "extractReplyText" in service
     assert "background_fallback" in service
     assert "postAnthropic" in service
+    assert "postWithRetry" in service
+    assert "isTransientNetworkError" in service
+    assert "SocketException" in service
+    assert "SocketTimeoutException" in service
     assert "buildAnthropicPayload" in service
     assert "contentFromAnthropicResponse" in service
     assert '"/v1/messages"' in service
@@ -92,6 +96,10 @@ def test_mobile_frontend_enqueues_and_imports_native_background_turns():
     assert "importNativeBackgroundTurns" in html
     assert "requestNotificationPermission" in html
     assert "native_background_job_id" in html
+    assert "cleanEvaluation" in html
+    assert "native background llm failed" in html
+    assert "await DB.put('messages', pending)" in html
+    assert "await add_message(job.sid, 'assistant', `后台回复失败" not in html
 
 
 def test_mobile_update_download_opens_native_installer_when_available():
