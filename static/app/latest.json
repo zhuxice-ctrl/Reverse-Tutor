@@ -1,16 +1,15 @@
 {
-  "versionCode": 13,
-  "versionName": "0.15.8",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk",
+  "versionCode": 14,
+  "versionName": "0.15.9",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.9-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.8/Back_Teacher-v0.15.8-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.9/Back_Teacher-v0.15.9-debug.apk"
   ],
-  "sha256": "4e9eedc5e3665b37a78e1465603d3e3ef69c234a0e47ecce1381c6f7bc540517",
-  "publishedAt": "2026-05-16",
+  "sha256": "b03246fe918b60005565ef3ec845c45345e66d4fbf6f699ccea762e61385ff8a",
+  "publishedAt": "2026-05-17",
   "releaseNotes": [
-    "\u91cd\u505a\u63a5\u53e3\u7c7b\u578b\uff1a\u914d\u7f6e\u9875\u73b0\u5728\u660e\u786e\u5206\u4e3a OpenAI \u548c Anthropic \u4e24\u7c7b\u534f\u8bae\uff0c\u4e0d\u518d\u7528\u6a21\u7cca\u7684\u517c\u5bb9\u63a5\u53e3\u9009\u9879\u3002",
-    "\u66f4\u65b0 DeepSeek \u9884\u8bbe\uff1a\u63d0\u4f9b OpenAI \u548c Anthropic \u4e24\u4e2a DeepSeek \u5165\u53e3\uff0c\u9ed8\u8ba4\u6a21\u578b\u66f4\u65b0\u4e3a deepseek-v4-flash \u548c deepseek-v4-pro\u3002",
-    "\u8865\u4e0a Android \u540e\u53f0 Anthropic \u8bf7\u6c42\u652f\u6301\uff0c\u907f\u514d\u540e\u53f0\u56de\u590d\u548c\u524d\u53f0\u6d4b\u8bd5\u7684\u63a5\u53e3\u884c\u4e3a\u4e0d\u4e00\u81f4\u3002",
-    "\u66ff\u6362\u5305\u88c5\u5de5\u5177\u9ed8\u8ba4\u542f\u52a8\u56fe\uff0c\u52a0\u5165\u53cd\u8f6c\u5bb6\u6559\u81ea\u5df1\u7684\u8fdb\u5165\u52a8\u753b\u548c Android \u539f\u751f\u542f\u52a8\u5c01\u9762\u3002"
+    "\u8bbe\u7f6e\u9875\u5e95\u90e8\u589e\u52a0 QQ \u7fa4\u53cd\u9988\u5165\u53e3\uff0c\u65b9\u4fbf\u7528\u6237\u8054\u7cfb\u548c\u53cd\u9988\u95ee\u9898\u3002",
+    "GitHub \u4e3b\u9875\u589e\u52a0 QQ \u7fa4\u4e8c\u7ef4\u7801\u548c\u7fa4\u53f7\uff0c\u5e76\u5c06\u4ea4\u6d41\u7fa4\u653e\u5230\u9875\u9762\u5e95\u90e8\u3002",
+    "\u653e\u5927 README \u9876\u90e8\u5c55\u793a\u56fe\uff0c\u5e76\u4fee\u6b63\u529f\u80fd\u5361\u7247\u5c0f\u5b57\u7684\u6a2a\u5411\u5bf9\u9f50\u3002"
   ]
 }

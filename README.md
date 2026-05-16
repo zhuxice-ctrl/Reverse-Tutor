@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.9-debug.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">查看最新版本</a>
   ·
@@ -127,7 +127,7 @@ mobile/android/app/build/outputs/apk/debug/app-debug.apk
 
 当前公开测试包：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.9-debug.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest
 
 ## 应用更新
@@ -149,11 +149,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 13,
-  "versionName": "0.15.8",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.8-debug.apk",
+  "versionCode": 14,
+  "versionName": "0.15.9",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.9-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.8/Back_Teacher-v0.15.8-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.9/Back_Teacher-v0.15.9-debug.apk"
   ],
   "publishedAt": "2026-05-16",
   "releaseNotes": [
