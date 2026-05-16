@@ -86,3 +86,34 @@ def test_mobile_prompt_adapts_when_goal_is_not_learning():
     assert "如果当前目标不是学习" in html
     assert "不要强行要求用户讲知识点" in html
     assert "本回合相关主题" in html
+
+
+def test_mobile_proactive_conversation_has_three_modes_and_local_dispatch():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "PROACTIVE_CONFIG_KEY" in html
+    assert "PROACTIVE_MODES" in html
+    assert "online" in html
+    assert "offline" in html
+    assert "sleep" in html
+    assert "minIntervalMs: 30 * 60 * 1000" in html
+    assert "maxIntervalMs: 60 * 60 * 1000" in html
+    assert "offline: { label: '离线', disabled: true }" in html
+    assert "mode_disabled" in html
+    assert "proactiveIntervalMs" in html
+    assert "function proactiveConfig" in html
+    assert "async function maybeRunProactiveTurn" in html
+    assert "run_proactive_turn" in html
+    assert "source:'proactive'" in html
+    assert "is_system_trigger" in html
+    assert "主动对话引导" in html
+
+
+def test_mobile_message_popup_shows_actual_reply_content():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function messagePopupPreview" in html
+    assert "slice(0, 360)" in html
+    assert "messagePopupPreview(text)" in html
+    assert "document.visibilityState === 'visible' && state.currentTab === 'chat'" not in html
+    assert 'id="message-popup-body" class="text-sm leading-snug max-h-28 overflow-y-auto whitespace-pre-wrap break-words"' in html

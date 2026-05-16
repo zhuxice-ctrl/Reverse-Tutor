@@ -1,16 +1,16 @@
 {
-  "versionCode": 9,
-  "versionName": "0.15.4",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.4-debug.apk",
+  "versionCode": 10,
+  "versionName": "0.15.5",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.15.5-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.4/Back_Teacher-v0.15.4-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.15.5/Back_Teacher-v0.15.5-debug.apk"
   ],
-  "sha256": "cbf7b3a7dba294c30af3a1fbae02223bcb73b018ef84e43c0d147a48c8e16010",
+  "sha256": "b8c81f8b56316337609987bab9977af99838b0e39cc752cece47397445d8c66c",
   "publishedAt": "2026-05-16",
   "releaseNotes": [
-    "人格和目标更灵活：非学习目标会进入 goal_support 模式，不再强行提示用户讲知识点。",
-    "洞察图修复小屏或缩放后不显示的问题，并降低拖动、缩放和侧边栏滑动敏感度。",
-    "后台 LLM 增加 pending 任务缓存和系统重投递机制，应用被系统回收后会尽量继续或恢复当前回复。",
-    "说明：如果用户在系统设置里强行停止应用，Android 不允许任何后台任务继续运行。"
+    "新增主动对话配置：在线状态按 30-60 分钟随机触发，离线状态不主动发送，睡眠状态低频触发。",
+    "消息提示改为显示真实回复内容；后台 LLM 完成后，系统通知也会展示实际回复预览。",
+    "修复应用内更新体验：APK 下载完成后优先直接打开系统安装页面，首次会引导开启安装未知应用权限。",
+    "优化普通目标场景：非学习人格会进入 goal_support 模式，不再强行要求用户讲知识点。"
   ]
 }

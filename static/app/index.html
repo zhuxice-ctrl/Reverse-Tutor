@@ -348,6 +348,25 @@
       </div>
 
       <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">主动对话</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
+          <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+            <span>允许 AI 主动发起对话</span>
+            <input id="proactive-enabled" type="checkbox" class="accent-emerald-700">
+          </label>
+          <label class="block">
+            <span class="text-xs text-neutral-400">触发状态</span>
+            <select id="proactive-mode" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+              <option value="online">在线（30-60 分钟随机）</option>
+              <option value="offline">离线（不主动发送）</option>
+              <option value="sleep">睡眠（约 6 小时）</option>
+            </select>
+          </label>
+          <div id="proactive-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
+        </div>
+      </div>
+
+      <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话</div>
         <div id="sess-list" class="space-y-1.5"></div>
       </div>
@@ -566,7 +585,7 @@
   <div class="flex justify-between items-start gap-3">
     <div class="min-w-0">
       <div id="message-popup-title" class="text-xs font-semibold mb-1">学生 AI</div>
-      <div id="message-popup-body" class="text-sm leading-snug line-clamp-2"></div>
+      <div id="message-popup-body" class="text-sm leading-snug max-h-28 overflow-y-auto whitespace-pre-wrap break-words"></div>
     </div>
     <button id="message-popup-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
   </div>
@@ -588,8 +607,8 @@ const state = {
   graphSelected: '',
 };
 
-const APP_VERSION_CODE = 9;
-const APP_VERSION_NAME = '0.15.4';
+const APP_VERSION_CODE = 10;
+const APP_VERSION_NAME = '0.15.5';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -600,6 +619,12 @@ const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
 const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
 const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
+const PROACTIVE_CONFIG_KEY = 'rt-mobile-proactive-config';
+const PROACTIVE_MODES = {
+  online: { label: '在线', minIntervalMs: 30 * 60 * 1000, maxIntervalMs: 60 * 60 * 1000 },
+  offline: { label: '离线', disabled: true },
+  sleep: { label: '睡眠', intervalMs: 6 * 60 * 60 * 1000 },
+};
 const LLM_PROVIDERS = [
   { id:'custom', label:'手动填写', base_url:'', model:'', api_type:'custom', capability:'text', requires_key:true },
   { id:'openai', label:'OpenAI', base_url:'https://api.openai.com/v1', model:'gpt-4o-mini', api_type:'openai_chat', capability:'vision' },
@@ -629,6 +654,37 @@ function setPopupEnabled(enabled) {
   localStorage.setItem('rt-mobile-popup', enabled ? '1' : '0');
   const input = $('#popup-enabled');
   if (input) input.checked = enabled;
+}
+
+function proactiveConfig() {
+  let raw = {};
+  try { raw = JSON.parse(localStorage.getItem(PROACTIVE_CONFIG_KEY) || '{}') || {}; } catch(e) {}
+  const mode = PROACTIVE_MODES[raw.mode] ? raw.mode : 'offline';
+  return {
+    enabled: raw.enabled === true,
+    mode,
+    lastAt: Number(raw.lastAt || 0),
+  };
+}
+
+function setProactiveConfig(next) {
+  const current = proactiveConfig();
+  const cfg = { ...current, ...next };
+  if (!PROACTIVE_MODES[cfg.mode]) cfg.mode = 'offline';
+  cfg.enabled = cfg.enabled === true;
+  cfg.lastAt = Number(cfg.lastAt || 0);
+  localStorage.setItem(PROACTIVE_CONFIG_KEY, JSON.stringify(cfg));
+  return cfg;
+}
+
+function proactiveIntervalMs(mode, lastAt=0) {
+  const meta = PROACTIVE_MODES[mode] || PROACTIVE_MODES.offline;
+  if (meta.disabled) return Infinity;
+  if (meta.minIntervalMs && meta.maxIntervalMs) {
+    const seed = Math.abs(Math.sin((Number(lastAt) || Date.now()) / 60000) * 10000) % 1;
+    return meta.minIntervalMs + Math.round((meta.maxIntervalMs - meta.minIntervalMs) * seed);
+  }
+  return meta.intervalMs || Infinity;
 }
 
 function updateAutoEnabled() {
@@ -944,6 +1000,10 @@ function closeUpdateDialog() {
 
 function _fmtMB(bytes) { return (bytes / 1048576).toFixed(1); }
 
+async function downloadAndInstallApkNative(url, versionName) {
+  return NativeBackgroundLlm.downloadAndInstallApk(url, versionName);
+}
+
 async function downloadApkInApp(urls, versionName) {
   if (_downloadingUpdate) return;
   const downloadUrls = (Array.isArray(urls) ? urls : [urls])
@@ -972,6 +1032,31 @@ async function downloadApkInApp(urls, versionName) {
   sizeEl.textContent = '';
 
   try {
+    const nativeInstaller = await downloadAndInstallApkNative(url, versionName);
+    if (nativeInstaller.available) {
+      if (nativeInstaller.permissionRequired) {
+        goBtn.textContent = '已打开权限设置';
+        goBtn.disabled = false;
+        skipBtn.classList.remove('hidden');
+        skipBtn.textContent = '关闭';
+        toast('请允许本应用安装未知应用后，再点一次安装新版', 5000);
+        return;
+      }
+      if (nativeInstaller.opened) {
+        bar.style.width = '100%';
+        pctEl.textContent = '100%';
+        sizeEl.textContent = '已下载';
+        goBtn.textContent = '已打开安装页面';
+        skipBtn.classList.remove('hidden');
+        skipBtn.textContent = '关闭';
+        toast('已打开安装页面，请按系统提示完成安装', 5000);
+        return;
+      }
+      if (nativeInstaller.error) {
+        throw new Error(nativeInstaller.error);
+      }
+    }
+
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const total = +(res.headers.get('content-length') || 0);
@@ -1010,7 +1095,7 @@ async function downloadApkInApp(urls, versionName) {
     goBtn.textContent = '下载完成';
     skipBtn.classList.remove('hidden');
     skipBtn.textContent = '关闭';
-    toast('APK 已下载，请在通知栏或文件管理器中打开安装', 5000);
+    toast('APK 已下载；当前环境不支持自动打开安装页面，请在下载完成通知中打开', 5000);
   } catch (e) {
     if (downloadUrls.length > 1) {
       _downloadingUpdate = false;
@@ -1026,11 +1111,15 @@ async function downloadApkInApp(urls, versionName) {
   }
 }
 
+function messagePopupPreview(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 360);
+}
+
 function showMessagePopup(title, text, ms=4200) {
-  if (!popupEnabled() || !text) return;
-  if (document.visibilityState === 'visible' && state.currentTab === 'chat') return;
+  const preview = messagePopupPreview(text);
+  if (!popupEnabled() || !preview) return;
   $('#message-popup-title').textContent = title || '学生 AI';
-  $('#message-popup-body').textContent = text.replace(/\s+/g, ' ').trim().slice(0, 120);
+  $('#message-popup-body').textContent = preview;
   $('#message-popup').classList.remove('hidden');
   clearTimeout(showMessagePopup._t);
   showMessagePopup._t = setTimeout(() => $('#message-popup').classList.add('hidden'), ms);
@@ -1656,7 +1745,18 @@ const NativeBackgroundLlm = (() => {
     await p.clearCompletedTurn({ job_id });
   }
 
-  return { isAvailable, requestNotificationPermission, enqueueTurn, getCompletedTurns, clearCompletedTurn };
+  async function downloadAndInstallApk(url, versionName) {
+    const p = plugin();
+    if (!p || !p.downloadAndInstallApk) return { available: false };
+    try {
+      const r = await p.downloadAndInstallApk({ url, versionName });
+      return { available: true, ...(r || {}) };
+    } catch (e) {
+      return { available: true, error: String(e.message || e) };
+    }
+  }
+
+  return { isAvailable, requestNotificationPermission, enqueueTurn, getCompletedTurns, clearCompletedTurn, downloadAndInstallApk };
 })();
 </script>
 
@@ -2061,6 +2161,56 @@ ${format_actions()}
     return { reply, action: ac, evaluation: ev };
   }
 
+  async function run_proactive_turn(sid, mode='offline') {
+    const turnId = createTurnId();
+    await maybe_summarize(sid);
+    const session = await DB.get('sessions', sid);
+    const anchors = await DB.bySid('anchors', sid);
+    const masteries = await DB.bySid('mastery', sid);
+    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const summary = find_latest_summary(msgs);
+    const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
+    const summary_text = summary ? summary.content : '';
+    const modeLabel = PROACTIVE_MODES[mode]?.label || '离线';
+    const system = build_system_prompt(session, anchors, masteries, summary_text) + `
+
+# 主动对话引导
+你现在不是回复用户，而是主动发起一句自然的话。
+- proactive_mode: ${mode}
+- 不要说"在吗"这种空问候。
+- 只说 1 到 2 句，像角色本人自然开口。
+- 在线：轻一点，可以顺着最近话题接一句；触发间隔在 30 到 60 分钟之间。
+- 离线：不主动发送，只记录状态。
+- 睡眠：频率最低，语气更轻，不催促，不打扰。
+- 输出仍然是 JSON，action.note 写 "is_system_trigger:${mode}"。`;
+    const messages = build_messages(msgs, null, skip_id);
+    messages.push({
+      role: 'user',
+      content: `[主动对话引导] 当前触发状态：${modeLabel}。请主动发起一句自然对话。`,
+    });
+    const raw = await LLM.chat_json(system, messages, { temperature: 0.9, max_tokens: 360 });
+    const ev = raw.evaluation || {};
+    const ac = normalizeAction(raw.action || {}, `主动对话:${mode}`);
+    ac.note = ac.note || `is_system_trigger:${mode}`;
+    const reply = (raw.reply || '').trim() || '刚想起你这边，顺手问一句，刚才那件事后来怎么样了？';
+    const bubbles = shapeReplyBubbles(reply, mode === 'sleep' ? 2 : 3);
+    for (let i = 0; i < bubbles.length; i++) {
+      await add_message(sid, 'assistant', bubbles[i], {
+        action: ac,
+        evaluation: ev,
+        turn_id: turnId,
+        message_index: i,
+        message_total: bubbles.length,
+        source:'proactive',
+        proactive: true,
+        proactive_mode: mode,
+        is_system_trigger: true,
+        status: 'completed',
+      });
+    }
+    return { reply, action: ac, evaluation: ev, proactive_mode: mode };
+  }
+
   async function create_session({ title, role, goal, deadline='', personality='', reqs=[] }) {
     const sid = uuid();
     const session = {
@@ -2086,7 +2236,7 @@ ${format_actions()}
     ]);
   }
 
-  return { create_session, delete_session, run_opening_turn, run_turn, maybe_summarize, import_native_background_turns, ACTION_TYPES };
+  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, ACTION_TYPES };
 })();
 </script>
 
@@ -2172,7 +2322,7 @@ async function renderChat() {
       const a = hasActionMeta ? normalizeAction(msgMeta.action || {}, msgMeta.native_background ? '后台回复' : '自由回复') : {};
       const ev = msgMeta.evaluation || {};
       const source = msgMeta.source || m.source || '';
-      const sourceLabel = source === 'native_background' ? '后台回复' : (source === 'foreground_llm' ? '对话' : '');
+      const sourceLabel = source === 'native_background' ? '后台回复' : (source === 'foreground_llm' ? '对话' : (source === 'proactive' ? '主动对话' : ''));
       const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;
       const messageTotal = msgMeta.message_total ?? m.message_total ?? 1;
       const kp = a.knowledge_point ? `<span>${esc(a.knowledge_point)}</span>` : '';
@@ -2249,6 +2399,40 @@ async function openingFor(sid) {
   finally {
     $('#chat-send').disabled = false; $('#chat-send').textContent = '发送';
     await renderChat();
+  }
+}
+
+async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
+  if (maybeRunProactiveTurn._running) return { triggered: false, reason: 'running' };
+  if (!state.sid || document.visibilityState !== 'visible') return { triggered: false, reason: 'not_visible' };
+  const cfg = proactiveConfig();
+  if (!cfg.enabled && !force) return { triggered: false, reason: 'disabled' };
+  const modeMeta = PROACTIVE_MODES[cfg.mode] || PROACTIVE_MODES.offline;
+  if (modeMeta.disabled && !force) return { triggered: false, reason: 'mode_disabled' };
+  const now = Date.now();
+  const msgs = (await DB.bySid('messages', state.sid))
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .sort((a,b)=>(a.created_at||0)-(b.created_at||0));
+  if (!msgs.length) return { triggered: false, reason: 'empty_session' };
+  const last = msgs[msgs.length - 1];
+  const quietFor = now - Math.max(cfg.lastAt || 0, last.created_at || 0);
+  const intervalMs = proactiveIntervalMs(cfg.mode, cfg.lastAt || last.created_at || now);
+  if (!force && quietFor < intervalMs) {
+    return { triggered: false, reason: 'too_soon' };
+  }
+  maybeRunProactiveTurn._running = true;
+  try {
+    const result = await ENGINE.run_proactive_turn(state.sid, cfg.mode);
+    setProactiveConfig({ lastAt: Date.now() });
+    await renderChat();
+    renderProactiveSettings();
+    showMessagePopup('主动对话', result.reply);
+    return { triggered: true, reason, mode: cfg.mode };
+  } catch (err) {
+    console.warn('proactive turn failed', err);
+    return { triggered: false, reason: 'error', error: String(err.message || err) };
+  } finally {
+    maybeRunProactiveTurn._running = false;
   }
 }
 
@@ -2842,7 +3026,27 @@ async function renderSettings() {
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
   setPopupEnabled(popupEnabled());
+  renderProactiveSettings();
   renderUpdateSettings();
+}
+
+function renderProactiveSettings() {
+  const cfg = proactiveConfig();
+  const enabled = $('#proactive-enabled');
+  const mode = $('#proactive-mode');
+  const status = $('#proactive-status');
+  if (enabled) enabled.checked = cfg.enabled;
+  if (mode) mode.value = cfg.mode;
+  if (status) {
+    const meta = PROACTIVE_MODES[cfg.mode] || PROACTIVE_MODES.offline;
+    const last = cfg.lastAt ? new Date(cfg.lastAt).toLocaleString() : '尚未触发';
+    const freq = meta.disabled
+      ? '该状态不会主动发送'
+      : (meta.minIntervalMs ? '约 30-60 分钟随机' : `约 ${Math.round((meta.intervalMs || 0) / 3600000)} 小时`);
+    status.textContent = cfg.enabled
+      ? `当前为${meta.label}频率：${freq}；上次主动对话：${last}。`
+      : '关闭后 AI 不会在空闲时主动发起对话。';
+  }
 }
 
 async function saveLlmConfig() {
@@ -2905,6 +3109,7 @@ async function restoreRuntimeConfigOnResume() {
   try {
     await restoreLlmConfig();
     await importNativeBackgroundTurns();
+    await maybeRunProactiveTurn({ reason: 'resume' });
     if (state.currentTab === 'settings') renderSettings();
     refreshHeader();
   } catch (err) {
@@ -2916,9 +3121,18 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('focus', restoreRuntimeConfigOnResume);
 setInterval(() => importNativeBackgroundTurns({ silent: true }), 5000);
+setInterval(() => maybeRunProactiveTurn({ reason: 'online_tick' }), 60000);
 $('#theme-ink').addEventListener('click', () => applyTheme('ink'));
 $('#theme-warm').addEventListener('click', () => applyTheme('warm'));
 $('#popup-enabled').addEventListener('change', e => setPopupEnabled(e.target.checked));
+$('#proactive-enabled')?.addEventListener('change', e => {
+  setProactiveConfig({ enabled: e.target.checked });
+  renderProactiveSettings();
+});
+$('#proactive-mode')?.addEventListener('change', e => {
+  setProactiveConfig({ mode: e.target.value });
+  renderProactiveSettings();
+});
 $('#update-feed').addEventListener('change', e => {
   localStorage.setItem(UPDATE_FEED_KEY, e.target.value.trim());
   localStorage.removeItem(UPDATE_LAST_URL_KEY);
@@ -3161,6 +3375,7 @@ detectPwaEnv();
   }
   await refreshHeader();
   await renderChat();
+  setTimeout(() => maybeRunProactiveTurn({ reason: 'startup' }), 1600);
   if (updateAutoEnabled() && updateFeedUrl()) {
     setTimeout(() => checkUpdate(true), 1200);
   }

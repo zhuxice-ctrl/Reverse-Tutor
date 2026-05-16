@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
 public class BackgroundLlmService extends Service {
     static final String EXTRA_JOB_JSON = "job_json";
     // Completed jobs are stored under rt-native-background-llm-completed.
-    private static final String CHANNEL_ID = "background_llm";
+    private static final String RUNNING_CHANNEL_ID = "background_llm_running";
+    private static final String RESULT_CHANNEL_ID = "background_llm_result_v2";
     private static final int RUNNING_NOTIFICATION_ID = 43100;
 
     @Override
@@ -63,7 +64,8 @@ public class BackgroundLlmService extends Service {
                 String rawContent = callOpenAi(job);
                 storeCompleted(job, "success", rawContent, "");
                 clearPending(job);
-                notifyFinished(job, "学生有新回复", "打开应用查看后台生成的回复。");
+                String replyPreview = replyPreviewFromRawContent(rawContent);
+                notifyFinished(job, "学生有新回复", replyPreview.isEmpty() ? "后台回复已生成。" : replyPreview);
             } catch (Exception e) {
                 try {
                     JSONObject job = new JSONObject(finalJobJson);
@@ -269,6 +271,19 @@ public class BackgroundLlmService extends Service {
         return compact.length() > 180 ? compact.substring(0, 180) : compact;
     }
 
+    private String replyPreviewFromRawContent(String rawContent) {
+        try {
+            JSONObject root = new JSONObject(rawContent == null ? "{}" : rawContent);
+            String reply = root.optString("reply", "");
+            if (!reply.trim().isEmpty()) {
+                return preview(reply);
+            }
+        } catch (Exception ignored) {
+            // Fall through to plain-text extraction for non-JSON fallback content.
+        }
+        return preview(extractReplyText(rawContent));
+    }
+
     private String fallbackReplyJson(String raw) {
         String reply = extractReplyText(raw);
         if (reply.isEmpty()) {
@@ -407,14 +422,18 @@ public class BackgroundLlmService extends Service {
         }
         PendingIntent pi = PendingIntent.getActivity(this, 0, open, flags);
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
+        String channelId = ongoing ? RUNNING_CHANNEL_ID : RESULT_CHANNEL_ID;
+        return new NotificationCompat.Builder(this, channelId)
             .setSmallIcon(getApplicationInfo().icon)
             .setContentTitle(title)
             .setContentText(text)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
             .setOngoing(ongoing)
             .setContentIntent(pi)
             .setAutoCancel(!ongoing)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(ongoing ? NotificationCompat.PRIORITY_DEFAULT : NotificationCompat.PRIORITY_HIGH)
             .build();
     }
 
@@ -422,16 +441,28 @@ public class BackgroundLlmService extends Service {
         if (Build.VERSION.SDK_INT < 26) {
             return;
         }
-        NotificationChannel channel = new NotificationChannel(
-            CHANNEL_ID,
-            "后台 LLM 回复",
-            NotificationManager.IMPORTANCE_DEFAULT
-        );
-        channel.setDescription("退出应用后继续生成当前 LLM 回复并提示结果");
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager != null) {
-            manager.createNotificationChannel(channel);
+        if (manager == null) {
+            return;
         }
+
+        NotificationChannel running = new NotificationChannel(
+            RUNNING_CHANNEL_ID,
+            "后台 LLM 运行",
+            NotificationManager.IMPORTANCE_LOW
+        );
+        running.setDescription("退出应用后继续生成当前 LLM 回复。");
+
+        NotificationChannel result = new NotificationChannel(
+            RESULT_CHANNEL_ID,
+            "后台 LLM 回复",
+            NotificationManager.IMPORTANCE_HIGH
+        );
+        result.setDescription("后台 LLM 回复完成后弹出实际回复内容。");
+        result.enableVibration(true);
+
+        manager.createNotificationChannel(running);
+        manager.createNotificationChannel(result);
     }
 
     private static class HttpResult {

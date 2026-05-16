@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.15.5 - 2026-05-16
+
+- Added proactive conversation controls with online, offline, and sleep modes. Online mode triggers naturally every 30-60 minutes, while offline mode stays silent.
+- Changed in-app message popups and Android background notifications to show the actual LLM reply preview instead of generic text.
+- Fixed in-app updates so Android downloads the APK natively and opens the system installer directly, with a first-run permission handoff when needed.
+- Kept non-learning goals in goal-support mode so the assistant no longer forces every persona into a study flow.
+
 ## v0.12.0 - 2026-05-15
 
 - Upgraded knowledge mastery into an interactive memory graph with canvas force layout, drag, pinch zoom, node selection, and bottom-sheet details.

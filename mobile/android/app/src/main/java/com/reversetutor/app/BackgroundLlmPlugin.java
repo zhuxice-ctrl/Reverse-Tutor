@@ -4,9 +4,12 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -20,6 +23,12 @@ import com.getcapacitor.annotation.PermissionCallback;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 @CapacitorPlugin(
     name = "BackgroundLlm",
@@ -120,6 +129,100 @@ public class BackgroundLlmPlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("ok", true);
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void downloadAndInstallApk(PluginCall call) {
+        String url = call.getString("url", "");
+        String versionName = call.getString("versionName", "update");
+        if (url.trim().isEmpty()) {
+            call.reject("missing apk url");
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getContext().getPackageManager().canRequestPackageInstalls()) {
+            Intent settings = new Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:" + getContext().getPackageName())
+            );
+            settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(settings);
+
+            JSObject ret = new JSObject();
+            ret.put("opened", false);
+            ret.put("permissionRequired", true);
+            ret.put("openedSettings", true);
+            call.resolve(ret);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                File apkFile = downloadApkFile(url, versionName);
+                openApkInstaller(apkFile);
+
+                JSObject ret = new JSObject();
+                ret.put("opened", true);
+                ret.put("path", apkFile.getAbsolutePath());
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("apk download or install failed", e);
+            }
+        }, "apk-download-install").start();
+    }
+
+    private File downloadApkFile(String urlString, String versionName) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(urlString).openConnection();
+        conn.setInstanceFollowRedirects(true);
+        conn.setConnectTimeout(20000);
+        conn.setReadTimeout(120000);
+        conn.setRequestMethod("GET");
+
+        int status = conn.getResponseCode();
+        if (status < 200 || status >= 300) {
+            throw new Exception("HTTP " + status);
+        }
+
+        File baseDir = getContext().getExternalCacheDir();
+        if (baseDir == null) {
+            baseDir = getContext().getCacheDir();
+        }
+        File updateDir = new File(baseDir, "updates");
+        if (!updateDir.exists() && !updateDir.mkdirs()) {
+            throw new Exception("cannot create update cache dir");
+        }
+
+        File apkFile = new File(updateDir, "reverse-tutor-" + safeVersionName(versionName) + ".apk");
+        try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(apkFile)) {
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) >= 0) {
+                if (n > 0) {
+                    out.write(buf, 0, n);
+                }
+            }
+        } finally {
+            conn.disconnect();
+        }
+        return apkFile;
+    }
+
+    private String safeVersionName(String versionName) {
+        String safe = (versionName == null ? "update" : versionName).replaceAll("[^A-Za-z0-9._-]+", "-");
+        return safe.isEmpty() ? "update" : safe;
+    }
+
+    private void openApkInstaller(File apkFile) {
+        Uri uri = FileProvider.getUriForFile(
+            getContext(),
+            getContext().getPackageName() + ".fileprovider",
+            apkFile
+        );
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/vnd.android.package-archive");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        getContext().startActivity(intent);
     }
 
     static SharedPreferences prefs(Context context) {
