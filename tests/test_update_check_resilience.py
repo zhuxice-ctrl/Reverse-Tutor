@@ -35,3 +35,12 @@ def test_manual_update_check_disables_button_until_finished():
     assert "setUpdateChecking" in html
     assert "$('#update-check').disabled = checking" in html
     assert "await checkUpdate(false)" in html
+
+
+def test_update_check_continues_to_fallback_when_primary_feed_is_stale():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "let freshestSeen = null" in html
+    assert "freshestSeen = info" in html
+    assert "continue;" in html
+    assert "已检查所有更新源，当前为最新版本" in html

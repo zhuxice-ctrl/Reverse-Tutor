@@ -1327,6 +1327,7 @@ async function checkUpdate(silent=false) {
   if (!silent) setUpdateStatus('正在检查更新…');
   setUpdateChecking(true);
   const errors = [];
+  let freshestSeen = null;
   try {
     for (const candidate of candidates) {
       try {
@@ -1334,10 +1335,8 @@ async function checkUpdate(silent=false) {
         const info = normalizeUpdateInfo(await fetchJsonWithTimeout(candidate.url));
         localStorage.setItem(UPDATE_LAST_CHECK_KEY, String(Date.now()));
         if (!isNewerUpdate(info)) {
-          localStorage.removeItem(UPDATE_LAST_URL_KEY);
-          renderUpdateSettings();
-          if (!silent) setUpdateStatus(`已是最新版本：${appVersionLabel()}（${candidate.label}）`, 'ok');
-          return info;
+          freshestSeen = info;
+          continue;
         }
         if (!info.apkUrl) throw new Error('发现新版，但更新源没有 apkUrl/downloadUrl');
         localStorage.setItem(UPDATE_LAST_URL_KEY, info.apkUrl);
@@ -1349,6 +1348,12 @@ async function checkUpdate(silent=false) {
       } catch (err) {
         errors.push(`${candidate.label}: ${err.message || err}`);
       }
+    }
+    if (freshestSeen) {
+      localStorage.removeItem(UPDATE_LAST_URL_KEY);
+      renderUpdateSettings();
+      if (!silent) setUpdateStatus(`已检查所有更新源，当前为最新版本：${appVersionLabel()}`, 'ok');
+      return freshestSeen;
     }
     if (!silent) setUpdateStatus(`检查失败：${errors.join('；')}`, 'err');
     return null;

@@ -5,7 +5,7 @@
   "apkMirrors": [
     "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.0/Back_Teacher-v0.16.0-debug.apk"
   ],
-  "sha256": "6420cdce301b4758b82b4a86d11e3024b36350bcb175967720d506d2c681c7a0",
+  "sha256": "9ce0eec7eedf48c328d34c38aa9f41f88a00af033ab64458c8be36cc04d6e871",
   "publishedAt": "2026-05-17",
   "releaseNotes": [
     "升级文档知识库：上传资料会进入检索、图谱和按需单支分析流程。",
