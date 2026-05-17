@@ -266,3 +266,42 @@ def test_mobile_chat_long_press_can_create_note_nodes_in_graph():
     assert "kind:'note'" in html
     assert "nodeType:'note'" in html
     assert "随笔" in html
+
+
+def test_mobile_import_accepts_reader_friendly_document_formats():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert ".txt" in html
+    assert ".md" in html
+    assert ".markdown" in html
+    assert ".html" in html
+    assert ".htm" in html
+    assert ".pptx" in html
+    assert ".epub" in html
+    assert "application/vnd.openxmlformats-officedocument.presentationml.presentation" in html
+    assert "application/epub+zip" in html
+
+
+def test_mobile_import_routes_each_supported_format_to_a_parser():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function sourceTypeFromFile" in html
+    assert "async function extractPlainText" in html
+    assert "async function extractMarkdownText" in html
+    assert "async function extractHtmlText" in html
+    assert "async function extractPptxText" in html
+    assert "async function extractEpubText" in html
+    assert "await extractSourceByType(file, sourceType)" in html
+    assert "sourceType === 'pptx'" in html
+    assert "sourceType === 'epub'" in html
+
+
+def test_mobile_zip_based_formats_use_jszip_and_preserve_structure_for_graph():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "jszip" in html.lower()
+    assert "window.JSZip" in html
+    assert "ppt/slides/slide" in html
+    assert "META-INF/container.xml" in html
+    assert "extractTextFromHtmlDocument" in html
+    assert "source_metadata" in html

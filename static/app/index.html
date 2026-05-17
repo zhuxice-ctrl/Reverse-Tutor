@@ -16,6 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
 <style>
   :root {
@@ -581,9 +582,9 @@
       <div class="flex gap-2">
         <label class="flex-1 text-center text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer">
           导入 Word/PDF
-          <input id="anchor-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple class="hidden">
+          <input id="anchor-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
         </label>
-        <input id="anchor-reprocess-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden">
+        <input id="anchor-reprocess-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" class="hidden">
         <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">仅本地解析，不上传图片</div>
       </div>
     </form>
@@ -860,7 +861,7 @@
           </div>
           <label class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer whitespace-nowrap">
             选择文件
-            <input id="new-source-files" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple class="hidden">
+            <input id="new-source-files" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
           </label>
         </div>
       </div>
@@ -3286,6 +3287,150 @@ async function extractWordText(file) {
   return result.value || '';
 }
 
+function sourceTypeFromFile(file) {
+  const name = String(file?.name || '').toLowerCase();
+  if (name.endsWith('.pdf')) return 'pdf';
+  if (name.endsWith('.docx')) return 'docx';
+  if (name.endsWith('.txt')) return 'txt';
+  if (name.endsWith('.md') || name.endsWith('.markdown')) return 'markdown';
+  if (name.endsWith('.html') || name.endsWith('.htm')) return 'html';
+  if (name.endsWith('.pptx')) return 'pptx';
+  if (name.endsWith('.epub')) return 'epub';
+  if (name.endsWith('.ppt')) return 'ppt';
+  return '';
+}
+
+async function extractPlainText(file) {
+  return {
+    text: await file.text(),
+    metadata: { parser: 'plain_text' },
+  };
+}
+
+async function extractMarkdownText(file) {
+  const text = await file.text();
+  const headings = (text.match(/^#{1,6}\s+.+$/gm) || []).slice(0, 80);
+  return {
+    text,
+    metadata: { parser: 'markdown', headings },
+  };
+}
+
+function extractTextFromHtmlDocument(doc) {
+  doc.querySelectorAll('script,style,noscript,svg,canvas').forEach(el => el.remove());
+  const title = doc.querySelector('title')?.textContent?.trim() || '';
+  const blocks = [];
+  if (title) blocks.push(`# ${title}`);
+  doc.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,blockquote,td,th').forEach(el => {
+    const clean = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!clean) return;
+    const tag = el.tagName.toLowerCase();
+    if (/^h[1-6]$/.test(tag)) blocks.push(`${'#'.repeat(Number(tag[1]))} ${clean}`);
+    else blocks.push(clean);
+  });
+  return blocks.join('\n').trim();
+}
+
+async function extractHtmlText(file) {
+  const html = await file.text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return {
+    text: extractTextFromHtmlDocument(doc),
+    metadata: { parser: 'html', title: doc.querySelector('title')?.textContent?.trim() || '' },
+  };
+}
+
+async function loadZipFile(file) {
+  if (!window.JSZip) throw new Error('JSZip 解析库未加载');
+  return window.JSZip.loadAsync(await file.arrayBuffer());
+}
+
+function xmlTexts(doc, tagName) {
+  return Array.from(doc.getElementsByTagName(tagName))
+    .map(el => String(el.textContent || '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
+async function extractPptxText(file) {
+  const zip = await loadZipFile(file);
+  const PPTX_SLIDE_PREFIX = 'ppt/slides/slide';
+  const slideFiles = Object.keys(zip.files)
+    .filter(name => name.startsWith(PPTX_SLIDE_PREFIX) && /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+    .sort((a, b) => Number(a.match(/slide(\d+)\.xml/i)?.[1] || 0) - Number(b.match(/slide(\d+)\.xml/i)?.[1] || 0));
+  const parts = [];
+  for (const path of slideFiles) {
+    const xml = await zip.file(path).async('text');
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const texts = xmlTexts(doc, 'a:t');
+    const idx = path.match(/slide(\d+)\.xml/i)?.[1] || String(parts.length + 1);
+    if (texts.length) parts.push(`# Slide ${idx}\n${texts.join('\n')}`);
+  }
+  return {
+    text: parts.join('\n\n'),
+    pageCount: slideFiles.length,
+    pagesRead: slideFiles.length,
+    metadata: { parser: 'pptx', slide_count: slideFiles.length },
+  };
+}
+
+function zipJoin(base, href) {
+  if (!base) return href;
+  const stack = base.split('/').filter(Boolean);
+  for (const part of String(href || '').split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..') stack.pop();
+    else stack.push(part);
+  }
+  return stack.join('/');
+}
+
+async function extractEpubText(file) {
+  const zip = await loadZipFile(file);
+  const container = await zip.file('META-INF/container.xml')?.async('text');
+  if (!container) throw new Error('EPUB 缺少 META-INF/container.xml');
+  const containerDoc = new DOMParser().parseFromString(container, 'application/xml');
+  const opfPath = containerDoc.getElementsByTagName('rootfile')[0]?.getAttribute('full-path');
+  if (!opfPath || !zip.file(opfPath)) throw new Error('EPUB 目录文件无法读取');
+  const opfText = await zip.file(opfPath).async('text');
+  const opfDoc = new DOMParser().parseFromString(opfText, 'application/xml');
+  const opfDir = opfPath.split('/').slice(0, -1).join('/');
+  const manifest = new Map(Array.from(opfDoc.getElementsByTagName('item')).map(item => [item.getAttribute('id'), item]));
+  const spine = Array.from(opfDoc.getElementsByTagName('itemref')).map(x => x.getAttribute('idref')).filter(Boolean);
+  const htmlPaths = spine
+    .map(id => manifest.get(id))
+    .filter(item => item && /xhtml|html/i.test(item.getAttribute('media-type') || item.getAttribute('href') || ''))
+    .map(item => zipJoin(opfDir, item.getAttribute('href')));
+  const fallbackPaths = Object.keys(zip.files).filter(name => /\.(xhtml|html?)$/i.test(name));
+  const paths = htmlPaths.length ? htmlPaths : fallbackPaths;
+  const parts = [];
+  for (const path of paths.slice(0, 80)) {
+    const entry = zip.file(path);
+    if (!entry) continue;
+    const html = await entry.async('text');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const text = extractTextFromHtmlDocument(doc);
+    if (text) parts.push(text);
+  }
+  return {
+    text: parts.join('\n\n'),
+    pageCount: paths.length,
+    pagesRead: Math.min(paths.length, 80),
+    metadata: { parser: 'epub', spine_count: paths.length, opf_path: opfPath },
+  };
+}
+
+async function extractSourceByType(file, sourceType) {
+  if (sourceType === 'pdf') return extractPdfText(file);
+  if (sourceType === 'docx') return { text: await extractWordText(file), metadata: { parser: 'docx' } };
+  if (sourceType === 'txt') return extractPlainText(file);
+  if (sourceType === 'markdown') return extractMarkdownText(file);
+  if (sourceType === 'html') return extractHtmlText(file);
+  if (sourceType === 'pptx') return extractPptxText(file);
+  if (sourceType === 'epub') return extractEpubText(file);
+  if (sourceType === 'ppt') throw new Error('旧 .ppt 暂不支持直接解析，请另存为 .pptx 后导入');
+  throw new Error('暂不支持该文件格式');
+}
+
 function sourceNeedsOcr(diagnostics) {
   if (!diagnostics) return false;
   if (diagnostics.source_diagnostics) return sourceNeedsOcr(diagnostics.source_diagnostics);
@@ -3633,10 +3778,11 @@ async function expandSourceMemoryBranches(anchors, snippets, query) {
 }
 
 async function parseImportedSourceFile(file) {
-  const lower = file.name.toLowerCase();
-  const sourceType = lower.endsWith('.pdf') ? 'pdf' : 'docx';
-  const pdfResult = sourceType === 'pdf' ? await extractPdfText(file) : null;
-  const text = pdfResult ? pdfResult.text : await extractWordText(file);
+  const sourceType = sourceTypeFromFile(file);
+  if (!sourceType) throw new Error('暂不支持该文件格式');
+  const sourceResult = await extractSourceByType(file, sourceType);
+  const pdfResult = sourceResult;
+  const text = sourceResult.text || '';
   const diagnostics = diagnoseImportedSource(file, sourceType, text, pdfResult || {});
   const diagnosticLine = sourceNeedsOcr(diagnostics) ? `\n[导入诊断：${diagnostics.message}]` : '';
   return {
@@ -3648,6 +3794,7 @@ async function parseImportedSourceFile(file) {
       source_char_count: text.length,
       source_diagnostics: diagnostics,
       source_pages: pdfResult?.pages || [],
+      source_metadata: sourceResult.metadata || {},
       source_memory: createSourceMemory(file.name, sourceType, text, diagnostics, pdfResult || {}),
     },
     diagnostics,
