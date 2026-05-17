@@ -85,6 +85,45 @@
   .md p { margin: 4px 0; }
   .md ul, .md ol { padding-left: 18px; margin: 4px 0; }
   .md blockquote { border-left: 2px solid var(--line); padding-left: 8px; color:var(--muted); }
+  .rich-text { font-variant-numeric: tabular-nums; }
+  .math-inline, .math-block {
+    font-family: "Times New Roman", "Cambria Math", "STIX Two Math", serif;
+    letter-spacing: .01em;
+  }
+  .math-inline {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0 3px;
+    margin: 0 1px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--panel-2) 48%, transparent);
+    white-space: nowrap;
+  }
+  .math-block {
+    display: block;
+    overflow-x: auto;
+    margin: 6px 0;
+    padding: 8px 10px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--panel-2) 64%, transparent);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .math-frac {
+    display: inline-grid;
+    grid-template-rows: auto 1px auto;
+    align-items: center;
+    vertical-align: middle;
+    margin: 0 2px;
+    line-height: 1.05;
+    text-align: center;
+  }
+  .math-frac .frac-line { height: 1px; background: currentColor; opacity: .85; min-width: 18px; }
+  .math-sqrt { display:inline-flex; align-items:flex-start; gap:1px; }
+  .math-sqrt .sqrt-body { border-top:1px solid currentColor; padding:0 2px; }
+  .chem-formula { font-family: "Times New Roman", serif; white-space: nowrap; }
+  .rich-text sup, .rich-text sub { font-size: .72em; line-height: 0; }
   .bar { background:var(--panel-3); height:5px; border-radius:99px; overflow:hidden; }
   .bar > div { background: linear-gradient(90deg, var(--warn), var(--accent)); height:100%; }
   #chat {
@@ -119,6 +158,20 @@
     cursor: grab;
   }
   .knowledge-graph canvas:active { cursor: grabbing; }
+  .insight-kb-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .insight-kb-card {
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+    padding: 8px;
+    min-width: 0;
+  }
+  .insight-kb-card .num { font-size: 17px; font-weight: 800; line-height: 1; }
+  .insight-kb-card .cap { margin-top: 4px; font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .graph-hint {
     position: absolute;
     bottom: 8px;
@@ -196,6 +249,11 @@
     border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
     padding-top: 10px;
     margin-top: 10px;
+  }
+  .message-jump-highlight {
+    outline: 2px solid var(--warn);
+    outline-offset: 3px;
+    border-radius: 16px;
   }
   .bg-neutral-950, .bg-neutral-900 { background-color: var(--panel) !important; }
   .bg-neutral-800 { background-color: var(--panel-3) !important; }
@@ -525,6 +583,7 @@
           导入 Word/PDF
           <input id="anchor-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple class="hidden">
         </label>
+        <input id="anchor-reprocess-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden">
         <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">仅本地解析，不上传图片</div>
       </div>
     </form>
@@ -620,6 +679,7 @@
               <option value="vision_files">文本 + 图片 + 文件</option>
             </select>
             <div id="cfg-capability-segments" class="segmented-control segmented-scroll"></div>
+            <div id="cfg-vision-hint" class="text-[11px] text-neutral-500 mt-1 leading-relaxed"></div>
           </label>
           <label class="block config-section">
             <span class="text-xs text-neutral-400">Base URL</span>
@@ -792,6 +852,18 @@
         <span class="text-xs text-neutral-400">初始诉求（一行一条）</span>
         <textarea id="new-reqs" rows="3" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
       </label>
+      <div class="bg-neutral-800/60 border border-neutral-700 rounded-lg p-3 space-y-2">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-semibold text-neutral-300">可选基础文档</div>
+            <div id="new-source-status" class="text-[11px] text-neutral-500 mt-1 truncate">创建时一并导入 Word/PDF</div>
+          </div>
+          <label class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer whitespace-nowrap">
+            选择文件
+            <input id="new-source-files" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple class="hidden">
+          </label>
+        </div>
+      </div>
       <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
         <span>创建后让学生 AI 主动开场提问</span>
         <input id="new-auto-opening" type="checkbox" checked class="accent-emerald-700">
@@ -810,6 +882,54 @@
       <div id="message-popup-body" class="text-sm leading-snug max-h-28 overflow-y-auto whitespace-pre-wrap break-words"></div>
     </div>
     <button id="message-popup-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+  </div>
+</div>
+
+<div id="graph-source-node-editor" class="choice-sheet-overlay hidden">
+  <div class="choice-sheet safe-bottom">
+    <div class="graph-sheet-handle"></div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-sm font-semibold">编辑图谱节点</div>
+          <div class="text-xs text-neutral-500 mt-1">用户命名会锁定，不会被模型自动覆盖。</div>
+        </div>
+        <button id="graph-editor-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+      </div>
+      <label class="block">
+        <span class="text-xs text-neutral-400">标题</span>
+        <input id="graph-editor-title" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">简介 / 纠正</span>
+        <textarea id="graph-editor-summary" rows="4" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
+      </label>
+      <button id="graph-editor-save" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium">保存修正</button>
+    </div>
+  </div>
+</div>
+
+<div id="essay-note-sheet" class="choice-sheet-overlay hidden">
+  <div class="choice-sheet safe-bottom">
+    <div class="graph-sheet-handle"></div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-sm font-semibold">随笔</div>
+          <div id="essay-note-source" class="text-xs text-neutral-500 mt-1 truncate"></div>
+        </div>
+        <button id="essay-note-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+      </div>
+      <label class="block">
+        <span class="text-xs text-neutral-400">标题</span>
+        <input id="essay-note-title" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm" placeholder="例如：这里我自己的理解">
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">内容</span>
+        <textarea id="essay-note-body" rows="4" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
+      </label>
+      <button id="essay-note-save" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium">保存到图谱</button>
+    </div>
   </div>
 </div>
 
@@ -841,6 +961,8 @@ const state = {
   sessions: [],
   currentTab: 'chat',
   graphSelected: '',
+  graphEditingNode: null,
+  essaySourceMessage: null,
 };
 
 const APP_VERSION_CODE = 14;
@@ -1483,8 +1605,85 @@ function cleanEvaluation(rawEvaluation={}) {
   return ev;
 }
 
+const SCI_ELEMENT_RE = 'Ac|Ag|Al|Am|Ar|As|At|Au|B|Ba|Be|Bh|Bi|Bk|Br|C|Ca|Cd|Ce|Cf|Cl|Cm|Cn|Co|Cr|Cs|Cu|Db|Ds|Dy|Er|Es|Eu|F|Fe|Fl|Fm|Fr|Ga|Gd|Ge|H|He|Hf|Hg|Ho|Hs|I|In|Ir|K|Kr|La|Li|Lr|Lu|Lv|Mc|Md|Mg|Mn|Mo|Mt|N|Na|Nb|Nd|Ne|Nh|Ni|No|Np|O|Og|Os|P|Pa|Pb|Pd|Pm|Po|Pr|Pt|Pu|Ra|Rb|Re|Rf|Rg|Rh|Rn|Ru|S|Sb|Sc|Se|Sg|Si|Sm|Sn|Sr|Ta|Tb|Tc|Te|Th|Ti|Tl|Tm|Ts|U|V|W|Xe|Y|Yb|Zn|Zr';
+const SCI_FORMULA_RE = new RegExp(`\\b(?:(?:${SCI_ELEMENT_RE})(?:\\d+)?){2,}(?:[+-])?\\b`, 'g');
+
+function renderChemFormula(formula) {
+  return `<span class="chem-formula">${esc(formula).replace(/(\d+)/g, '<sub>$1</sub>')}</span>`;
+}
+
+function renderScienceText(text) {
+  let html = esc(String(text || ''));
+  html = html.replace(/\b([A-Za-zα-ωΑ-Ω])\^\{([^{}]{1,18})\}/g, '$1<sup>$2</sup>');
+  html = html.replace(/\b([A-Za-zα-ωΑ-Ω])\^([-+]?\d+|[A-Za-z])/g, '$1<sup>$2</sup>');
+  html = html.replace(SCI_FORMULA_RE, m => /[0-9]/.test(m) ? renderChemFormula(m) : m);
+  return html;
+}
+
+function renderMathExpression(expr) {
+  let raw = String(expr || '').trim()
+    .replace(/\\left|\\right/g, '')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷')
+    .replace(/\\leq?/g, '≤')
+    .replace(/\\geq?/g, '≥')
+    .replace(/\\neq/g, '≠')
+    .replace(/\\pm/g, '±')
+    .replace(/\\infty/g, '∞')
+    .replace(/\\int/g, '∫')
+    .replace(/\\sum/g, '∑')
+    .replace(/\\prod/g, '∏')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\lambda/g, 'λ')
+    .replace(/\\mu/g, 'μ')
+    .replace(/\\sigma/g, 'σ')
+    .replace(/\\alpha/g, 'α')
+    .replace(/\\beta/g, 'β')
+    .replace(/\\gamma/g, 'γ')
+    .replace(/\\Delta/g, 'Δ')
+    .replace(/\\Omega/g, 'Ω');
+  const slots = [];
+  raw = raw.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_, a, b) => {
+    const id = slots.push(`<span class="math-frac"><span>${renderMathExpression(a)}</span><span class="frac-line"></span><span>${renderMathExpression(b)}</span></span>`) - 1;
+    return `@@MATH${id}@@`;
+  });
+  raw = raw.replace(/\\sqrt\{([^{}]+)\}/g, (_, a) => {
+    const id = slots.push(`<span class="math-sqrt">√<span class="sqrt-body">${renderMathExpression(a)}</span></span>`) - 1;
+    return `@@MATH${id}@@`;
+  });
+  let html = renderScienceText(raw);
+  html = html.replace(/([A-Za-z0-9)\]}])_\{([^{}]{1,18})\}/g, '$1<sub>$2</sub>');
+  html = html.replace(/([A-Za-z0-9)\]}])_([A-Za-z0-9])/g, '$1<sub>$2</sub>');
+  html = html.replace(/([A-Za-z0-9)\]}])\^\{([^{}]{1,18})\}/g, '$1<sup>$2</sup>');
+  html = html.replace(/([A-Za-z0-9)\]}])\^([-+]?\d+|[A-Za-z])/g, '$1<sup>$2</sup>');
+  slots.forEach((slot, i) => { html = html.replace(`@@MATH${i}@@`, slot); });
+  return html;
+}
+
+function renderRichText(content) {
+  const text = String(content || '');
+  const parts = [];
+  const re = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]+\$)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(esc(text.slice(last, m.index)));
+    const token = m[0];
+    const display = token.startsWith('$$') || token.startsWith('\\[');
+    const inner = token.startsWith('$$') ? token.slice(2, -2)
+      : token.startsWith('$') ? token.slice(1, -1)
+      : token.startsWith('\\[') ? token.slice(2, -2)
+      : token.slice(2, -2);
+    parts.push(`<span class="${display ? 'math-block' : 'math-inline'}">${renderMathExpression(inner)}</span>`);
+    last = re.lastIndex;
+  }
+  if (last < text.length) parts.push(esc(text.slice(last)));
+  return `<div class="rich-text whitespace-pre-wrap break-words">${parts.join('')}</div>`;
+}
+
 function safeChatHtml(content) {
-  return `<div class="whitespace-pre-wrap break-words">${esc(String(content || ''))}</div>`;
+  return renderRichText(content);
 }
 </script>
 
@@ -2052,7 +2251,11 @@ const LLM = (() => {
     }
   }
 
-  return { has_real, set_config, get_config, chat_json, ping, parse_json: extract_json, fallback_json };
+  function supports_vision() {
+    return cfg.capability === 'vision' || cfg.capability === 'vision_files';
+  }
+
+  return { has_real, set_config, get_config, chat_json, ping, parse_json: extract_json, fallback_json, supports_vision };
 })();
 </script>
 
@@ -2146,9 +2349,115 @@ const ENGINE = (() => {
     return learningWords.some(w => text.includes(w.toLowerCase())) ? 'learning' : 'goal_support';
   }
 
+  function sourceAnchorName(a, fallback='资料') {
+    const name = a?.source_name || '';
+    if (name) return String(name);
+    const hit = String(a?.content || '').match(/\[(?:文件|File)[:：]\s*([^\]\n]+)\]/i);
+    return hit ? hit[1] : fallback;
+  }
+  function sourceAnchorText(a) {
+    return String(a?.source_text || a?.content || '');
+  }
+  function sourceReadabilityHint(a) {
+    if (!sourceNeedsOcr(a)) return '';
+    return `资料尚未真正读到正文：${sourceDiagnosticMessage(a) || '需要视觉模型后才能用于问答。'}`;
+  }
+  function sourcePreview(text, limit=260) {
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
+    return clean.length > limit ? clean.slice(0, limit) + '…' : clean;
+  }
   function format_anchors(anchors) {
     if (!anchors || !anchors.length) return '（无主线锚，按通用策略走）';
-    return anchors.slice().sort((a,b)=>b.weight-a.weight).map(a => `- [${a.kind} w=${a.weight.toFixed(1)}] ${a.content}`).join('\n');
+    return anchors.slice().sort((a,b)=>b.weight-a.weight).map(a => {
+      if (a.kind === 'source') {
+        const text = sourceAnchorText(a);
+        const hint = sourceReadabilityHint(a);
+        if (hint) return `- [source w=${a.weight.toFixed(1)}] 文件: ${sourceAnchorName(a)} (${a.source_type || 'doc'}, ${text.length} 字)。${hint}`;
+        return `- [source w=${a.weight.toFixed(1)}] 文件: ${sourceAnchorName(a)} (${a.source_type || 'doc'}, ${text.length} 字)。资料已导入，会按当前问题检索相关片段。预览: ${sourcePreview(text)}`;
+      }
+      return `- [${a.kind} w=${a.weight.toFixed(1)}] ${a.content}`;
+    }).join('\n');
+  }
+  function normalizeSourceNeedle(s) {
+    return String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  }
+  function sourceQueryTokens(query) {
+    const stop = new Set(['这个','那个','什么','怎么','为什么','一下','老师','文件','pdf','docx','ppt','pptx','the','and','for','with','from','what','why','how']);
+    const raw = String(query || '').toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}_-]{1,}/gu) || [];
+    return Array.from(new Set(raw.map(t => t.replace(/^_+|_+$/g, '')).filter(t => t.length >= 2 && !stop.has(t))));
+  }
+  function sourceChunks(text, size=1100, overlap=180) {
+    const clean = String(text || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
+    if (!clean) return [];
+    const chunks = [];
+    for (let i = 0; i < clean.length && chunks.length < 48; i += Math.max(1, size - overlap)) {
+      const chunk = clean.slice(i, i + size).trim();
+      if (chunk) chunks.push(chunk);
+    }
+    return chunks;
+  }
+  function retrieveSourceSnippets(anchors, query, maxSnippets=5) {
+    const sources = (anchors || []).filter(a => a.kind === 'source');
+    if (!sources.length) return [];
+    const tokens = sourceQueryTokens(query);
+    const queryNorm = normalizeSourceNeedle(query);
+    const scored = [];
+    for (const a of sources) {
+      const name = sourceAnchorName(a);
+      const nameNorm = normalizeSourceNeedle(name);
+      const text = sourceAnchorText(a);
+      const singleSourceMention = sources.length === 1 && /(文档|资料|论文|pdf|这篇|这个|文件)/i.test(String(query || ''));
+      const fileMentioned = singleSourceMention || (!!nameNorm && (queryNorm.includes(nameNorm) || nameNorm.includes(queryNorm)));
+      const nameHit = tokens.some(t => nameNorm.includes(normalizeSourceNeedle(t)));
+      if (sourceNeedsOcr(a)) {
+        const pages = sourceVisualPages(a);
+        if ((fileMentioned || nameHit) && pages.length) {
+          const diagnosticNode = sourceMemoryNodes(a).find(n => n.type === 'diagnostic') || null;
+          scored.push({
+            source_id:a.id,
+            node_id:diagnosticNode?.id || '',
+            node_label:diagnosticNode?.label || '待视觉模型',
+            file:name,
+            type:a.source_type || 'doc',
+            score:18,
+            index:1,
+            text:sourceDiagnosticMessage(a) || 'PDF 页面图片可交给视觉模型分析。',
+            visual_pages: pages,
+          });
+        }
+        continue;
+      }
+      sourceChunks(text).forEach((chunk, idx) => {
+        const lower = chunk.toLowerCase();
+        let score = fileMentioned ? 24 : (nameHit ? 10 : 0);
+        for (const t of tokens) {
+          const hits = lower.split(t).length - 1;
+          if (hits > 0) score += Math.min(12, hits * 3);
+        }
+        if (score > 0 || (fileMentioned && idx === 0)) {
+          const memoryNode = bestSourceMemoryNodeForChunk(a, chunk, idx);
+          scored.push({ source_id:a.id, node_id:memoryNode?.id || '', node_label:memoryNode?.label || '', file:name, type:a.source_type || 'doc', score, index:idx + 1, text:chunk });
+        }
+      });
+    }
+    return scored.sort((a,b)=>b.score-a.score).slice(0, maxSnippets);
+  }
+  function formatSourceContext(snippets) {
+    if (!snippets || !snippets.length) return '';
+    return snippets.map(s => {
+      const visual = s.visual_pages?.length ? `\n[该片段包含 ${s.visual_pages.length} 张 PDF 页面图片，只有视觉模型能直接读取。]` : '';
+      return `- 文件: ${s.file} · 片段 ${s.index} · score=${s.score}${visual}\n${s.text}`;
+    }).join('\n\n');
+  }
+  async function persistSourceMemoryHits(anchors, snippets, query, messageIds=[]) {
+    if (!snippets || !snippets.length) return;
+    const bySource = new Set(snippets.map(s => String(s.source_id || '')).filter(Boolean));
+    for (const a of (anchors || []).filter(x => x.kind === 'source' && bySource.has(String(x.id)))) {
+      const nextMemory = recordSourceMemoryHit(a, snippets, query, messageIds);
+      if (!nextMemory) continue;
+      a.source_memory = nextMemory;
+      await DB.put('anchors', a);
+    }
   }
   function format_mastery(m) {
     if (!m || !m.length) return '（用户尚无掌握度记录，从基础开始）';
@@ -2158,7 +2467,7 @@ const ENGINE = (() => {
     return Object.entries(ACTION_TYPES).map(([k,v]) => `- \`${k}\`: ${v}`).join('\n');
   }
 
-  function build_system_prompt(session, anchors, masteries, summary='') {
+  function build_system_prompt(session, anchors, masteries, summary='', sourceContext='') {
     const p = session.persona || {};
     const conversationMode = inferConversationMode(session);
     const coreMission = conversationMode === 'learning'
@@ -2174,6 +2483,11 @@ const ENGINE = (() => {
 
 # 主线锚（不可漂移，**永远不能违背**）
 ${format_anchors(anchors)}
+
+${sourceContext ? `# 当前问题命中的上传资料片段（优先相信）
+这些内容来自用户导入的 Word/PDF。本轮回答必须优先利用这些资料；如果用户问某个文件是什么，先概括资料片段，不要假装不知道。
+${sourceContext}
+` : ''}
 
 # 用户掌握度
 ${format_mastery(masteries)}
@@ -2507,7 +2821,10 @@ ${openingTask}
     const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
     const summary_text = summary ? summary.content : '';
 
-    const system = build_system_prompt(session, anchors, masteries, summary_text);
+    const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
+    await persistSourceMemoryHits(anchors, sourceSnippets, user_input, userMessage ? [userMessage.id] : []);
+    const sourceContext = formatSourceContext(sourceSnippets);
+    const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
     messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
@@ -2545,6 +2862,7 @@ ${openingTask}
     for (const u of updates) {
       await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0);
     }
+    await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);
     return { reply, action: ac, evaluation: ev };
   }
 
@@ -2671,6 +2989,17 @@ async function refreshHeader() {
       $('#header-title').textContent = s.title;
       $('#header-sub').textContent = `${s.persona.role} · ${s.persona.goal}`;
     }
+  } else if (node.nodeType === 'note') {
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-encourage">随笔</span>
+      <span class="pill pill-next">${esc(node.sourceName || '聊天')}</span>
+    </div>
+    <div class="text-base font-bold mb-2">${esc(kpName || node.label || '随笔')}</div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
+    </div>
+    <div class="sheet-section text-sm leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.content || '')}</div>`;
+
   } else {
     $('#header-title').textContent = '反转家教';
     $('#header-sub').textContent = '点 设置 创建你的第一个会话';
@@ -2724,16 +3053,68 @@ async function renderChat() {
           ${ev.user_emotion ? `· ${esc(ev.user_emotion)}` : ''}
         </div>` : '';
       return `
-        <div class="flex ${isUser?'justify-end':'justify-start'}">
+        <div class="flex ${isUser?'justify-end':'justify-start'}" data-message-id="${m.id}" id="msg-${m.id}">
           <div class="max-w-[85%] ${isUser?'bg-emerald-900/40 border border-emerald-800':'bg-neutral-900 border border-neutral-800'} rounded-2xl px-3 py-2">
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
-            <div class="md text-sm">${isUser ? `<div class="whitespace-pre-wrap">${esc(m.content)}</div>` : safeChatHtml(m.content)}</div>
+            <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
             ${meta}
           </div>
         </div>`;
     }).join('');
   chat.innerHTML = banner + (html || '<div class="text-xs text-neutral-500 text-center mt-10">学生 AI 还没说话。点 "发送" 它会先开场……或者发一句 "开始吧"</div>');
+  $$('#chat [data-message-id]').forEach(el => {
+    el.addEventListener('contextmenu', async e => {
+      e.preventDefault();
+      const id = Number(el.dataset.messageId);
+      const msg = msgs.find(x => Number(x.id) === id);
+      if (msg) openEssayComposer(msg);
+    });
+    let pressTimer = null;
+    el.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => {
+        const id = Number(el.dataset.messageId);
+        const msg = msgs.find(x => Number(x.id) === id);
+        if (msg) openEssayComposer(msg);
+      }, 620);
+    }, { passive:true });
+    el.addEventListener('touchend', () => clearTimeout(pressTimer), { passive:true });
+    el.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive:true });
+  });
   chat.scrollTop = chat.scrollHeight;
+}
+
+function openEssayComposer(message) {
+  if (!message) return;
+  state.essaySourceMessage = message;
+  const action = message.meta?.action || {};
+  $('#essay-note-source').textContent = `${message.role === 'user' ? '你的发言' : '学生 AI'} · ${action.knowledge_point || '当前聊天'}`;
+  $('#essay-note-title').value = action.knowledge_point ? `${action.knowledge_point} 随笔` : '聊天随笔';
+  $('#essay-note-body').value = String(message.content || '').slice(0, 600);
+  $('#essay-note-sheet').classList.remove('hidden');
+}
+
+function closeEssayComposer() {
+  $('#essay-note-sheet').classList.add('hidden');
+  state.essaySourceMessage = null;
+}
+
+async function saveEssayNote() {
+  if (!state.sid || !state.essaySourceMessage) return;
+  const msg = state.essaySourceMessage;
+  const action = msg.meta?.action || {};
+  const title = $('#essay-note-title').value.trim() || '聊天随笔';
+  const body = $('#essay-note-body').value.trim();
+  if (!body) { toast('先写一点随笔内容'); return; }
+  await addLocalAnchor('note', title, 1.4, {
+    note_title: title,
+    note_body: body,
+    note_message_id: msg.id,
+    note_kp: action.knowledge_point || '',
+    note_source_role: msg.role === 'user' ? '你的发言' : '学生 AI',
+  });
+  closeEssayComposer();
+  toast('已保存到图谱');
+  if (state.currentTab === 'insights') renderInsights();
 }
 
 async function sendMessage() {
@@ -2863,7 +3244,39 @@ async function extractPdfText(file) {
     parts.push(text.items.map(item => item.str || '').join(' '));
   }
   if (doc.numPages > maxPages) parts.push(`[PDF 共 ${doc.numPages} 页，已读取前 ${maxPages} 页]`);
-  return parts.join('\n');
+  const text = parts.join('\n');
+  const pages = text.replace(/\s+/g, '').length < 80
+    ? await renderPdfPreviewPages(doc, Math.min(4, doc.numPages))
+    : [];
+  return {
+    text,
+    pageCount: doc.numPages,
+    pagesRead: maxPages,
+    pages,
+  };
+}
+
+async function renderPdfPreviewPages(doc, maxPages=4) {
+  const pages = [];
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await doc.getPage(i);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = Math.min(1.15, 880 / Math.max(1, baseViewport.width));
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    pages.push({
+      page: i,
+      mime: 'image/jpeg',
+      data_url: canvas.toDataURL('image/jpeg', 0.64),
+      width: canvas.width,
+      height: canvas.height,
+    });
+  }
+  return pages;
 }
 
 async function extractWordText(file) {
@@ -2873,27 +3286,450 @@ async function extractWordText(file) {
   return result.value || '';
 }
 
-async function importAnchorFiles(files) {
+function sourceNeedsOcr(diagnostics) {
+  if (!diagnostics) return false;
+  if (diagnostics.source_diagnostics) return sourceNeedsOcr(diagnostics.source_diagnostics);
+  const legacyEmptyPdf = diagnostics.kind === 'source'
+    && diagnostics.source_type === 'pdf'
+    && Object.prototype.hasOwnProperty.call(diagnostics, 'source_text')
+    && !String(diagnostics.source_text || '').trim();
+  return !!(diagnostics.needs_ocr || diagnostics.code === 'pdf_empty_text' || legacyEmptyPdf);
+}
+
+function sourceDiagnosticMessage(a) {
+  const d = a?.source_diagnostics || {};
+  if (d.message) return d.message;
+  if (sourceNeedsOcr(a)) return '需要视觉模型：这份 PDF 需要看页面图片，当前 AI 尚未真正读到正文。';
+  return '';
+}
+
+function diagnoseImportedSource(file, sourceType, text, meta={}) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  const diagnostics = {
+    status: 'readable',
+    code: 'ok',
+    message: '已读到正文，可用于问答和图谱生成。',
+    char_count: clean.length,
+    page_count: meta.pageCount || null,
+    pages_read: meta.pagesRead || null,
+  };
+  if (sourceType === 'pdf' && clean.length < 80) {
+    diagnostics.status = 'needs_ocr';
+    diagnostics.code = 'pdf_empty_text';
+    diagnostics.needs_ocr = true;
+    diagnostics.has_visual_pages = Array.isArray(meta.pages) && meta.pages.length > 0;
+    diagnostics.vision_page_count = Array.isArray(meta.pages) ? meta.pages.length : 0;
+    diagnostics.message = '需要视觉模型：这份 PDF 需要看页面图片，当前 AI 尚未真正读到正文。';
+  } else if (clean.length < 120) {
+    diagnostics.status = 'low_text';
+    diagnostics.code = 'low_text';
+    diagnostics.message = '可提取文本很少，图谱可能只能生成粗略节点。';
+  }
+  return diagnostics;
+}
+
+function memoryNodeId(prefix, sourceKey, label, order=0) {
+  const slug = normalizeGraphTopic(`${sourceKey}-${label}`) || `node${order}`;
+  return `${prefix}-${order}-${slug}`.slice(0, 72);
+}
+
+function createSourceMemory(sourceName, sourceType, text, diagnostics={}, meta={}) {
+  const now = Date.now();
+  const sourceKey = normalizeGraphTopic(sourceName) || `source-${now}`;
+  const sourceId = meta.sourceId || sourceKey;
+  const tempSource = {
+    id: sourceId,
+    kind: 'source',
+    source_name: sourceName,
+    source_type: sourceType,
+    source_text: text,
+    source_diagnostics: diagnostics,
+    source_pages: meta.sourcePages || meta.pages || [],
+    content: `[文件：${sourceName}]\n${text || ''}`,
+  };
+  const outline = extractSourceOutline([tempSource], 10);
+  const docNode = {
+    id: memoryNodeId('doc', sourceKey, sourceName, 0),
+    type: 'document',
+    label: sourceName,
+    status: sourceNeedsOcr(tempSource) ? 'raw' : 'outlined',
+    valid_from: now,
+    last_seen_at: now,
+    hit_count: 0,
+  };
+  const nodes = [docNode];
+  const edges = [];
+  outline.forEach((section, i) => {
+    const node = {
+      id: memoryNodeId(section.diagnostic ? 'diagnostic' : 'section', sourceKey, section.label, i + 1),
+      type: section.diagnostic ? 'diagnostic' : 'section',
+      label: section.label,
+      status: section.diagnostic ? 'raw' : 'outlined',
+      order: i + 1,
+      preview: section.preview || '',
+      valid_from: now,
+      last_seen_at: null,
+      hit_count: 0,
+      pending_expansion: section.diagnostic ? !!tempSource.source_pages.length : true,
+    };
+    nodes.push(node);
+    edges.push({
+      id: `contains-${docNode.id}-${node.id}`.slice(0, 120),
+      type: 'contains',
+      from: docNode.id,
+      to: node.id,
+      valid_from: now,
+      confidence: section.diagnostic ? 0.4 : 0.72,
+    });
+  });
+  return {
+    schema: 'source_memory_v1',
+    source_name: sourceName,
+    source_type: sourceType,
+    status: sourceNeedsOcr(tempSource) ? 'raw' : 'outlined',
+    created_at: now,
+    updated_at: now,
+    nodes,
+    edges,
+    episodes: [{
+      event: 'import',
+      at: now,
+      summary: sourceNeedsOcr(tempSource)
+        ? '导入时未读到正文，等待视觉模型读取页面图片。'
+        : '导入后已生成低成本章节骨架，等待聊天命中后再做单支深度分析。',
+      valid_from: now,
+      node_ids: nodes.map(n => n.id),
+    }],
+  };
+}
+
+function sourceMemoryNodes(a) {
+  return Array.isArray(a?.source_memory?.nodes) ? a.source_memory.nodes : [];
+}
+
+function sourceVisualPages(a, limit=4) {
+  return (Array.isArray(a?.source_pages) ? a.source_pages : [])
+    .filter(p => p && p.data_url)
+    .slice(0, limit);
+}
+
+function sourceMemoryPreview(text, limit=220) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  return clean.length > limit ? clean.slice(0, limit) + '…' : clean;
+}
+
+function sourceMemoryOutline(a, maxPerSource=10) {
+  const sourceName = sourceDisplayName(a, '资料');
+  const sourceId = a.id || sourceName;
+  return sourceMemoryNodes(a)
+    .filter(n => n.type === 'section' || n.type === 'diagnostic')
+    .sort((x,y)=>(x.order || 0) - (y.order || 0))
+    .slice(0, maxPerSource)
+    .map((node, i) => {
+      const title = sourceNodeTitle(node, i + 1);
+      return {
+        sourceId,
+        sourceName,
+        sourceType: a.source_type || 'doc',
+        label: title.title,
+        titleOrigin: title.origin,
+        modelTitleSuggestion: title.suggestion,
+        order: node.order || i + 1,
+        preview: sourceNodeSummary(node),
+        diagnostic: node.type === 'diagnostic',
+        memoryNodeId: node.id,
+        memoryStatus: node.status || 'raw',
+        memoryExpansion: node.expansion || null,
+        chatMessageIds: node.chat_message_ids || [],
+      };
+    });
+}
+
+function sourceMemoryTopics(a, maxPerSource=8) {
+  const sourceName = sourceDisplayName(a, '资料');
+  return sourceMemoryNodes(a)
+    .filter(n => n.type === 'section' || n.type === 'diagnostic')
+    .sort((x,y)=>(y.hit_count || 0) - (x.hit_count || 0) || (x.order || 0) - (y.order || 0))
+    .slice(0, maxPerSource)
+    .map((node, i) => {
+      const title = sourceNodeTitle(node, i + 1);
+      return {
+        label: title.title,
+        score: 8 + (node.hit_count || 0),
+        sourceId: a.id || sourceName,
+        sourceName,
+        sourceType: a.source_type || 'doc',
+        preview: sourceNodeSummary(node),
+        diagnostic: node.type === 'diagnostic',
+        memoryNodeId: node.id,
+        memoryStatus: node.status || 'raw',
+        memoryExpansion: node.expansion || null,
+        titleOrigin: title.origin,
+        modelTitleSuggestion: title.suggestion,
+        chatMessageIds: node.chat_message_ids || [],
+      };
+    });
+}
+
+function bestSourceMemoryNodeForChunk(a, chunk, chunkIndex=0) {
+  const nodes = sourceMemoryNodes(a).filter(n => n.type !== 'document');
+  if (!nodes.length) return null;
+  const clean = String(chunk || '').toLowerCase();
+  let best = null;
+  let bestScore = -1;
+  nodes.forEach((node, i) => {
+    const label = String(node.label || '').toLowerCase();
+    const preview = String(node.preview || '').toLowerCase().slice(0, 120);
+    let score = i === chunkIndex ? 2 : 0;
+    if (label && clean.includes(label)) score += 8;
+    if (preview && clean.includes(preview.slice(0, 24))) score += 5;
+    if (score > bestScore) { best = node; bestScore = score; }
+  });
+  return best || nodes[Math.min(chunkIndex, nodes.length - 1)] || null;
+}
+
+function recordSourceMemoryHit(anchor, snippets, query, messageIds=[]) {
+  const relevant = (snippets || []).filter(s => String(s.source_id || '') === String(anchor?.id || ''));
+  if (!anchor || !relevant.length) return null;
+  const now = Date.now();
+  const memory = anchor.source_memory || createSourceMemory(
+    sourceDisplayName(anchor, anchor.source_name || '资料'),
+    anchor.source_type || 'doc',
+    anchor.source_text || '',
+    anchor.source_diagnostics || {},
+    { sourceId: anchor.id }
+  );
+  const hitNodeIds = Array.from(new Set(relevant.map(s => s.node_id).filter(Boolean)));
+  const fallbackNode = memory.nodes.find(n => n.type !== 'document');
+  const ids = hitNodeIds.length ? hitNodeIds : (fallbackNode ? [fallbackNode.id] : []);
+  for (const node of memory.nodes) {
+    if (!ids.includes(node.id)) continue;
+    node.last_seen_at = now;
+    node.hit_count = (node.hit_count || 0) + 1;
+    node.status = node.status === 'raw' ? 'outlined' : node.status;
+    node.pending_expansion = node.status !== 'expanded';
+    node.chat_message_ids = Array.from(new Set([...(node.chat_message_ids || []), ...messageIds].filter(Boolean))).slice(-12);
+  }
+  memory.updated_at = now;
+  memory.episodes = [
+    ...(memory.episodes || []).slice(-23),
+    {
+      event: 'chat_hit',
+      at: now,
+      valid_from: now,
+      query: sourceMemoryPreview(query, 160),
+      node_ids: ids,
+      evidence: relevant.slice(0, 3).map(s => ({
+        index: s.index,
+        score: s.score,
+        text: sourceMemoryPreview(s.text, 220),
+      })),
+    },
+  ];
+  return memory;
+}
+
+function normalizeBranchExpansion(raw, fallbackLabel='资料节点') {
+  const src = raw?.branch || raw?.expansion || raw || {};
+  const list = value => Array.isArray(value)
+    ? value.map(x => String(x || '').trim()).filter(Boolean).slice(0, 8)
+    : [];
+  const relations = Array.isArray(src.relations)
+    ? src.relations.map(r => ({
+      type: String(r?.type || 'related').slice(0, 24),
+      target: String(r?.target || r?.label || '').trim().slice(0, 40),
+      reason: String(r?.reason || '').trim().slice(0, 140),
+    })).filter(r => r.target).slice(0, 6)
+    : [];
+  return {
+    summary: String(src.summary || src.overview || `${fallbackLabel} 需要结合原文继续分析。`).trim().slice(0, 520),
+    model_title: String(src.title || src.model_title || '').trim().slice(0, 40),
+    model_title_suggestion: String(src.suggested_title || src.model_title_suggestion || src.title || '').trim().slice(0, 40),
+    key_concepts: list(src.key_concepts || src.concepts),
+    teacher_questions: list(src.teacher_questions || src.questions),
+    relations,
+  };
+}
+
+function branchExpansionUserMessage(node, query, evidence, visualPages=[]) {
+  const text = `节点：${node.label || '资料节点'}
+用户问题：${query || ''}
+证据片段：
+${evidence.map(s => `片段 ${s.index} score=${s.score}\n${s.text}`).join('\n\n')}
+${visualPages.length ? '\nPDF 页面图片：请直接阅读这些页面图片，提取可用于该节点的概括、关键概念和追问。' : ''}`;
+  if (!visualPages.length) return text;
+  return [
+    { type:'text', text },
+    ...visualPages.map(p => ({ type:'image_url', image_url:{ url:p.data_url } })),
+  ];
+}
+
+async function expandSourceMemoryBranches(anchors, snippets, query) {
+  if (!LLM.has_real() || !snippets || !snippets.length) return;
+  const hitKeys = Array.from(new Set(snippets.map(s => `${s.source_id || ''}::${s.node_id || '__fallback__'}`))).filter(k => !k.startsWith('::'));
+  // 最多分析 1 个命中的资料节点，避免一次聊天把整份文档都送进模型。
+  for (const key of hitKeys.slice(0, 1)) {
+    const [sourceId, nodeId] = key.split('::');
+    const anchor = (anchors || []).find(a => String(a.id) === String(sourceId));
+    if (!anchor) continue;
+    const memory = anchor.source_memory;
+    const node = nodeId === '__fallback__'
+      ? memory?.nodes?.find(n => n.type !== 'document' && n.type !== 'diagnostic')
+      : memory?.nodes?.find(n => n.id === nodeId);
+    if (!node || node.status === 'expanded' || !node.pending_expansion) continue;
+    if (node.type === 'diagnostic' && !LLM.supports_vision()) continue;
+    const evidence = snippets
+      .filter(s => String(s.source_id) === String(sourceId) && (!s.node_id || String(s.node_id) === String(node.id)))
+      .slice(0, 3);
+    if (!evidence.length) continue;
+    const visualPages = node.type === 'diagnostic'
+      ? sourceVisualPages(anchor).slice(0, 4)
+      : evidence.flatMap(s => s.visual_pages || []).slice(0, 4);
+    if (node.type === 'diagnostic' && !visualPages.length) continue;
+    const now = Date.now();
+    const system = `你是文档知识图谱的单支分析器。只分析用户当前命中的一个资料节点，不要总结整份文档。
+输出严格 JSON：
+{
+  "summary": "120字以内概括这个节点讲什么",
+  "key_concepts": ["关键概念1", "关键概念2"],
+  "teacher_questions": ["适合学生AI追问用户的问题1", "问题2"],
+  "relations": [{"type":"prerequisite|supports|contrasts|extends|related", "target":"相关节点或概念", "reason":"关系理由"}]
+}`;
+    const user = branchExpansionUserMessage(node, query, evidence, visualPages);
+    try {
+      const raw = await LLM.chat_json(system, [{ role:'user', content:user }], { temperature: 0.25, max_tokens: 520 });
+      node.expansion = {
+        ...normalizeBranchExpansion(raw, node.label || '资料节点'),
+        model: LLM.get_config()?.model || '',
+        updated_at: now,
+        evidence_count: evidence.length,
+        visual_page_count: visualPages.length,
+      };
+      if (!node.user_title && node.expansion.model_title) node.model_title = node.expansion.model_title;
+      if (node.user_title && node.expansion.model_title_suggestion && node.expansion.model_title_suggestion !== node.user_title) {
+        node.model_title_suggestion = node.expansion.model_title_suggestion;
+      }
+      node.model_summary = node.expansion.summary;
+      node.status = 'expanded';
+      node.pending_expansion = false;
+      node.last_seen_at = now;
+      memory.updated_at = now;
+      memory.episodes = [
+        ...(memory.episodes || []).slice(-23),
+        {
+          event: 'branch_expand',
+          at: now,
+          valid_from: now,
+          node_ids: [node.id],
+          summary: node.expansion.summary,
+          evidence: evidence.map(s => ({ index:s.index, score:s.score, text:sourceMemoryPreview(s.text, 160) })),
+        },
+      ];
+      await DB.put('anchors', anchor);
+    } catch (err) {
+      console.warn('source memory branch expansion failed', err);
+    }
+  }
+}
+
+async function parseImportedSourceFile(file) {
+  const lower = file.name.toLowerCase();
+  const sourceType = lower.endsWith('.pdf') ? 'pdf' : 'docx';
+  const pdfResult = sourceType === 'pdf' ? await extractPdfText(file) : null;
+  const text = pdfResult ? pdfResult.text : await extractWordText(file);
+  const diagnostics = diagnoseImportedSource(file, sourceType, text, pdfResult || {});
+  const diagnosticLine = sourceNeedsOcr(diagnostics) ? `\n[导入诊断：${diagnostics.message}]` : '';
+  return {
+    content: compactDocText(`[文件：${file.name}]${diagnosticLine}\n${text}`),
+    extra: {
+      source_name: file.name,
+      source_type: sourceType,
+      source_text: text,
+      source_char_count: text.length,
+      source_diagnostics: diagnostics,
+      source_pages: pdfResult?.pages || [],
+      source_memory: createSourceMemory(file.name, sourceType, text, diagnostics, pdfResult || {}),
+    },
+    diagnostics,
+  };
+}
+
+async function importAnchorFiles(files, opts={}) {
   if (!state.sid) { toast('先创建会话'); return; }
-  const status = $('#anchor-import-status');
+  const status = opts.statusEl || $('#anchor-import-status');
   const list = Array.from(files || []);
   if (!list.length) return;
   let ok = 0;
   for (const file of list) {
     try {
       if (status) status.textContent = `解析中：${file.name}`;
-      const lower = file.name.toLowerCase();
-      const text = lower.endsWith('.pdf') ? await extractPdfText(file) : await extractWordText(file);
-      const content = compactDocText(`[文件：${file.name}]\n${text}`);
-      await addLocalAnchor('source', content, 1.2, { source_name: file.name, source_type: lower.endsWith('.pdf') ? 'pdf' : 'docx' });
+      const parsed = await parseImportedSourceFile(file);
+      if (opts.replaceAnchorId) {
+        const existing = await DB.get('anchors', +opts.replaceAnchorId);
+        if (!existing || existing.kind !== 'source') throw new Error('找不到要重新处理的资料');
+        await DB.put('anchors', {
+          ...existing,
+          content: parsed.content,
+          weight: existing.weight || 1.2,
+          updated_at: Date.now(),
+          ...parsed.extra,
+        });
+      } else {
+        await addLocalAnchor('source', parsed.content, 1.2, parsed.extra);
+      }
+      const diagnostics = parsed.diagnostics;
+      if (sourceNeedsOcr(diagnostics)) toast(`${file.name} 已导入，但需要视觉模型才能理解正文`, 4200);
       ok++;
+      if (opts.replaceAnchorId) break;
     } catch (err) {
       toast(`${file.name} 导入失败：${err.message || err}`, 4200);
     }
   }
-  if (status) status.textContent = ok ? `已导入 ${ok} 个文件` : '未导入文件';
-  renderAnchors();
+  if (status) status.textContent = ok ? (opts.replaceAnchorId ? '已重新处理资料' : `已导入 ${ok} 个文件`) : '未导入文件';
+  if (opts.render !== false) renderAnchors();
 }
+
+function anchorVisualState(a) {
+  if (a.kind !== 'source') return '';
+  if (sourceNeedsOcr(a)) {
+    const pages = sourceVisualPages(a).length;
+    return pages
+      ? (LLM.supports_vision() ? `待视觉模型 · ${pages}页` : `当前模型不支持视觉 · ${pages}页`)
+      : '待重新处理';
+  }
+  const nodes = sourceMemoryNodes(a);
+  const expanded = nodes.filter(n => n.status === 'expanded').length;
+  const pending = nodes.filter(n => n.pending_expansion).length;
+  if (expanded) return `已分析 ${expanded}`;
+  if (pending) return `待分析 ${pending}`;
+  return '已建图';
+}
+
+function sourcePreviewText(a) {
+  const diagnostics = a?.source_diagnostics || {};
+  const sourceText = String(a?.source_text || '');
+  const chars = diagnostics.char_count || sourceText.replace(/\s+/g, '').length || String(a?.content || '').length;
+  const pages = diagnostics.page_count || diagnostics.pages_read || (Array.isArray(a?.source_pages) ? a.source_pages.length : null);
+  const type = String(a?.source_type || 'doc').toUpperCase();
+  const meta = [`${type}`, chars ? `${chars} 字` : '', pages ? `${pages} 页` : ''].filter(Boolean).join(' · ');
+  if (sourceNeedsOcr(a)) {
+    return `${meta || type}\n需要视觉模型读取页面图片后，才能生成章节分支和候选知识节点。`;
+  }
+  return `${meta || type}\n文档内容已保存为检索证据，聊天命中相关知识后再展开单支分析。`;
+}
+
+function sourceAnchorCardHtml(a) {
+  return `
+    <div class="font-semibold truncate">${esc(sourceDisplayName(a, '资料'))}</div>
+    <div class="mt-1 leading-relaxed" style="color:var(--muted)">${esc(sourcePreviewText(a))}</div>
+    <div class="mt-1.5 flex gap-1.5 flex-wrap">
+      <span class="pill pill-next">${esc(anchorVisualState(a))}</span>
+      <button data-reprocess-source="${a.id}" class="text-[11px] px-2 py-0.5 rounded border border-neutral-700 text-neutral-400 active:bg-neutral-800">重新处理</button>
+    </div>
+  `;
+}
+
+let pendingReprocessAnchorId = null;
 
 async function renderAnchors() {
   if (!state.sid) { $('#anchors-list').innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10">先创建会话</div>'; return; }
@@ -2901,10 +3737,16 @@ async function renderAnchors() {
   $('#anchors-list').innerHTML = anchors.map(a => `
     <div class="flex gap-2 items-start group bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
       <span class="pill pill-${a.kind}">${a.kind}</span>
-      <div class="flex-1 text-neutral-200">${esc(a.content)} <span class="text-neutral-600">w=${a.weight.toFixed(1)}</span></div>
+      <div class="flex-1 text-neutral-200">
+        ${a.kind === 'source' ? sourceAnchorCardHtml(a) : `<div>${esc(a.content)} <span class="text-neutral-600">w=${a.weight.toFixed(1)}</span></div>`}
+      </div>
       <button data-del="${a.id}" class="text-neutral-500 active:text-red-400 text-base px-1">✕</button>
     </div>
   `).join('') || '<div class="text-xs text-neutral-500 text-center mt-10">尚无锚</div>';
+  $$('#anchors-list [data-reprocess-source]').forEach(b => b.addEventListener('click', () => {
+    pendingReprocessAnchorId = b.dataset.reprocessSource;
+    $('#anchor-reprocess-file').click();
+  }));
   $$('#anchors-list [data-del]').forEach(b => b.addEventListener('click', async () => {
     if (!confirm('删除该锚？')) return;
     await DB.del('anchors', +b.dataset.del);
@@ -2924,8 +3766,246 @@ $('#anchor-file').addEventListener('change', async e => {
   await importAnchorFiles(e.target.files);
   e.target.value = '';
 });
+$('#anchor-reprocess-file').addEventListener('change', async e => {
+  if (!pendingReprocessAnchorId) { e.target.value = ''; return; }
+  await importAnchorFiles(e.target.files, { replaceAnchorId: pendingReprocessAnchorId });
+  pendingReprocessAnchorId = null;
+  e.target.value = '';
+});
 
-// --- Insights: Obsidian-style Force Graph ---
+// --- Insights: Source-grounded Force Graph ---
+function normalizeGraphTopic(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[《》“”"'\[\]【】()（）:：,，.。;；!?！？\s]/g, '')
+    .slice(0, 42);
+}
+
+function sourceDisplayName(a, fallback='资料') {
+  const name = a?.source_name || '';
+  if (name) return String(name).replace(/\.(pdf|docx|pptx?)$/i, '');
+  const hit = String(a?.content || '').match(/\[(?:文件|File)[:：]\s*([^\]\n]+)\]/i);
+  return hit ? hit[1].replace(/\.(pdf|docx|pptx?)$/i, '') : fallback;
+}
+
+function graphSourceText(a) {
+  return String(a?.source_text || a?.content || '').replace(/\[[^\]]+\]/g, ' ');
+}
+
+function looksLikeNoisyFormulaLabel(label) {
+  const text = String(label || '').replace(/\s+/g, ' ').trim();
+  if (!text) return true;
+  if (text.length > 34) return true;
+  const mathMarks = (text.match(/[=+\-*/^_<>≤≥≈√∑∫()[\]{}]/g) || []).length;
+  const digits = (text.match(/\d/g) || []).length;
+  const letters = (text.match(/[A-Za-z\u4e00-\u9fa5]/g) || []).length;
+  if (mathMarks >= 2) return true;
+  if (digits >= 5 && digits >= letters) return true;
+  if (/[{}\\]|>>|<<|\$\$?/.test(text)) return true;
+  if (text.split(/[，,。.;；:：]/).filter(Boolean).length > 2) return true;
+  return false;
+}
+
+function displaySourceTopicLabel(topicOrLabel, fallbackIndex=1) {
+  const raw = typeof topicOrLabel === 'string' ? topicOrLabel : topicOrLabel?.label;
+  const label = String(raw || '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\d.\-•、\s]+/, '')
+    .replace(/[，。；：,.!?]+$/g, '')
+    .trim();
+  if (label.length < 2 || looksLikeNoisyFormulaLabel(label)) return `内容片段 ${fallbackIndex}`;
+  return label.slice(0, 28);
+}
+
+function sourceNodeTitle(node, fallbackIndex=1) {
+  const userTitle = String(node?.user_title || '').trim();
+  const modelTitle = String(node?.model_title || node?.model_title_confirmed || '').trim();
+  const suggestion = String(node?.model_title_suggestion || node?.expansion?.model_title_suggestion || '').trim();
+  const base = String(node?.label || node?.kp || '').trim();
+  if (userTitle) return { title: userTitle, origin: '用户命名', suggestion };
+  if (modelTitle) return { title: displaySourceTopicLabel(modelTitle, fallbackIndex), origin: '模型命名', suggestion };
+  return { title: displaySourceTopicLabel(base, fallbackIndex), origin: base ? '自动片段' : '自动片段', suggestion };
+}
+
+function sourceNodeSummary(node) {
+  const userSummary = String(node?.user_summary || '').trim();
+  if (userSummary) return userSummary;
+  const modelSummary = String(node?.model_summary || node?.expansion?.summary || '').trim();
+  if (modelSummary) return modelSummary;
+  return '这个节点先作为资料骨架保留。等聊天命中后，再由模型补充准确概括、证据和追问。';
+}
+
+function compactGraphNodeLabel(label, maxLen=8) {
+  const text = String(label || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (/^内容片段\s*\d+$/i.test(text)) return text;
+  const clean = looksLikeNoisyFormulaLabel(text) ? '内容片段' : text;
+  return clean.length > maxLen ? `${clean.slice(0, maxLen)}…` : clean;
+}
+
+function cleanOutlineTitle(raw) {
+  return String(raw || '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\d.\-•、\s]+/, '')
+    .replace(/[，。；：,.!?]+$/g, '')
+    .trim()
+    .slice(0, 34);
+}
+
+function graphSourceChunks(text, size=1100, overlap=180) {
+  const clean = String(text || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
+  if (!clean) return [];
+  const chunks = [];
+  for (let i = 0; i < clean.length && chunks.length < 48; i += Math.max(1, size - overlap)) {
+    const chunk = clean.slice(i, i + size).trim();
+    if (chunk) chunks.push(chunk);
+  }
+  return chunks;
+}
+
+function summarizeSourceBlock(block, fallbackIndex=1) {
+  const clean = String(block || '').replace(/\s+/g, ' ').trim();
+  const firstSentence = (clean.match(/^[^。！？.!?]{6,34}/) || [])[0] || '';
+  const stop = new Set(['the','and','for','with','from','this','that','are','was','were','一个','一种','以及','因此','所以','但是','可以','通过','进行','学生','老师','知识','内容','文件','模型','系统']);
+  const counts = new Map();
+  for (const m of clean.matchAll(/[\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z0-9·-]{2,18}/g)) {
+    const word = m[0].trim();
+    if (stop.has(word.toLowerCase())) continue;
+    counts.set(word, (counts.get(word) || 0) + 1);
+  }
+  const top = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1] || b[0].length-a[0].length).slice(0, 2).map(x => x[0]);
+  const title = top.length ? top.join(' / ') : firstSentence;
+  return cleanOutlineTitle(title || `内容片段 ${fallbackIndex}`);
+}
+
+function synthesizeSourceOutline(text, sourceId, maxPerSource=8) {
+  const chunks = graphSourceChunks(text, 1400, 120).slice(0, maxPerSource);
+  return chunks.map((chunk, i) => ({
+    key: normalizeGraphTopic(`${sourceId}-auto-${i}`),
+    label: summarizeSourceBlock(chunk, i + 1),
+    at: i * 1280,
+    preview: chunk.slice(0, 260),
+    synthesized: true,
+  }));
+}
+
+function extractSourceOutline(anchors, maxPerSource=10) {
+  const out = [];
+  for (const a of anchors.filter(x => x.kind === 'source')) {
+    const sourceName = sourceDisplayName(a, '资料');
+    const sourceId = a.id || sourceName;
+    const memoryOutline = sourceMemoryOutline(a, maxPerSource);
+    if (memoryOutline.length) {
+      out.push(...memoryOutline);
+      continue;
+    }
+    if (sourceNeedsOcr(a)) {
+      out.push({
+        sourceId,
+        sourceName,
+        sourceType: a.source_type || 'doc',
+        label: '待视觉模型',
+        order: 1,
+        preview: sourceDiagnosticMessage(a) || 'PDF 没有可提取文本层，AI 尚未真正读到正文。',
+        diagnostic: true,
+      });
+      continue;
+    }
+    const text = graphSourceText(a);
+    const lines = text.split(/\n+/).map(x => x.trim()).filter(Boolean);
+    const found = [];
+    const add = (title, at=0) => {
+      const label = cleanOutlineTitle(title);
+      if (label.length < 2 || label.length > 34) return;
+      const key = normalizeGraphTopic(`${sourceId}-${label}`);
+      if (found.some(x => x.key === key)) return;
+      const previewStart = Math.max(0, at);
+      found.push({ key, label, at: previewStart, preview: text.slice(previewStart, previewStart + 240) });
+    };
+    lines.forEach((line, idx) => {
+      if (found.length >= maxPerSource) return;
+      if (line.length <= 80 && (/^第?\s*[0-9一二三四五六七八九十]+\s*[章节篇课]/.test(line) || /^\d+(?:\.\d+){0,3}\s+[\u4e00-\u9fa5A-Za-z]/.test(line))) {
+        add(line, text.indexOf(line));
+      }
+      if (idx < 60 && /^(目录|contents?)$/i.test(line)) add(line, text.indexOf(line));
+    });
+    if (found.length < 2) {
+      const headingRe = /(?:^|\n|\s)((?:第?\s*[0-9一二三四五六七八九十]+\s*[章节篇课]\s*[^\n。]{0,32})|(?:\d+(?:\.\d+){0,3}\s+[A-Z\u4e00-\u9fa5][^\n。]{2,42}))/g;
+      for (const m of text.matchAll(headingRe)) {
+        if (found.length >= maxPerSource) break;
+        add(m[1], m.index || 0);
+      }
+    }
+    if (!found.length) {
+      found.push(...synthesizeSourceOutline(text, sourceId, maxPerSource));
+    }
+    found.slice(0, maxPerSource).forEach((h, i) => out.push({
+      sourceId,
+      sourceName,
+      sourceType: a.source_type || 'doc',
+      label: h.synthesized ? `按内容概括：${displaySourceTopicLabel(h.label, i + 1)}` : displaySourceTopicLabel(h.label, i + 1),
+      order: i + 1,
+      preview: h.preview || text.slice(0, 240),
+      synthesized: !!h.synthesized,
+    }));
+  }
+  return out;
+}
+
+function extractSourceTopics(anchors, maxPerSource=8) {
+  const stop = new Set(['the','and','for','with','from','this','that','are','was','were','一个','一种','以及','因此','所以','但是','可以','通过','进行','学生','老师','知识','内容','文件']);
+  const out = [];
+  for (const a of anchors.filter(x => x.kind === 'source')) {
+    const sourceName = sourceDisplayName(a, '资料');
+    const text = graphSourceText(a);
+    const counts = new Map();
+    const memoryTopics = sourceMemoryTopics(a, maxPerSource);
+    if (memoryTopics.length) {
+      out.push(...memoryTopics);
+      continue;
+    }
+    if (sourceNeedsOcr(a)) {
+      out.push({
+        label: '待视觉模型',
+        score: 99,
+        sourceId: a.id || sourceName,
+        sourceName,
+        sourceType: a.source_type || 'doc',
+        preview: sourceDiagnosticMessage(a) || 'PDF 没有可提取文本层，AI 尚未真正读到正文。',
+        diagnostic: true,
+      });
+      continue;
+    }
+    const push = raw => {
+      const label = String(raw || '').trim().replace(/^[\d.\-•、\s]+/, '').replace(/[，。；：,.!?]+$/g, '');
+      if (label.length < 2 || label.length > 24 || stop.has(label.toLowerCase())) return;
+      if (looksLikeNoisyFormulaLabel(label)) return;
+      const key = normalizeGraphTopic(label);
+      if (!key || key.length < 2) return;
+      const item = counts.get(key) || { label, score:0 };
+      item.score += 1 + Math.min(label.length / 12, 1);
+      counts.set(key, item);
+    };
+    text.split(/\n+/).slice(0, 80).forEach(line => {
+      const clean = line.trim();
+      if (/^第?\s*\d+\s*[章节篇课]|^[一二三四五六七八九十]+[、.．]/.test(clean) || clean.length <= 18) push(clean);
+    });
+    for (const m of text.matchAll(/[\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z0-9·-]{2,23}/g)) push(m[0]);
+    const topics = Array.from(counts.values())
+      .sort((a,b)=>b.score-a.score)
+      .slice(0, maxPerSource);
+    topics.forEach((t, i) => out.push({
+      ...t,
+      label: displaySourceTopicLabel(t, i + 1),
+      sourceId: a.id || `${sourceName}-${i}`,
+      sourceName,
+      sourceType: a.source_type || 'doc',
+      preview: text.slice(0, 180),
+    }));
+  }
+  return out;
+}
+
 const ForceGraph = (() => {
   let cvs, ctx, box;
   let nodes = [], links = [], particles = [];
@@ -2982,18 +4062,29 @@ const ForceGraph = (() => {
     const cx = W()/2, cy = H()/2;
     nodes = nd.map((n,i) => {
       const a = (Math.PI*2*i/Math.max(nd.length,1)) - Math.PI/2;
-      const r = n.nodeType==='kp' ? Math.min(W(),H())*.22 : Math.min(W(),H())*.34;
+      const r = n.nodeType==='kp' ? Math.min(W(),H())*.22
+        : n.nodeType==='source' ? Math.min(W(),H())*.16
+        : n.nodeType==='section' ? Math.min(W(),H())*.27
+        : n.nodeType==='diagnostic' ? Math.min(W(),H())*.24
+        : n.nodeType==='latent' ? Math.min(W(),H())*.34
+        : Math.min(W(),H())*.42;
+      const radius = n.nodeType==='kp' ? Math.max(13,13+(n.level||0)*16)
+        : n.nodeType==='source' ? 16
+        : n.nodeType==='section' ? 12
+        : n.nodeType==='diagnostic' ? 11
+        : n.nodeType==='latent' ? 10
+        : (n.nodeType==='support'?7:5);
       return { ...n, x: cx+Math.cos(a)*r+(Math.random()-.5)*30,
         y: cy+Math.sin(a)*r+(Math.random()-.5)*30,
         vx:0, vy:0,
-        radius: n.nodeType==='kp' ? Math.max(13,13+(n.level||0)*16) : (n.nodeType==='support'?7:5) };
+        radius };
     });
     links = lk.map(l => ({
       source: nodes.find(n=>n.key===l.a.key),
       target: nodes.find(n=>n.key===l.b.key),
       weight: l.weight||1, kind: l.kind||'memory'
     })).filter(l=>l.source&&l.target);
-    particles = links.slice(0,60).map(l => ({ link:l, t:Math.random(), sp:.002+Math.random()*.003 }));
+    particles = links.filter(l => !['foundation','outline'].includes(l.kind)).slice(0,60).map(l => ({ link:l, t:Math.random(), sp:.002+Math.random()*.003 }));
     sel = null; settled = false; iter = 0;
     cam = { x:0, y:0, s:1, vx:0, vy:0 };
     startAnim();
@@ -3018,7 +4109,7 @@ const ForceGraph = (() => {
     for (const l of links) {
       const dx=l.target.x-l.source.x, dy=l.target.y-l.source.y;
       const d=Math.max(1,Math.sqrt(dx*dx+dy*dy));
-      const ideal = l.kind==='sequence'?110:55;
+      const ideal = l.kind==='sequence'?110:(l.kind==='foundation'?86:(l.kind==='outline'?70:55));
       const f=(d-ideal)*ATTR*alpha*l.weight;
       const fx=(dx/d)*f, fy=(dy/d)*f;
       l.source.vx+=fx; l.source.vy+=fy; l.target.vx-=fx; l.target.vy-=fy;
@@ -3042,12 +4133,15 @@ const ForceGraph = (() => {
     const w=W(), h=H();
     ctx.clearRect(0,0,w,h);
     ctx.save(); ctx.translate(cam.x,cam.y); ctx.scale(cam.s,cam.s);
-    const kpC='224,124,47', memC='217,111,103', supC='79,154,200';
+    const kpC='224,124,47', memC='217,111,103', supC='79,154,200', srcC='120,160,132', latC='150,145,132', diagC='217,111,103', noteC='208,173,112';
     // links
     for (const l of links) {
       const dim = sel && l.source!==sel && l.target!==sel;
       ctx.beginPath(); ctx.moveTo(l.source.x,l.source.y); ctx.lineTo(l.target.x,l.target.y);
-      if (l.kind==='related') { ctx.setLineDash([4,4]); ctx.strokeStyle = dim ? 'rgba(79,154,200,.08)' : 'rgba(79,154,200,.42)'; ctx.lineWidth=1.1; }
+      if (l.kind==='outline') { ctx.setLineDash([]); ctx.strokeStyle = dim ? 'rgba(120,160,132,.08)' : 'rgba(120,160,132,.38)'; ctx.lineWidth=1.4; }
+      else if (l.kind==='diagnostic') { ctx.setLineDash([5,5]); ctx.strokeStyle = dim ? 'rgba(217,111,103,.08)' : 'rgba(217,111,103,.42)'; ctx.lineWidth=1.2; }
+      else if (l.kind==='foundation') { ctx.setLineDash([2,6]); ctx.strokeStyle = dim ? 'rgba(120,160,132,.07)' : 'rgba(120,160,132,.24)'; ctx.lineWidth=1; }
+      else if (l.kind==='related') { ctx.setLineDash([4,4]); ctx.strokeStyle = dim ? 'rgba(79,154,200,.08)' : 'rgba(79,154,200,.42)'; ctx.lineWidth=1.1; }
       else if (l.kind==='sequence') { ctx.setLineDash([]); ctx.strokeStyle = dim ? 'rgba(95,104,93,.1)' : `rgba(${kpC},.35)`; ctx.lineWidth=1.4; }
       else { ctx.setLineDash([]); ctx.strokeStyle = dim ? 'rgba(95,104,93,.1)' : 'rgba(95,104,93,.28)'; ctx.lineWidth=.7; }
       ctx.stroke(); ctx.setLineDash([]);
@@ -3068,28 +4162,39 @@ const ForceGraph = (() => {
       const isSel = sel===n;
       const conn = sel && links.some(l=>(l.source===sel&&l.target===n)||(l.target===sel&&l.source===n));
       const dim = sel && !isSel && !conn;
-      const c = n.nodeType==='kp'?kpC:(n.nodeType==='support'?supC:memC);
-      // glow
-      if ((isSel || (n.nodeType==='kp' && !dim))) {
+      const c = n.nodeType==='kp'?kpC:(n.nodeType==='source'?srcC:(n.nodeType==='section'?supC:(n.nodeType==='diagnostic'?diagC:(n.nodeType==='latent'?latC:(n.nodeType==='note'?noteC:(n.nodeType==='support'?supC:memC))))));
+      const learned = n.nodeType==='kp' && (n.level || n.unlockedFromSource);
+      // Glow is reserved for learned nodes; locked document topics stay quiet until chat unlocks them.
+      if ((isSel || (learned && !dim))) {
         const g=ctx.createRadialGradient(n.x,n.y,n.radius*.4,n.x,n.y,n.radius*(isSel?3.5:2.5));
-        g.addColorStop(0,`rgba(${c},${isSel?.3+pulse*.1:.12})`);
+        g.addColorStop(0,`rgba(${c},${isSel?.3+pulse*.1:.16+pulse*.08})`);
         g.addColorStop(1,'rgba(0,0,0,0)');
         ctx.beginPath(); ctx.arc(n.x,n.y,n.radius*(isSel?3.5:2.5),0,Math.PI*2);
         ctx.fillStyle=g; ctx.fill();
       }
       ctx.beginPath(); ctx.arc(n.x,n.y,n.radius,0,Math.PI*2);
-      ctx.fillStyle = dim ? `rgba(${c},.15)` : `rgba(${c},${n.nodeType==='kp'?.82:.58})`;
+      ctx.fillStyle = dim ? `rgba(${c},.15)` : `rgba(${c},${n.nodeType==='kp'?.82:n.nodeType==='latent'?.18:n.nodeType==='diagnostic'?.42:n.nodeType==='section'?.46:.58})`;
       ctx.fill();
       if (isSel) { ctx.strokeStyle=`rgba(${kpC},.9)`; ctx.lineWidth=2.5; }
-      else { ctx.strokeStyle=dim?'rgba(95,104,93,.12)':'rgba(235,230,220,.2)'; ctx.lineWidth=.8; }
+      else {
+        ctx.strokeStyle = dim ? 'rgba(95,104,93,.12)' : (n.nodeType==='latent' ? 'rgba(235,230,220,.24)' : 'rgba(235,230,220,.2)');
+        ctx.lineWidth = n.nodeType==='latent' ? 1.2 : .8;
+        if (n.nodeType==='latent') ctx.setLineDash([3,3]);
+      }
       ctx.stroke();
+      ctx.setLineDash([]);
+      if (n.nodeType==='source' && !dim) {
+        ctx.beginPath(); ctx.arc(n.x,n.y,n.radius-5,0,Math.PI*2);
+        ctx.strokeStyle='rgba(235,230,220,.24)'; ctx.lineWidth=.8; ctx.stroke();
+      }
       // label
-      if (n.nodeType==='kp' && !dim) {
+      if ((n.nodeType==='kp' || n.nodeType==='source' || n.nodeType==='section' || n.nodeType==='diagnostic' || n.nodeType==='latent' || n.nodeType==='note') && !dim) {
         const fs=Math.max(9,n.radius*.6);
         ctx.font=`${isSel?'bold ':''}${fs}px -apple-system,sans-serif`;
-        ctx.fillStyle=dim?'rgba(235,230,220,.15)':'rgba(235,230,220,.88)';
+        ctx.fillStyle=n.nodeType==='latent'?'rgba(235,230,220,.48)':(n.nodeType==='diagnostic'?'rgba(244,181,174,.86)':'rgba(235,230,220,.88)');
         ctx.textAlign='center'; ctx.textBaseline='middle';
-        const lb=n.kp.length>6?n.kp.slice(0,5)+'…':n.kp;
+        const raw = n.label || n.kp || '';
+        const lb = compactGraphNodeLabel(raw, n.nodeType === 'source' ? 10 : 8);
         ctx.fillText(lb,n.x,n.y+n.radius+11);
       }
     }
@@ -3123,12 +4228,111 @@ const ForceGraph = (() => {
   return { init, setData, destroy, resize, readTheme };
 })();
 
-function buildGraphData(masteries, ai) {
+function buildGraphData(masteries, ai, anchors=[]) {
   const kpRows = masteries.slice(0,18);
-  const nodes = [], byKp = new Map();
+  const nodes = [], byKp = new Map(), byNorm = new Map();
   kpRows.forEach((m,i,arr) => {
     nodes.push({ ...m, key:`kp-${i}`, nodeType:'kp' });
     byKp.set(m.kp, nodes[nodes.length-1]);
+    byNorm.set(normalizeGraphTopic(m.kp), nodes[nodes.length-1]);
+  });
+  const links = [];
+  const sources = anchors.filter(a => a.kind === 'source');
+  sources.slice(0,8).forEach((a,i) => {
+    const sourceId = a.id || sourceDisplayName(a, `资料 ${i+1}`);
+    nodes.push({
+      key:`source-${sourceId}`,
+      nodeType:'source',
+      kp: sourceDisplayName(a, `资料 ${i+1}`),
+      label: sourceDisplayName(a, `资料 ${i+1}`),
+      sourceId,
+      sourceType: a.source_type || 'doc',
+      sourceDiagnostics: a.source_diagnostics || null,
+      sourceMemory: a.source_memory || null,
+      sourceText: a.source_text || '',
+      sourcePages: a.source_pages || [],
+      content: graphSourceText(a),
+    });
+  });
+  const sourceNodeById = new Map(nodes.filter(n => n.nodeType === 'source').map(n => [String(n.sourceId), n]));
+  const sectionNodeBySource = new Map();
+  for (const section of extractSourceOutline(sources, 10)) {
+    const src = sourceNodeById.get(String(section.sourceId));
+    if (!src) continue;
+    const sectionBase = {
+      kp: section.label,
+      label: section.label,
+      sourceName: section.sourceName,
+      sourceType: section.sourceType,
+      sourceId: section.sourceId,
+      preview: section.preview,
+      order: section.order,
+      memoryNodeId: section.memoryNodeId || '',
+      memoryStatus: section.memoryStatus || '',
+      memoryExpansion: section.memoryExpansion || null,
+      titleOrigin: section.titleOrigin || '',
+      modelTitleSuggestion: section.modelTitleSuggestion || '',
+      chatMessageIds: section.chatMessageIds || [],
+    };
+    const sectionNode = section.diagnostic
+      ? { ...sectionBase, key:`diagnostic-${normalizeGraphTopic(`${section.sourceId}-${section.label}`)}`, nodeType:'diagnostic' }
+      : { ...sectionBase, key:`section-${normalizeGraphTopic(`${section.sourceId}-${section.label}`)}`, nodeType:'section' };
+    nodes.push(sectionNode);
+    if (section.diagnostic) links.push({ a:src, b:sectionNode, weight:1.4, kind:'diagnostic' });
+    else links.push({ a:src, b:sectionNode, weight:1.4, kind:'outline' });
+    const list = sectionNodeBySource.get(String(section.sourceId)) || [];
+    list.push(sectionNode);
+    sectionNodeBySource.set(String(section.sourceId), list);
+  }
+  const latentSeen = new Set();
+  for (const topic of extractSourceTopics(sources, 7)) {
+    const learned = byNorm.get(normalizeGraphTopic(topic.label));
+    const sections = sectionNodeBySource.get(String(topic.sourceId)) || [];
+    const src = sections.length ? sections[(latentSeen.size + sections.length) % sections.length] : sourceNodeById.get(String(topic.sourceId));
+    if (learned) {
+      learned.unlockedFromSource = true;
+      learned.sources = [...(learned.sources || []), topic.sourceName];
+      if (src) links.push({ a:src, b:learned, weight:1.5, kind:'foundation' });
+      continue;
+    }
+    const key = normalizeGraphTopic(`${topic.sourceId}-${topic.label}`);
+    if (latentSeen.has(key)) continue;
+    latentSeen.add(key);
+    const latent = {
+      key:`latent-${latentSeen.size}`,
+      nodeType:'latent',
+      kp: topic.label,
+      label: topic.label,
+      sourceName: topic.sourceName,
+      sourceType: topic.sourceType,
+      preview: topic.preview,
+      memoryNodeId: topic.memoryNodeId || '',
+      memoryStatus: topic.memoryStatus || '',
+      memoryExpansion: topic.memoryExpansion || null,
+      titleOrigin: topic.titleOrigin || '',
+      modelTitleSuggestion: topic.modelTitleSuggestion || '',
+      chatMessageIds: topic.chatMessageIds || [],
+    };
+    nodes.push(latent);
+    if (src) links.push({ a:src, b:latent, weight:1, kind:'foundation' });
+  }
+  const notes = anchors.filter(a => a.kind === 'note');
+  notes.slice(-24).forEach((note, i) => {
+    const key = `note-${note.id || i}`;
+    const noteNode = {
+      key,
+      nodeType:'note',
+      kp: note.note_title || note.content || '随笔',
+      label: note.note_title || note.content || '随笔',
+      content: note.note_body || note.content || '',
+      messageId: note.note_message_id || null,
+      sourceName: note.note_source_role || '聊天随笔',
+      meta: { action:{ type:'note', knowledge_point: note.note_title || '随笔' } },
+    };
+    nodes.push(noteNode);
+    const target = note.note_kp ? byNorm.get(normalizeGraphTopic(note.note_kp)) : null;
+    const source = target || (note.note_source_id ? sourceNodeById.get(String(note.note_source_id)) : null);
+    if (source) links.push({ a:source, b:noteNode, weight:1.2, kind:'note' });
   });
   const recentByKp = new Map();
   ai.slice(-34).forEach((msg,i) => {
@@ -3137,9 +4341,8 @@ function buildGraphData(masteries, ai) {
     const count=recentByKp.get(kp)||0; recentByKp.set(kp,count+1);
     nodes.push({ key:`mem-${i}`, nodeType: count%5===0?'support':'memory', kp, content:msg.content, meta:msg.meta||{} });
   });
-  const links = [];
   for (const n of nodes) {
-    if (n.nodeType!=='kp') { const p=byKp.get(n.kp); if(p) links.push({a:p,b:n,weight:1,kind:'memory'}); }
+    if (n.nodeType==='memory' || n.nodeType==='support') { const p=byKp.get(n.kp); if(p) links.push({a:p,b:n,weight:1,kind:'memory'}); }
   }
   let prev=null;
   for (const msg of ai) {
@@ -3166,9 +4369,80 @@ function buildGraphData(masteries, ai) {
   return {nodes,links};
 }
 
+function memoryStatusLabel(status, nodeType='section') {
+  if (status === 'expanded') return '已分析';
+  if (status === 'expanding') return '分析中';
+  if (nodeType === 'diagnostic') return LLM.supports_vision() ? '待视觉模型' : '当前模型不支持视觉';
+  if (status === 'outlined') return '待分析';
+  if (status === 'raw') return '待视觉模型';
+  return status || '待分析';
+}
+
+async function jumpToGraphNodeChat(node=state.graphEditingNode) {
+  const ids = [
+    ...(node?.chatMessageIds || []),
+    ...(node?.chat_message_ids || []),
+    node?.messageId,
+    node?.meta?.reply_to_message_id,
+  ].filter(Boolean);
+  if (!ids.length) { toast('这个节点还没有关联聊天记录'); return; }
+  hideGraphSheet();
+  switchTab('chat');
+  await renderChat();
+  requestAnimationFrame(() => {
+    const target = $(`#chat [data-message-id="${ids[ids.length - 1]}"]`);
+    if (!target) { toast('对应聊天记录可能已被摘要压缩'); return; }
+    target.scrollIntoView({ behavior:'smooth', block:'center' });
+    target.classList.add('message-jump-highlight');
+    setTimeout(() => target.classList.remove('message-jump-highlight'), 1800);
+  });
+}
+
+function openGraphNodeEditor(node=state.graphEditingNode) {
+  if (!node) return;
+  state.graphEditingNode = node;
+  $('#graph-editor-title').value = node.label || node.kp || '';
+  $('#graph-editor-summary').value = node.user_summary || node.preview || node.memoryExpansion?.summary || '';
+  $('#graph-source-node-editor').classList.remove('hidden');
+}
+
+function closeGraphNodeEditor() {
+  $('#graph-source-node-editor').classList.add('hidden');
+}
+
+async function saveGraphNodeEdit() {
+  const node = state.graphEditingNode;
+  if (!state.sid || !node) return;
+  const title = $('#graph-editor-title').value.trim();
+  const summary = $('#graph-editor-summary').value.trim();
+  const anchors = await DB.bySid('anchors', state.sid);
+  const anchor = anchors.find(a => String(a.id) === String(node.sourceId));
+  if (!anchor) { toast('没有找到来源资料'); return; }
+  if (node.nodeType === 'source') {
+    if (title) anchor.source_name = title;
+    if (summary) anchor.source_user_summary = summary;
+  } else {
+    const memory = anchor.source_memory || {};
+    const memoryNode = (memory.nodes || []).find(n => String(n.id) === String(node.memoryNodeId));
+    if (!memoryNode) { toast('这个节点还不能编辑，请先命中或重新处理资料'); return; }
+    if (title) memoryNode.user_title = title;
+    if (summary) memoryNode.user_summary = summary;
+    memoryNode.user_locked = true;
+    memoryNode.updated_by_user_at = Date.now();
+    memory.updated_at = Date.now();
+    anchor.source_memory = memory;
+  }
+  await DB.put('anchors', anchor);
+  closeGraphNodeEditor();
+  hideGraphSheet();
+  toast('已保存用户修正');
+  await renderInsights();
+}
+
 async function showGraphSheet(node) {
   const overlay=$('#graph-sheet-overlay'), sheet=$('#graph-sheet'), body=$('#graph-sheet-body');
   if (!node) { hideGraphSheet(); return; }
+  state.graphEditingNode = node;
 
   // Fetch all messages for this session, sorted chronologically
   const allMsgs = state.sid ? (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id) : [];
@@ -3243,12 +4517,108 @@ async function showGraphSheet(node) {
         const actType = p.act.type||'ask';
         const score = ((Number(p.ev.correctness||0)+Number(p.ev.depth||0))/2).toFixed(2);
         html+=`<div class="text-xs space-y-1">`;
-        if (p.user) html+=`<div style="color:var(--accent);padding-left:10px;border-left:2px solid var(--accent);">🧑‍🏫 ${esc(p.user.content||'')}</div>`;
-        html+=`<div style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--warn);">🎓 ${esc(p.ai.content||'')}</div>`;
+        if (p.user) html+=`<div style="color:var(--accent);padding-left:10px;border-left:2px solid var(--accent);">🧑‍🏫 ${renderRichText(p.user.content||'')}</div>`;
+        html+=`<div style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--warn);">🎓 ${renderRichText(p.ai.content||'')}</div>`;
         html+=`<div class="flex gap-1.5"><span class="pill pill-${actType}">${actType}</span><span class="text-neutral-500" style="font-size:10px">综合 ${score}</span></div>`;
         html+=`</div>`;
       }
       html+=`</div></div>`;
+    }
+
+  } else if (node.nodeType === 'source') {
+    const diagnostics = node.sourceDiagnostics || {};
+    const sourceForSheet = { id: node.sourceId, kind:'source', content: node.content || '', source_text: node.sourceText || '', source_name: node.kp, source_type: node.sourceType, source_diagnostics: diagnostics, source_memory: node.sourceMemory || null, source_pages: node.sourcePages || [] };
+    const needsOcr = sourceNeedsOcr(sourceForSheet);
+    const topics = extractSourceTopics([sourceForSheet], 10);
+    html=`<div class="flex items-center gap-3 mb-3">
+      <div class="mastery-ring"><span class="ring-label">KB</span></div>
+      <div class="min-w-0 flex-1">
+        <div class="text-base font-bold truncate">${esc(node.kp || '基础资料')}</div>
+        <div class="flex gap-1.5 mt-1 flex-wrap"><span class="pill pill-source">${esc(node.sourceType || 'doc')}</span><span class="pill pill-next">${topics.length} 个候选节点</span></div>
+      </div>
+    </div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
+    </div>
+    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">${needsOcr ? esc(diagnostics.message || '这份资料需要视觉模型后才能作为知识库使用。') : '这份资料会作为图谱的底层知识库：先生成不发光的候选节点，等聊天真正触达某个知识点后，再把对应节点点亮并接到学习路径上。'}</div>
+    <div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">资料快照</div><div class="text-xs leading-relaxed whitespace-pre-wrap" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(sourcePreviewText(sourceForSheet))}</div></div>`;
+    if (topics.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">候选知识节点</div><div class="flex flex-wrap gap-1.5">`;
+      for (const [i, t] of topics.entries()) html+=`<span class="pill pill-next">${esc(displaySourceTopicLabel(t, i + 1))}</span>`;
+      html+=`</div></div>`;
+    }
+
+  } else if (node.nodeType === 'section') {
+    const exp = node.memoryExpansion || null;
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-source">章节</span>
+      <span class="pill pill-next">${esc(node.sourceName || '基础资料')}</span>
+      ${node.memoryStatus ? `<span class="pill pill-encourage">${esc(memoryStatusLabel(node.memoryStatus, node.nodeType))}</span>` : ''}
+      ${node.titleOrigin ? `<span class="pill pill-next">${esc(node.titleOrigin)}</span>` : ''}
+    </div>
+    <div class="text-base font-bold mb-2">${esc(kpName || '资料章节')}</div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
+      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
+    </div>
+    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">这是根据上传资料的目录、章节标题或明显分段自动生成的分支。它下面会继续挂载未解锁知识点；聊天命中后，对应知识点才会发光。</div>`;
+    html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">节点简介</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(sourceNodeSummary(node))}</div></div>`;
+    if (node.modelTitleSuggestion) {
+      html+=`<div class="sheet-section text-xs" style="color:var(--muted)">模型建议：${esc(node.modelTitleSuggestion)}。用户命名不会被自动覆盖。</div>`;
+    }
+    if (exp) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">单支分析</div>
+        <div class="text-xs leading-relaxed mb-2" style="color:var(--text-soft);">${renderRichText(exp.summary || '')}</div>`;
+      if (Array.isArray(exp.key_concepts) && exp.key_concepts.length) {
+        html+=`<div class="flex flex-wrap gap-1.5 mb-2">${exp.key_concepts.slice(0,8).map(x=>`<span class="pill pill-next">${esc(x)}</span>`).join('')}</div>`;
+      }
+      if (Array.isArray(exp.teacher_questions) && exp.teacher_questions.length) {
+        html+=`<div class="space-y-1.5">${exp.teacher_questions.slice(0,5).map(q=>`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${renderRichText(q)}</div>`).join('')}</div>`;
+      }
+      html+=`</div>`;
+    }
+
+  } else if (node.nodeType === 'diagnostic') {
+    const exp = node.memoryExpansion || null;
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-source">导入诊断</span>
+      <span class="pill pill-next">${esc(node.sourceName || '基础资料')}</span>
+      ${node.memoryStatus ? `<span class="pill pill-encourage">${esc(memoryStatusLabel(node.memoryStatus, node.nodeType))}</span>` : ''}
+    </div>
+    <div class="text-base font-bold mb-2">${esc(node.label || '待视觉模型')}</div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
+      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
+    </div>
+    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">这份 PDF 已经作为资料记录下来，但当前只能看到文件存在，尚未真正读到正文。切换到支持视觉的模型后，系统会读取页面图片，再生成章节分支和候选知识节点。</div>`;
+    if (exp) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">单支分析</div>
+        <div class="text-xs leading-relaxed mb-2" style="color:var(--text-soft);">${renderRichText(exp.summary || '')}</div>`;
+      if (Array.isArray(exp.key_concepts) && exp.key_concepts.length) {
+        html+=`<div class="flex flex-wrap gap-1.5 mb-2">${exp.key_concepts.slice(0,8).map(x=>`<span class="pill pill-next">${esc(x)}</span>`).join('')}</div>`;
+      }
+      if (Array.isArray(exp.teacher_questions) && exp.teacher_questions.length) {
+        html+=`<div class="space-y-1.5">${exp.teacher_questions.slice(0,5).map(q=>`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${renderRichText(q)}</div>`).join('')}</div>`;
+      }
+      html+=`</div>`;
+    }
+    if (node.preview) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">诊断信息</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(String(node.preview).slice(0, 520))}</div></div>`;
+    }
+
+  } else if (node.nodeType === 'latent') {
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-source">未解锁</span>
+      <span class="pill pill-next">${esc(node.sourceName || '基础资料')}</span>
+    </div>
+    <div class="text-base font-bold mb-2">${esc(kpName || '候选知识点')}</div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
+      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
+    </div>
+    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">这个节点来自上传资料，但还没有在聊天学习中被命中，所以不会发光。后续对话触达到同名或相近知识点时，它会自动接入已学习路径。</div>`;
+    if (node.preview) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">来源线索</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.preview)}</div></div>`;
     }
 
   } else {
@@ -3266,10 +4636,10 @@ async function showGraphSheet(node) {
     // Full conversation pair
     if (pair && pair.user) {
       html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">🧑‍🏫 你的讲解</div>
-        <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(pair.user.content||'')}</div></div>`;
+        <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(pair.user.content||'')}</div></div>`;
     }
     html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">🎓 学生回复</div>
-      <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(node.content||'')}</div></div>`;
+      <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.content||'')}</div></div>`;
 
     html+=`<div class="sheet-section space-y-1 text-xs">
       <div class="flex justify-between"><span class="text-neutral-500">正确度</span><span>${Number(ev.correctness||0).toFixed(2)}</span></div>
@@ -3282,20 +4652,22 @@ async function showGraphSheet(node) {
     if (summaryBullets.length > 1) {
       html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">📝 该知识点其他要点</div><div class="space-y-1.5">`;
       for (const s of summaryBullets.filter(s=>s!==node.content).slice(0,5)) {
-        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);padding-left:10px;border-left:2px solid var(--accent-soft);">${esc(s)}</div>`;
+        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);padding-left:10px;border-left:2px solid var(--accent-soft);">${renderRichText(s)}</div>`;
       }
       html+=`</div></div>`;
     }
     if (exampleBullets.length) {
       html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">💡 相关例题</div><div class="space-y-1.5">`;
       for (const q of exampleBullets.slice(0,4)) {
-        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${esc(q)}</div>`;
+        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${renderRichText(q)}</div>`;
       }
       html+=`</div></div>`;
     }
   }
 
   body.innerHTML=html;
+  body.querySelector('[data-graph-jump-chat]')?.addEventListener('click', () => jumpToGraphNodeChat(node));
+  body.querySelector('[data-graph-edit-node]')?.addEventListener('click', () => openGraphNodeEditor(node));
   body.scrollTop=0;
   requestAnimationFrame(()=>{ overlay.classList.add('show'); sheet.classList.add('show'); });
   overlay.onclick = hideGraphSheet;
@@ -3323,6 +4695,10 @@ async function renderInsights() {
   }
   const msgs = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
   const masteries = (await DB.bySid('mastery', state.sid)).sort((a,b)=>b.level-a.level);
+  const anchors = await DB.bySid('anchors', state.sid);
+  const sourceAnchors = anchors.filter(a => a.kind === 'source');
+  const sourceTopics = extractSourceTopics(sourceAnchors, 8);
+  const unlockedSourceTopics = sourceTopics.filter(t => masteries.some(m => normalizeGraphTopic(m.kp) === normalizeGraphTopic(t.label))).length;
   const ai = msgs.filter(m => m.role==='assistant');
   const avg = masteries.length ? masteries.reduce((s,m)=>s+m.level,0)/masteries.length : 0;
   const strongest = masteries[0], weakest = masteries[masteries.length-1];
@@ -3335,12 +4711,17 @@ async function renderInsights() {
     <div class="flex justify-between"><span class="text-neutral-500">平均掌握度</span><span>${avg.toFixed(2)}</span></div>
     ${strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最熟</span><span class="text-emerald-400 truncate">${esc(strongest.kp)} · ${strongest.level.toFixed(2)}</span></div>`:''}
     ${weakest && weakest!==strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最弱</span><span class="text-amber-400 truncate">${esc(weakest.kp)} · ${weakest.level.toFixed(2)}</span></div>`:''}
+    <div class="insight-kb-strip pt-2">
+      <div class="insight-kb-card"><div class="num">${sourceAnchors.length}</div><div class="cap">基础资料</div></div>
+      <div class="insight-kb-card"><div class="num">${sourceTopics.length}</div><div class="cap">暗节点</div></div>
+      <div class="insight-kb-card"><div class="num">${unlockedSourceTopics}</div><div class="cap">已点亮</div></div>
+    </div>
   `;
-  if (!masteries.length) {
+  if (!masteries.length && !sourceAnchors.length) {
     ForceGraph.destroy();
     mastDiv.innerHTML = '<div class="text-xs text-neutral-500">尚无解锁知识点。开始对话后，学生 AI 提到的知识点会出现在这里。</div>';
   } else {
-    const { nodes, links } = buildGraphData(masteries, ai);
+    const { nodes, links } = buildGraphData(masteries, ai, anchors);
     if (!mastDiv.querySelector('.knowledge-graph')) {
       mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点查看详情</div></div>';
     }
@@ -3420,6 +4801,18 @@ function renderModelPresetChips(provider=llmProviderById($('#cfg-provider')?.val
   }));
 }
 
+function renderVisionCapabilityHint() {
+  const el = $('#cfg-vision-hint');
+  if (!el) return;
+  const capability = $('#cfg-capability')?.value || 'text';
+  const model = $('#cfg-model')?.value || '';
+  const supportsVision = capability === 'vision' || capability === 'vision_files';
+  el.textContent = supportsVision
+    ? `支持视觉：图片型 PDF 可在命中节点后交给 ${model || '当前模型'} 阅读页面图片。`
+    : '当前模型不支持视觉：图片型 PDF 会先保存页面图，但不会被读取；切换到支持视觉的模型后可继续分析。';
+  el.className = 'text-[11px] mt-1 leading-relaxed ' + (supportsVision ? 'text-emerald-400' : 'text-amber-400');
+}
+
 function renderConfigPickerUi() {
   const provider = llmProviderById($('#cfg-provider')?.value || 'custom');
   const model = $('#cfg-model')?.value || provider.model || '';
@@ -3438,6 +4831,7 @@ function renderConfigPickerUi() {
     renderConfigPickerUi();
   });
   renderModelPresetChips(provider);
+  renderVisionCapabilityHint();
 }
 
 function applyApiTypeSelection(value) {
@@ -3602,7 +4996,7 @@ $('#cfg-provider-trigger').addEventListener('click', () => {
     onPick: opt => applyLlmProviderPreset(opt.value),
   });
 });
-$('#cfg-model').addEventListener('input', () => renderModelPresetChips());
+$('#cfg-model').addEventListener('input', () => { renderModelPresetChips(); renderVisionCapabilityHint(); });
 $('#choice-sheet-close').addEventListener('click', closeChoiceSheet);
 $('#choice-sheet').addEventListener('click', e => {
   if (e.target.id === 'choice-sheet') closeChoiceSheet();
@@ -3667,6 +5061,12 @@ $('#message-popup').addEventListener('click', e => {
   switchTab('chat');
   $('#message-popup').classList.add('hidden');
 });
+$('#essay-note-close').addEventListener('click', closeEssayComposer);
+$('#essay-note-sheet').addEventListener('click', e => { if (e.target.id === 'essay-note-sheet') closeEssayComposer(); });
+$('#essay-note-save').addEventListener('click', saveEssayNote);
+$('#graph-editor-close').addEventListener('click', closeGraphNodeEditor);
+$('#graph-source-node-editor').addEventListener('click', e => { if (e.target.id === 'graph-source-node-editor') closeGraphNodeEditor(); });
+$('#graph-editor-save').addEventListener('click', saveGraphNodeEdit);
 
 // 数据导入导出
 
@@ -3787,10 +5187,18 @@ function closeNew() {
 }
 window.closeNew = closeNew;  // 给 inline onclick 用
 
+$('#new-source-files').addEventListener('change', e => {
+  const files = Array.from(e.target.files || []);
+  $('#new-source-status').textContent = files.length
+    ? `已选择 ${files.length} 个文件，创建后导入`
+    : '创建时一并导入 Word/PDF';
+});
+
 $('#new-create').addEventListener('click', async () => {
   const role = $('#new-role').value.trim();
   const goal = $('#new-goal').value.trim();
   if (!role || !goal) { toast('请至少填 角色 + 目标'); return; }
+  const pendingSourceFiles = Array.from($('#new-source-files')?.files || []);
   const s = await ENGINE.create_session({
     role, goal,
     deadline: $('#new-deadline').value.trim(),
@@ -3799,6 +5207,9 @@ $('#new-create').addEventListener('click', async () => {
   });
   state.sid = s.id;
   await DB.kvSet('current_sid', s.id);
+  if (pendingSourceFiles.length) {
+    await importAnchorFiles(pendingSourceFiles, { statusEl: $('#new-source-status'), render: false });
+  }
   closeNew();
   switchTab('chat');
   await refreshHeader();

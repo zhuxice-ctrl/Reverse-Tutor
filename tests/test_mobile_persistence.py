@@ -33,3 +33,236 @@ def test_mobile_insights_graph_keeps_minimum_canvas_and_slower_gestures():
     assert "Math.max(GRAPH_MIN_W" in html
     assert "dx > 110" in html
     assert "swipeStart.x < 18" in html
+
+
+def test_mobile_insights_graph_includes_source_grounded_locked_nodes():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "extractSourceTopics" in html
+    assert "nodeType:'source'" in html
+    assert "nodeType:'latent'" in html
+    assert "unlockedFromSource" in html
+    assert "Glow is reserved for learned nodes" in html
+    assert "buildGraphData(masteries, ai, anchors)" in html
+
+
+def test_mobile_pdf_sources_are_retrieved_for_each_llm_turn():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "source_text: text" in html
+    assert "retrieveSourceSnippets" in html
+    assert "formatSourceContext" in html
+    assert "当前问题命中的上传资料片段" in html
+    assert "const sourceSnippets = retrieveSourceSnippets(anchors, user_input);" in html
+    assert "const sourceContext = formatSourceContext(sourceSnippets);" in html
+    assert "build_system_prompt(session, anchors, masteries, summary_text, sourceContext)" in html
+
+
+def test_mobile_insights_graph_builds_document_outline_branches_from_full_source_text():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function graphSourceText" in html
+    assert "String(a?.source_text || a?.content || '')" in html
+    assert "function extractSourceOutline" in html
+    assert "nodeType:'section'" in html
+    assert "kind:'outline'" in html
+    assert "extractSourceOutline(sources" in html
+
+
+def test_mobile_new_session_can_optionally_import_documents_before_opening_turn():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert 'id="new-source-files"' in html
+    assert 'id="new-source-status"' in html
+    assert "async function importAnchorFiles(files, opts={})" in html
+    assert "const pendingSourceFiles = Array.from($('#new-source-files')?.files || []);" in html
+    assert "await importAnchorFiles(pendingSourceFiles, { statusEl: $('#new-source-status'), render: false });" in html
+    assert html.index("await importAnchorFiles(pendingSourceFiles") < html.index("await openingFor(s.id)")
+
+
+def test_mobile_insights_graph_summarizes_branch_nodes_when_document_has_no_outline():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function graphSourceChunks" in html
+    assert "function summarizeSourceBlock" in html
+    assert "function synthesizeSourceOutline" in html
+    assert "按内容概括" in html
+    assert "graphSourceChunks(text, 1400, 120)" in html
+    assert "synthesizeSourceOutline(text, sourceId, maxPerSource)" in html
+
+
+def test_mobile_document_import_records_pdf_readability_diagnostics():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function diagnoseImportedSource" in html
+    assert "function sourceNeedsOcr" in html
+    assert "source_diagnostics: diagnostics" in html
+    assert "pdf_empty_text" in html
+    assert "需要视觉模型" in html
+
+
+def test_mobile_unreadable_pdf_is_visible_in_prompt_and_graph():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "sourceReadabilityHint" in html
+    assert "资料尚未真正读到正文" in html
+    assert "nodeType:'diagnostic'" in html
+    assert "kind:'diagnostic'" in html
+    assert "待视觉模型" in html
+
+
+def test_mobile_document_import_persists_temporal_source_memory():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function createSourceMemory" in html
+    assert "source_memory: createSourceMemory" in html
+    assert "schema: 'source_memory_v1'" in html
+    assert "status:" in html
+    assert "'outlined'" in html
+    assert "valid_from" in html
+    assert "episodes: [" in html
+
+
+def test_mobile_source_memory_is_updated_lazily_when_chat_hits_a_node():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function recordSourceMemoryHit" in html
+    assert "async function persistSourceMemoryHits" in html
+    assert "const sourceSnippets = retrieveSourceSnippets(anchors, user_input);" in html
+    assert "await persistSourceMemoryHits(anchors, sourceSnippets, user_input, userMessage ? [userMessage.id] : []);" in html
+    assert "event: 'chat_hit'" in html
+    assert "status = node.status === 'raw' ? 'outlined' : node.status" in html
+
+
+def test_mobile_second_layer_expands_only_hit_source_memory_branches():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "async function expandSourceMemoryBranches" in html
+    assert "normalizeBranchExpansion" in html
+    assert "event: 'branch_expand'" in html
+    assert "node.status = 'expanded'" in html
+    assert "node.pending_expansion = false" in html
+    assert "await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);" in html
+    assert "最多分析 1 个命中的资料节点" in html
+
+
+def test_mobile_graph_sheet_displays_saved_branch_expansion():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "memoryExpansion" in html
+    assert "单支分析" in html
+    assert "teacher_questions" in html
+    assert "key_concepts" in html
+
+
+def test_mobile_image_pdf_import_saves_preview_pages_for_vision_recovery():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "async function renderPdfPreviewPages" in html
+    assert "source_pages: pdfResult?.pages || []" in html
+    assert "has_visual_pages" in html
+    assert "vision_page_count" in html
+    assert "image/jpeg" in html
+    assert "toDataURL" in html
+
+
+def test_mobile_vision_model_can_expand_unreadable_pdf_diagnostic_node():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "supports_vision" in html
+    assert "function sourceVisualPages" in html
+    assert "visual_pages" in html
+    assert "input_image" in html
+    assert "node.type === 'diagnostic' && !LLM.supports_vision()" in html
+    assert "image_url" in html
+    assert "PDF 页面图片" in html
+
+
+def test_mobile_visual_model_state_is_clear_and_old_docs_can_be_reprocessed():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert 'id="cfg-vision-hint"' in html
+    assert "renderVisionCapabilityHint" in html
+    assert "当前模型不支持视觉" in html
+    assert "支持视觉" in html
+    assert 'id="anchor-reprocess-file"' in html
+    assert "data-reprocess-source" in html
+    assert "replaceAnchorId" in html
+    assert "重新处理" in html
+
+
+def test_mobile_graph_nodes_show_human_readable_analysis_status():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function memoryStatusLabel" in html
+    assert "已分析" in html
+    assert "待分析" in html
+    assert "待视觉模型" in html
+    assert "分析中" in html
+
+
+def test_mobile_renders_math_and_chemistry_as_readable_rich_text():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function renderRichText" in html
+    assert "function renderMathExpression" in html
+    assert "math-inline" in html
+    assert "frac-line" in html
+    assert "safeChatHtml(content) {\n  return renderRichText(content);" in html
+    assert "renderRichText(m.content)" in html
+
+
+def test_mobile_source_ui_uses_compact_cards_instead_of_raw_document_text():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function sourceAnchorCardHtml" in html
+    assert "sourcePreviewText" in html
+    assert "文档内容已保存为检索证据" in html
+    assert "data-reprocess-source" in html
+    assert "资料快照" in html
+    assert "renderRichText(String(node.content).slice(0, 520))" not in html
+
+
+def test_mobile_graph_topic_labels_are_cleaned_for_display():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function displaySourceTopicLabel" in html
+    assert "looksLikeNoisyFormulaLabel" in html
+    assert "内容片段" in html
+    assert "label: displaySourceTopicLabel" in html
+
+
+def test_mobile_source_nodes_preserve_user_title_over_model_renames():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function sourceNodeTitle" in html
+    assert "user_title" in html
+    assert "model_title" in html
+    assert "用户命名" in html
+    assert "模型建议" in html
+    assert "model_title_suggestion" in html
+    assert "sourceNodeTitle(node, i + 1)" in html
+
+
+def test_mobile_graph_sheet_can_jump_to_chat_and_edit_source_node():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "data-graph-jump-chat" in html
+    assert "data-graph-edit-node" in html
+    assert "function jumpToGraphNodeChat" in html
+    assert "function openGraphNodeEditor" in html
+    assert "function saveGraphNodeEdit" in html
+    assert "graph-source-node-editor" in html
+    assert "chat_message_ids" in html
+
+
+def test_mobile_chat_long_press_can_create_note_nodes_in_graph():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "data-message-id" in html
+    assert "contextmenu" in html
+    assert "function openEssayComposer" in html
+    assert "function saveEssayNote" in html
+    assert "kind:'note'" in html
+    assert "nodeType:'note'" in html
+    assert "随笔" in html
