@@ -42,6 +42,51 @@ public class BackgroundLlmPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void showResultNotification(PluginCall call) {
+        String title = call.getString("title", "反转家教");
+        String body = call.getString("body", "");
+        if (body.isEmpty()) {
+            call.resolve(new JSObject());
+            return;
+        }
+        try {
+            ensureResultChannel();
+            android.app.Notification notification = new androidx.core.app.NotificationCompat.Builder(getContext(), "background_llm_result_v2")
+                .setSmallIcon(getContext().getApplicationInfo().icon)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new androidx.core.app.NotificationCompat.BigTextStyle().bigText(body))
+                .setAutoCancel(true)
+                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_MESSAGE)
+                .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .build();
+            int id = 43300 + Math.abs(body.hashCode() % 500);
+            androidx.core.app.NotificationManagerCompat.from(getContext()).notify(id, notification);
+            JSObject ret = new JSObject();
+            ret.put("shown", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("shown", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
+        }
+    }
+
+    private void ensureResultChannel() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        android.app.NotificationManager mgr = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (mgr == null) return;
+        if (mgr.getNotificationChannel("background_llm_result_v2") != null) return;
+        android.app.NotificationChannel ch = new android.app.NotificationChannel(
+            "background_llm_result_v2", "后台 LLM 回复", android.app.NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("后台 LLM 回复完成后弹出实际回复内容。");
+        ch.enableVibration(true);
+        mgr.createNotificationChannel(ch);
+    }
+
+    @PluginMethod
     public void requestNotificationPermission(PluginCall call) {
         if (Build.VERSION.SDK_INT < 33) {
             resolveNotificationPermission(call, true, false);

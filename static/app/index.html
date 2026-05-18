@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,6 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 
 <style>
   :root {
@@ -36,6 +37,7 @@
     --chat-bg: #333a34;
     --chat-line: rgba(231, 224, 213, .10);
     --chat-mark: rgba(120, 160, 132, .12);
+    --keyboard-bottom: 0px;
   }
   body.theme-warm {
     color-scheme: light;
@@ -63,7 +65,36 @@
   textarea, input { font-size: 16px; }  /* 防 iOS 自动放大 */
   .tab-btn.active { color: var(--accent); }
   .tab-btn.active .tab-dot { background: var(--accent); }
-  .tab-icon { font-size: 22px; line-height: 1.15; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .tab-icon { height: 26px; display: flex; align-items: center; justify-content: center; }
+  .tab-icon svg { width: 22px; height: 22px; stroke-width: 1.9; }
+  body.keyboard-open .bottom-nav { display: none !important; }
+  body.keyboard-open #chat { scroll-padding-bottom: 86px; }
+  .chat-composer {
+    flex-shrink: 0;
+    transform: translateY(calc(-1 * var(--keyboard-bottom)));
+    transition: transform .18s ease;
+  }
+  .chat-composer textarea {
+    line-height: 1.45;
+    caret-color: var(--accent);
+    overflow-y: auto;
+    height: 42px;
+    min-height: 42px;
+  }
+  .message-failed-actions {
+    margin-top: 7px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .message-failed-actions button {
+    border: 1px solid color-mix(in srgb, #ef4444 42%, var(--line));
+    border-radius: 7px;
+    padding: 5px 9px;
+    font-size: 11px;
+    color: #fecaca;
+    background: color-mix(in srgb, #7f1d1d 34%, transparent);
+  }
   .pill { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; }
   .pill-ask { background:#1e3a8a; color:#bfdbfe; }
   .pill-probe { background:#581c87; color:#e9d5ff; }
@@ -409,10 +440,29 @@
   #message-popup {
     top: calc(env(safe-area-inset-top) + 72px);
     bottom: auto;
-    background: var(--panel);
+    background: color-mix(in srgb, var(--panel) 96%, transparent);
     color: var(--text);
     border-color: var(--line);
+    border-radius: 14px;
+    backdrop-filter: blur(14px);
   }
+  .message-popup-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .message-popup-icon svg { width: 18px; height: 18px; }
+  .message-popup-action {
+    margin-top: 7px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  #message-popup-close svg { width: 14px; height: 14px; display: block; }
   .drawer-overlay {
     position: fixed;
     inset: 0;
@@ -562,9 +612,9 @@
   <!-- 聊天 view -->
   <section data-view="chat" class="view flex-1 min-h-0 flex flex-col">
     <div id="chat" class="flex-1 min-h-0 scroll-y px-3 py-3 space-y-2"></div>
-    <div class="border-t border-neutral-800 bg-neutral-950 px-2 py-2 safe-bottom">
+    <div id="chat-composer" class="chat-composer border-t border-neutral-800 bg-neutral-950 px-2 py-2 safe-bottom">
       <div class="flex gap-2 items-end">
-        <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none max-h-32"></textarea>
+        <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" style="overflow-y:auto;max-height:128px;"></textarea>
         <button id="chat-send" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2 rounded-lg font-medium">发送</button>
       </div>
     </div>
@@ -632,11 +682,12 @@
           </label>
           <label class="block">
             <span class="text-xs text-neutral-400">触发状态</span>
-            <select id="proactive-mode" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+            <select id="proactive-mode" class="native-config-select">
               <option value="online">在线（30-60 分钟随机）</option>
               <option value="offline">离线（不主动发送）</option>
               <option value="sleep">睡眠（约 6 小时）</option>
             </select>
+            <div id="proactive-mode-segments" class="segmented-control"></div>
           </label>
           <div id="proactive-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
         </div>
@@ -757,7 +808,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">反转家教 v0.16.0 · 移动 PWA</div>
+        <div class="mt-3">反转家教 v0.16.1-test.2 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -775,22 +826,22 @@
 <!-- ============== 底部 tab 栏 ============== -->
 <nav class="bottom-nav bg-neutral-950 border-t border-neutral-800 grid grid-cols-4 safe-bottom">
   <button data-tab="chat" class="tab-btn active flex flex-col items-center py-2.5 gap-1">
-    <div class="tab-icon">💬</div>
+    <div class="tab-icon"><i data-lucide="message-circle">聊</i></div>
     <div class="text-[10px]">聊天</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
   <button data-tab="anchors" class="tab-btn flex flex-col items-center py-2.5 gap-1">
-    <div class="tab-icon">📌</div>
+    <div class="tab-icon"><i data-lucide="bookmark">锚</i></div>
     <div class="text-[10px]">锚</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
   <button data-tab="insights" class="tab-btn flex flex-col items-center py-2.5 gap-1">
-    <div class="tab-icon">📊</div>
+    <div class="tab-icon"><i data-lucide="network">图</i></div>
     <div class="text-[10px]">洞察</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
   <button data-tab="settings" class="tab-btn flex flex-col items-center py-2.5 gap-1">
-    <div class="tab-icon">⚙️</div>
+    <div class="tab-icon"><i data-lucide="settings">设</i></div>
     <div class="text-[10px]">设置</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
@@ -876,13 +927,15 @@
 
 <!-- ============== Toast ============== -->
 <div id="toast" class="fixed top-14 left-1/2 -translate-x-1/2 bg-neutral-800/95 border border-neutral-700 text-sm px-3 py-2 rounded-lg shadow-xl hidden z-50"></div>
-<div id="message-popup" class="fixed left-3 right-3 border rounded-xl p-3 shadow-2xl hidden z-50" role="status">
+<div id="message-popup" class="fixed left-3 right-3 border p-3 shadow-2xl hidden z-50" role="status">
   <div class="flex justify-between items-start gap-3">
-    <div class="min-w-0">
+    <div class="message-popup-icon"><i data-lucide="sparkles">新</i></div>
+    <div class="min-w-0 flex-1">
       <div id="message-popup-title" class="text-xs font-semibold mb-1">学生 AI</div>
       <div id="message-popup-body" class="text-sm leading-snug max-h-28 overflow-y-auto whitespace-pre-wrap break-words"></div>
+      <div class="message-popup-action">点开回到聊天</div>
     </div>
-    <button id="message-popup-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+    <button id="message-popup-close" class="text-xs px-2 py-1 rounded border border-neutral-700" aria-label="关闭"><i data-lucide="x">×</i></button>
   </div>
 </div>
 
@@ -966,8 +1019,18 @@ const state = {
   essaySourceMessage: null,
 };
 
-const APP_VERSION_CODE = 15;
-const APP_VERSION_NAME = '0.16.0';
+function refreshIcons() {
+  if (!window.lucide) return;
+  window.lucide.createIcons({
+    attrs: {
+      'stroke-width': 1.9,
+      'aria-hidden': 'true',
+    },
+  });
+}
+
+const APP_VERSION_CODE = 17;
+const APP_VERSION_NAME = '0.16.1-test.2';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -1538,8 +1601,44 @@ function showMessagePopup(title, text, ms=4200, opts={}) {
   $('#message-popup-title').textContent = title || '学生 AI';
   $('#message-popup-body').textContent = preview;
   $('#message-popup').classList.remove('hidden');
+  refreshIcons();
   clearTimeout(showMessagePopup._t);
   showMessagePopup._t = setTimeout(() => $('#message-popup').classList.add('hidden'), ms);
+}
+
+function showSystemReplyNotification(title, text) {
+  if (!popupEnabled()) return;
+  const preview = messagePopupPreview(text);
+  if (!preview) return;
+  const nativeTitle = title || '学生 AI';
+  // 优先原生通知（Android WebView 不支持 Web Notification）
+  const p = window.Capacitor?.Plugins?.BackgroundLlm;
+  if (p && p.showResultNotification) {
+    try { p.showResultNotification({ title: nativeTitle, body: preview }); return; } catch(e) {}
+  }
+  // Web Notification 兜底（PWA / 桌面浏览器）
+  if (document.visibilityState === 'visible') return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    new Notification(nativeTitle, {
+      body: preview,
+      tag: 'reverse-tutor-assistant-reply',
+      renotify: true,
+      icon: './icon-192.png',
+    });
+  } catch (err) {
+    console.warn('system notification failed', err);
+  }
+}
+
+let _pendingNotify = null;
+function notifyAssistantReply(title, text, ms=4200, opts={}) {
+  showMessagePopup(title, text, ms, opts);
+  if (document.visibilityState !== 'visible') {
+    // 应用在后台：发系统通知 + 缓存一条，回前台时再弹应用内提示
+    showSystemReplyNotification(title, text);
+    _pendingNotify = { title, text, ms, opts };
+  }
 }
 
 function applyTheme(theme) {
@@ -2606,7 +2705,9 @@ ${format_actions()}
     for (const key of ['turn_id', 'client_msg_id', 'reply_to_message_id', 'message_index', 'message_total']) {
       if (meta[key] !== undefined) record[key] = meta[key];
     }
-    return DB.add('messages', record);
+    const id = await DB.add('messages', record);
+    record.id = id;
+    return record;
   }
 
   // 压缩：模拟后端 maybe_summarize
@@ -2818,6 +2919,7 @@ ${openingTask}
       });
       if (typeof onUserAdded === 'function') { try { await onUserAdded(); } catch(e){} }
     }
+    try {
     await maybe_summarize(sid);
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
@@ -2870,6 +2972,20 @@ ${openingTask}
     }
     await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);
     return { reply, action: ac, evaluation: ev };
+    } catch (err) {
+      if (userMessage && userMessage.id) {
+        userMessage.status = 'error';
+        userMessage.meta = {
+          ...(userMessage.meta || {}),
+          status: 'error',
+          error: String(err.message || err),
+          retry_text: user_input,
+          failed_at: Date.now(),
+        };
+        await DB.put('messages', userMessage);
+      }
+      throw err;
+    }
   }
 
   async function run_proactive_turn(sid, mode='offline') {
@@ -2970,6 +3086,63 @@ const TEMPLATES = [
     reqs:['每天 30 个核心词汇','阅读以真题为主']},
 ];
 
+let chatInputComposing = false;
+let keyboardLayoutTimer = null;
+let viewportBaselineHeight = window.innerHeight || 0;
+
+function editableHasKeyboard(el) {
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  return tag === 'textarea' || tag === 'input' || el.isContentEditable;
+}
+
+function scheduleKeyboardLayout(delay=120) {
+  clearTimeout(keyboardLayoutTimer);
+  if (chatInputComposing) delay = Math.max(delay, 260);
+  keyboardLayoutTimer = setTimeout(syncKeyboardLayout, delay);
+}
+
+function syncKeyboardLayout() {
+  if (chatInputComposing) return;
+  const vv = window.visualViewport;
+  const focused = editableHasKeyboard(document.activeElement);
+  if (!focused) {
+    viewportBaselineHeight = Math.max(viewportBaselineHeight, window.innerHeight || 0);
+    document.body.classList.remove('keyboard-open');
+    document.documentElement.style.setProperty('--keyboard-bottom', '0px');
+    return;
+  }
+  const now = Date.now();
+  const heightLoss = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+  const viewportShrink = Math.max(0, viewportBaselineHeight - (window.innerHeight || viewportBaselineHeight));
+  const touchDevice = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const focusSettled = syncKeyboardLayout.focusedAt && now - syncKeyboardLayout.focusedAt > 220;
+  const open = heightLoss > 80 || viewportShrink > 80 || (touchDevice && focusSettled && document.activeElement?.id === 'chat-input');
+  document.body.classList.toggle('keyboard-open', open);
+  document.documentElement.style.setProperty('--keyboard-bottom', open && heightLoss > 0 ? `${heightLoss}px` : '0px');
+}
+
+function resizeChatInput(el=$('#chat-input'), force=false) {
+  if (!el) return;
+  // 华为鸿蒙 WebView：聚焦时任何 style 修改都会重置光标，因此仅在非聚焦或强制时调整
+  if (!force && document.activeElement === el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+}
+
+function setChatInputValue(text, placeCaretAtEnd=true) {
+  const input = $('#chat-input');
+  input.value = text || '';
+  resizeChatInput(input, false);
+  input.focus();
+  if (placeCaretAtEnd) {
+    const pos = input.value.length;
+    requestAnimationFrame(() => {
+      try { input.setSelectionRange(pos, pos); } catch (err) {}
+    });
+  }
+}
+
 // --- Tab 切换 ---
 function switchTab(name) {
   state.currentTab = name;
@@ -2995,17 +3168,6 @@ async function refreshHeader() {
       $('#header-title').textContent = s.title;
       $('#header-sub').textContent = `${s.persona.role} · ${s.persona.goal}`;
     }
-  } else if (node.nodeType === 'note') {
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-encourage">随笔</span>
-      <span class="pill pill-next">${esc(node.sourceName || '聊天')}</span>
-    </div>
-    <div class="text-base font-bold mb-2">${esc(kpName || node.label || '随笔')}</div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
-    </div>
-    <div class="sheet-section text-sm leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.content || '')}</div>`;
-
   } else {
     $('#header-title').textContent = '反转家教';
     $('#header-sub').textContent = '点 设置 创建你的第一个会话';
@@ -3048,6 +3210,7 @@ async function renderChat() {
       const sourceLabel = source === 'native_background' ? (msgMeta.reply_to_message_id ? '对话' : '后台回复') : (source === 'foreground_llm' ? '对话' : (source === 'proactive' ? '主动对话' : ''));
       const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;
       const messageTotal = msgMeta.message_total ?? m.message_total ?? 1;
+      const failed = isUser && (m.status === 'error' || msgMeta.status === 'error');
       const kp = a.knowledge_point ? `<span>${esc(a.knowledge_point)}</span>` : '';
       const bubblePos = messageTotal > 1 ? `<span>${messageIndex + 1}/${messageTotal}</span>` : '';
       const meta = (!isUser && a.type && messageIndex === 0) ? `
@@ -3058,12 +3221,24 @@ async function renderChat() {
           ${bubblePos}
           ${ev.user_emotion ? `· ${esc(ev.user_emotion)}` : ''}
         </div>` : '';
+      const failedActions = failed ? `
+        <div class="text-[11px] text-red-200 mt-2 leading-relaxed">
+          发送失败：${esc(msgMeta.error || '网络或模型服务异常')}
+          <div class="message-failed-actions">
+            <button data-retry-message="${m.id}">重发</button>
+            <button data-edit-message="${m.id}">编辑后发送</button>
+          </div>
+        </div>` : '';
+      const bubbleClass = failed
+        ? 'bg-red-950/30 border border-red-800'
+        : (isUser ? 'bg-emerald-900/40 border border-emerald-800' : 'bg-neutral-900 border border-neutral-800');
       return `
         <div class="flex ${isUser?'justify-end':'justify-start'}" data-message-id="${m.id}" id="msg-${m.id}">
-          <div class="max-w-[85%] ${isUser?'bg-emerald-900/40 border border-emerald-800':'bg-neutral-900 border border-neutral-800'} rounded-2xl px-3 py-2">
+          <div class="max-w-[85%] ${bubbleClass} rounded-2xl px-3 py-2">
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
             <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
             ${meta}
+            ${failedActions}
           </div>
         </div>`;
     }).join('');
@@ -3086,6 +3261,16 @@ async function renderChat() {
     el.addEventListener('touchend', () => clearTimeout(pressTimer), { passive:true });
     el.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive:true });
   });
+  $$('#chat [data-retry-message]').forEach(btn => btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    retryFailedMessage(Number(btn.dataset.retryMessage));
+  }));
+  $$('#chat [data-edit-message]').forEach(btn => btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    restoreFailedMessageDraft(Number(btn.dataset.editMessage));
+  }));
   chat.scrollTop = chat.scrollHeight;
 }
 
@@ -3123,6 +3308,28 @@ async function saveEssayNote() {
   if (state.currentTab === 'insights') renderInsights();
 }
 
+function setChatSending(sending) {
+  const btn = $('#chat-send');
+  btn.disabled = sending;
+  btn.textContent = sending ? '…' : '发送';
+}
+
+async function submitChatText(txt, opts={}) {
+  if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
+  if (opts.clearInput !== false) setChatInputValue('', false);
+  setChatSending(true);
+  try {
+    // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
+    await ENGINE.run_turn(state.sid, txt, renderChat);
+  } catch(e) {
+    toast('LLM 失败: ' + (e.message||e), 4000);
+  } finally {
+    setChatSending(false);
+    await renderChat();
+    refreshHeader();
+  }
+}
+
 async function sendMessage() {
   if ($('#chat-send').disabled) return;
   const txt = $('#chat-input').value.trim();
@@ -3131,20 +3338,25 @@ async function sendMessage() {
     // 空消息当 "请开场" 处理
     return openingFor(state.sid);
   }
-  if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
-  $('#chat-input').value = '';
-  $('#chat-input').style.height = 'auto';
-  $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
-  try {
-    // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
-    await ENGINE.run_turn(state.sid, txt, renderChat);
-  } catch(e) {
-    toast('LLM 失败: ' + (e.message||e), 4000);
-  } finally {
-    $('#chat-send').disabled = false; $('#chat-send').textContent = '发送';
-    await renderChat();
-    refreshHeader();
-  }
+  await submitChatText(txt);
+}
+
+async function retryFailedMessage(id) {
+  if ($('#chat-send').disabled) return;
+  const msg = await DB.get('messages', id);
+  if (!msg) return;
+  const text = String(msg.meta?.retry_text || msg.content || '').trim();
+  if (!text) return;
+  await DB.del('messages', id);
+  await renderChat();
+  await submitChatText(text, { clearInput: false });
+}
+
+async function restoreFailedMessageDraft(id) {
+  const msg = await DB.get('messages', id);
+  if (!msg) return;
+  setChatInputValue(String(msg.meta?.retry_text || msg.content || ''));
+  toast('已放回输入框，可修改后发送');
 }
 
 async function importNativeBackgroundTurns({ silent=false } = {}) {
@@ -3153,7 +3365,7 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
     if (r.imported) {
       if (state.sid) await renderChat();
       refreshHeader();
-      if (!silent && r.lastReply) showMessagePopup('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' });
+      if (r.lastReply) notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' });
     }
     return r;
   } catch (e) {
@@ -3164,15 +3376,15 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
 
 async function openingFor(sid) {
   if ($('#chat-send').disabled) return;
-  $('#chat-send').disabled = true; $('#chat-send').textContent = '…';
+  setChatSending(true);
   try {
     const result = await ENGINE.run_opening_turn(sid);
     await renderChat();
-    showMessagePopup('学生 AI 主动开场', result.reply, 4200, { source: 'opening' });
+    notifyAssistantReply('学生 AI 主动开场', result.reply, 4200, { source: 'opening' });
   }
   catch(e) { toast('开场失败: ' + (e.message||e), 4000); }
   finally {
-    $('#chat-send').disabled = false; $('#chat-send').textContent = '发送';
+    setChatSending(false);
     await renderChat();
   }
 }
@@ -3201,7 +3413,7 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
     setProactiveConfig({ lastAt: Date.now() });
     await renderChat();
     renderProactiveSettings();
-    showMessagePopup('主动对话', result.reply, 4200, { source: 'proactive' });
+    notifyAssistantReply('主动对话', result.reply, 4200, { source: 'proactive' });
     return { triggered: true, reason, mode: cfg.mode };
   } catch (err) {
     console.warn('proactive turn failed', err);
@@ -3212,13 +3424,28 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
 }
 
 $('#chat-send').addEventListener('click', sendMessage);
-$('#chat-input').addEventListener('input', e => {
-  e.target.style.height = 'auto';
-  e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
+$('#chat-input').addEventListener('compositionstart', () => { chatInputComposing = true; });
+$('#chat-input').addEventListener('compositionend', e => {
+  chatInputComposing = false;
+  scheduleKeyboardLayout(180);
 });
+$('#chat-input').addEventListener('blur', e => { resizeChatInput(e.target); });
 $('#chat-input').addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMessage(); }
 });
+document.addEventListener('focusin', e => {
+  if (editableHasKeyboard(e.target)) {
+    syncKeyboardLayout.focusedAt = Date.now();
+    scheduleKeyboardLayout(260);
+  }
+});
+document.addEventListener('focusout', () => {
+  syncKeyboardLayout.focusedAt = 0;
+  scheduleKeyboardLayout(80);
+});
+window.addEventListener('resize', () => scheduleKeyboardLayout(80));
+window.visualViewport?.addEventListener('resize', () => scheduleKeyboardLayout(60));
+window.visualViewport?.addEventListener('scroll', () => scheduleKeyboardLayout(60));
 
 // --- Anchors ---
 async function addLocalAnchor(kind, content, weight=1.5, extra={}) {
@@ -4677,6 +4904,17 @@ async function showGraphSheet(node) {
       html+=`</div></div>`;
     }
 
+  } else if (node.nodeType === 'note') {
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-encourage">随笔</span>
+      <span class="pill pill-next">${esc(node.sourceName || '聊天')}</span>
+    </div>
+    <div class="text-base font-bold mb-2">${esc(kpName || node.label || '随笔')}</div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
+    </div>
+    <div class="sheet-section text-sm leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.content || '')}</div>`;
+
   } else if (node.nodeType === 'source') {
     const diagnostics = node.sourceDiagnostics || {};
     const sourceForSheet = { id: node.sourceId, kind:'source', content: node.content || '', source_text: node.sourceText || '', source_name: node.kp, source_type: node.sourceType, source_diagnostics: diagnostics, source_memory: node.sourceMemory || null, source_pages: node.sourcePages || [] };
@@ -5062,9 +5300,22 @@ function renderProactiveSettings() {
   const cfg = proactiveConfig();
   const enabled = $('#proactive-enabled');
   const mode = $('#proactive-mode');
+  const segments = $('#proactive-mode-segments');
   const status = $('#proactive-status');
   if (enabled) enabled.checked = cfg.enabled;
   if (mode) mode.value = cfg.mode;
+  if (segments) {
+    segments.innerHTML = Object.entries(PROACTIVE_MODES).map(([value, meta]) => `
+      <button type="button" class="seg-option ${cfg.mode === value ? 'active' : ''}" data-proactive-mode="${value}">
+        ${esc(meta.label)}
+      </button>`).join('');
+    segments.querySelectorAll('[data-proactive-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setProactiveConfig({ mode: btn.dataset.proactiveMode });
+        renderProactiveSettings();
+      });
+    });
+  }
   if (status) {
     const meta = PROACTIVE_MODES[cfg.mode] || PROACTIVE_MODES.offline;
     const last = cfg.lastAt ? new Date(cfg.lastAt).toLocaleString() : '尚未触发';
@@ -5155,6 +5406,11 @@ $('#choice-sheet').addEventListener('click', e => {
 });
 async function restoreRuntimeConfigOnResume() {
   try {
+    // 回到前台时弹出后台期间缓存的通知
+    if (_pendingNotify) {
+      const n = _pendingNotify; _pendingNotify = null;
+      showMessagePopup(n.title, n.text, n.ms, { ...n.opts, force: true });
+    }
     await restoreLlmConfig();
     await importNativeBackgroundTurns();
     await maybeRunProactiveTurn({ reason: 'resume' });
@@ -5416,6 +5672,7 @@ function detectPwaEnv() {
   }
 }
 detectPwaEnv();
+refreshIcons();
 
 // --- init ---
 (async function init() {
@@ -5440,11 +5697,22 @@ detectPwaEnv();
   }
   await refreshHeader();
   await renderChat();
+  refreshIcons();
+  syncKeyboardLayout();
   setTimeout(finishEntrySplash, 260);
   setTimeout(() => maybeRunProactiveTurn({ reason: 'startup' }), 1600);
   if (updateAutoEnabled() && updateFeedUrl()) {
     setTimeout(() => checkUpdate(true), 1200);
   }
+  // 提前请求通知权限
+  setTimeout(async () => {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      await NativeBackgroundLlm.requestNotificationPermission();
+    } catch (e) { console.warn('early notification permission request failed', e); }
+  }, 2000);
 })();
 </script>
 

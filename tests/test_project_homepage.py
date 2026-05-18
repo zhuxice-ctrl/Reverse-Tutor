@@ -21,7 +21,7 @@ def test_mobile_settings_footer_includes_qq_group_number():
 
     assert "欢迎入qq群反馈给我更新动力" in html
     assert "QQ群：897804938" in html
-    assert "反转家教 v0.16.0 · 移动 PWA" in html
+    assert "反转家教 v0.16.1-test.2 · 移动 PWA" in html
 
 
 def test_readme_showcase_text_uses_explicit_alignment():

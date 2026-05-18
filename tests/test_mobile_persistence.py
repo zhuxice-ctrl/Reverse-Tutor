@@ -16,6 +16,22 @@ def test_mobile_llm_config_uses_native_preferences_for_long_term_storage():
     assert "Preferences.get" in html
 
 
+def test_android_webview_uses_native_ime_input_connection():
+    config = (ROOT / "mobile" / "capacitor.config.json").read_text(encoding="utf-8")
+
+    assert '"captureInput": false' in config
+    assert '"captureInput": true' not in config
+
+
+def test_chat_input_avoids_layout_mutation_during_chinese_ime_composition():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "if (chatInputComposing) delay = Math.max(delay, 260);" in html
+    assert "if (chatInputComposing) return;" in html
+    assert "field-sizing: content" not in html
+    assert "height: 42px;" in html
+
+
 def test_android_manifest_requests_notification_permission_only_for_background_llm():
     manifest = (ROOT / "mobile" / "android" / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
 
@@ -266,6 +282,58 @@ def test_mobile_chat_long_press_can_create_note_nodes_in_graph():
     assert "kind:'note'" in html
     assert "nodeType:'note'" in html
     assert "随笔" in html
+
+
+def test_mobile_header_without_session_does_not_reference_graph_node_state():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    refresh_header = html.split("async function refreshHeader()", 1)[1].split("// --- Chat ---", 1)[0]
+
+    assert "node.nodeType" not in refresh_header
+    assert "点 设置 创建你的第一个会话" in refresh_header
+
+
+def test_mobile_chat_input_preserves_caret_and_handles_keyboard_layout():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function resizeChatInput" in html
+    assert "document.activeElement === el" in html
+    assert "return tag === 'textarea' || tag === 'input' || el.isContentEditable" in html
+    assert "function scheduleKeyboardLayout" in html
+    assert "scheduleKeyboardLayout(260)" in html
+    assert "viewportShrink > 80" in html
+    assert "interactive-widget=resizes-content" in html
+    assert "field-sizing: content" not in html
+    assert "height: 42px;" in html
+    assert "if (chatInputComposing) return;" in html
+    assert "compositionstart" in html
+    assert "compositionend" in html
+    assert "function syncKeyboardLayout" in html
+    assert "body.keyboard-open .bottom-nav" in html
+    assert "--keyboard-bottom" in html
+
+
+def test_mobile_failed_chat_message_can_be_retried_or_restored_to_input():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "retry_text: user_input" in html
+    assert "data-retry-message" in html
+    assert "data-edit-message" in html
+    assert "async function retryFailedMessage" in html
+    assert "async function restoreFailedMessageDraft" in html
+    assert "发送失败：" in html
+    assert "record.id = id" in html
+
+
+def test_mobile_uses_lucide_icons_and_custom_proactive_segments():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "lucide" in html
+    assert "function refreshIcons" in html
+    assert 'data-lucide="message-circle"' in html
+    assert 'data-lucide="network"' in html
+    assert 'id="proactive-mode-segments"' in html
+    assert "data-proactive-mode" in html
+    assert "native-config-select" in html
 
 
 def test_mobile_import_accepts_reader_friendly_document_formats():

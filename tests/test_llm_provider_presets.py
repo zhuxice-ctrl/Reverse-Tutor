@@ -171,9 +171,10 @@ def test_mobile_message_popup_shows_actual_reply_content_without_covering_active
     assert "document.visibilityState === 'visible' && state.currentTab === 'chat'" in html
     assert "source === 'foreground_llm'" in html
     assert "showMessagePopup('学生 AI 回复'" not in html
-    assert "showMessagePopup('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' })" in html
-    assert "showMessagePopup('主动对话', result.reply, 4200, { source: 'proactive' })" in html
+    assert "notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' })" in html
+    assert "notifyAssistantReply('主动对话', result.reply, 4200, { source: 'proactive' })" in html
     assert 'id="message-popup-body" class="text-sm leading-snug max-h-28 overflow-y-auto whitespace-pre-wrap break-words"' in html
+    assert "function showSystemReplyNotification" in html
 
 
 def test_mobile_prompt_uses_post_history_instruction_for_better_role_replies():

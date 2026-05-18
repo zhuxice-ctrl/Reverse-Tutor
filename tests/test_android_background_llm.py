@@ -99,6 +99,7 @@ def test_mobile_frontend_enqueues_and_imports_native_background_turns():
     assert "cleanEvaluation" in html
     assert "native background llm failed" in html
     assert "await DB.put('messages', pending)" in html
+    assert "notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' })" in html
     assert "await add_message(job.sid, 'assistant', `后台回复失败" not in html
 
 
