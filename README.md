@@ -89,12 +89,7 @@ copy .env.example .env
 python -m uvicorn server:app --reload --host 127.0.0.1 --port 8000
 ```
 
-打开：
-
-- 桌面 Web：http://127.0.0.1:8000
-- 移动 PWA：http://127.0.0.1:8000/app/
-
-不配置 LLM 也能运行。项目会自动使用 mock 模式，适合本地演示、测试和开发。
+启动后在浏览器打开即可。不配置 LLM 也能运行，项目会自动使用 mock 模式。
 
 ## LLM 配置
 
