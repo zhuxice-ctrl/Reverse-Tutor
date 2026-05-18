@@ -15,6 +15,7 @@ def test_android_manifest_declares_background_llm_service_and_permissions():
     assert "android.permission.REQUEST_INSTALL_PACKAGES" in manifest
     assert "android.permission.FOREGROUND_SERVICE" in manifest
     assert "android.permission.FOREGROUND_SERVICE_DATA_SYNC" in manifest
+    assert "android.permission.WAKE_LOCK" in manifest
     assert 'android:name=".BackgroundLlmService"' in manifest
     assert 'android:name=".ApkUpdateService"' in manifest
     assert 'android:foregroundServiceType="dataSync"' in manifest
@@ -33,12 +34,19 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert "getCompletedTurns" in plugin
     assert "clearCompletedTurn" in plugin
     assert "requestNotificationPermission" in plugin
+    assert "getNotificationStatus" in plugin
+    assert "openBackgroundNotificationSettings" in plugin
     assert "downloadAndInstallApk" in plugin
     assert "ApkUpdateService.class" in plugin
     assert "ApkUpdateService.EXTRA_URLS_JSON" in plugin
     assert 'ret.put("background", true)' in plugin
     assert 'ret.put("queued", true)' in plugin
     assert "ACTION_MANAGE_UNKNOWN_APP_SOURCES" in plugin
+    assert "Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS" in plugin
+    assert "Settings.EXTRA_CHANNEL_ID" in plugin
+    assert "areNotificationsEnabled()" in plugin
+    assert '"channelHighImportance"' in plugin
+    assert '"channelBlocked"' in plugin
     assert "@PermissionCallback" in plugin
     assert "requestPermissionForAlias" in plugin
     assert "public class ApkUpdateService extends Service" in apk_service
@@ -74,6 +82,9 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert 'item.put("turn_id"' in service
     assert 'item.put("reply_to_message_id"' in service
     assert "START_REDELIVER_INTENT" in service
+    assert "PowerManager.PARTIAL_WAKE_LOCK" in service
+    assert "wakeLock.acquire" in service
+    assert "wakeLock.release" in service
     assert "PENDING_KEY" in plugin
     assert "storePending" in plugin
     assert "clearPending" in service
@@ -82,7 +93,25 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert 'root.optString("reply", "")' in service
     assert "String replyPreview = replyPreviewFromRawContent(rawContent)" in service
     assert "NotificationCompat.BigTextStyle().bigText(text)" in service
+    assert "boolean keepForegroundNotification" in service
+    assert "keepForegroundNotification = notifyFinished" in service
+    assert "buildNotification(title, text, false, RUNNING_CHANNEL_ID)" in service
+    assert "buildNotification(title, text, false, RESULT_CHANNEL_ID)" not in service
+    assert "startForeground(RUNNING_NOTIFICATION_ID, foregroundNotification)" in service
+    assert "manager.notify(RUNNING_NOTIFICATION_ID, foregroundNotification)" in service
+    assert "43200 + Math.abs" not in service
+    assert "finishForegroundNotification(keepForegroundNotification)" in service
+    assert "Service.STOP_FOREGROUND_DETACH" in service
+    assert "Service.STOP_FOREGROUND_REMOVE" in service
+    assert "stopForeground(!keepNotification)" in service
+    assert ".setOnlyAlertOnce(ongoing)" in service
     assert "RESULT_CHANNEL_ID" in service
+    assert "background_llm_result_v4" in service
+    assert "background_llm_result_v4" in plugin
+    assert "R.drawable.ic_stat_reverse_tutor" in service
+    assert "R.drawable.ic_stat_reverse_tutor" in plugin
+    assert "NotificationCompat.DEFAULT_SOUND" in service
+    assert "NotificationCompat.DEFAULT_VIBRATE" in service
     assert "NotificationManager.IMPORTANCE_HIGH" in service
     assert "NotificationCompat.PRIORITY_HIGH" in service
     assert "打开应用查看后台生成的回复。" not in service
@@ -95,11 +124,23 @@ def test_mobile_frontend_enqueues_and_imports_native_background_turns():
     assert "enqueueTurn" in html
     assert "importNativeBackgroundTurns" in html
     assert "requestNotificationPermission" in html
+    assert "getNotificationStatus" in html
+    assert "openBackgroundNotificationSettings" in html
+    assert "background-notification-status" in html
+    assert "后台回复通知设置" in html
+    assert "横幅/悬浮通知" in html
     assert "native_background_job_id" in html
     assert "cleanEvaluation" in html
+    assert "pending.status = 'completed'" in html
+    assert "hasPendingNativeBackgroundTurn" in html
+    assert "await importNativeBackgroundTurns({ silent: true })" in html
+    assert "上一条回复还在生成" in html
+    assert "tryQueueNativeTurnEarly" in html
+    assert "const nativeQueued = await tryQueueNativeTurnEarly" in html
     assert "native background llm failed" in html
     assert "await DB.put('messages', pending)" in html
-    assert "notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' })" in html
+    assert "if (r.lastReply && !silent)" in html
+    assert "notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background', force: true })" in html
     assert "await add_message(job.sid, 'assistant', `后台回复失败" not in html
 
 

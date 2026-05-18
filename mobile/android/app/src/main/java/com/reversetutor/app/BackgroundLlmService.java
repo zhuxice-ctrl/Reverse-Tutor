@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -35,7 +36,7 @@ public class BackgroundLlmService extends Service {
     static final String EXTRA_JOB_JSON = "job_json";
     // Completed jobs are stored under rt-native-background-llm-completed.
     private static final String RUNNING_CHANNEL_ID = "background_llm_running";
-    private static final String RESULT_CHANNEL_ID = "background_llm_result_v2";
+    private static final String RESULT_CHANNEL_ID = "background_llm_result_v4";
     private static final int RUNNING_NOTIFICATION_ID = 43100;
 
     @Override
@@ -62,29 +63,52 @@ public class BackgroundLlmService extends Service {
 
         final String finalJobJson = jobJson;
         new Thread(() -> {
+            PowerManager.WakeLock wakeLock = acquireBackgroundWakeLock();
+            boolean keepForegroundNotification = false;
             try {
                 JSONObject job = new JSONObject(finalJobJson);
                 String rawContent = callOpenAi(job);
                 storeCompleted(job, "success", rawContent, "");
                 clearPending(job);
                 String replyPreview = replyPreviewFromRawContent(rawContent);
-                notifyFinished(job, "学生有新回复", replyPreview.isEmpty() ? "后台回复已生成。" : replyPreview);
+                keepForegroundNotification = notifyFinished(job, "学生有新回复", replyPreview.isEmpty() ? "后台回复已生成。" : replyPreview);
             } catch (Exception e) {
                 try {
                     JSONObject job = new JSONObject(finalJobJson);
                     storeCompleted(job, "error", "", e.getMessage() == null ? e.toString() : e.getMessage());
                     clearPending(job);
-                    notifyFinished(job, "后台回复失败", e.getMessage() == null ? "打开应用查看错误。" : e.getMessage());
+                    keepForegroundNotification = notifyFinished(job, "后台回复失败", e.getMessage() == null ? "打开应用查看错误。" : e.getMessage());
                 } catch (Exception ignored) {
-                    notifyFinished(null, "后台回复失败", "任务数据无法读取。");
+                    keepForegroundNotification = notifyFinished(null, "后台回复失败", "任务数据无法读取。");
                 }
             } finally {
-                stopForeground(true);
+                if (wakeLock != null && wakeLock.isHeld()) {
+                    wakeLock.release();
+                }
+                finishForegroundNotification(keepForegroundNotification);
                 stopSelf(startId);
             }
         }, "background-llm").start();
 
         return START_REDELIVER_INTENT;
+    }
+
+    private PowerManager.WakeLock acquireBackgroundWakeLock() {
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm == null) {
+                return null;
+            }
+            PowerManager.WakeLock wakeLock = pm.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "ReverseTutor:BackgroundLlm"
+            );
+            wakeLock.setReferenceCounted(false);
+            wakeLock.acquire(3 * 60 * 1000L);
+            return wakeLock;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Nullable
@@ -638,17 +662,43 @@ public class BackgroundLlmService extends Service {
         prefs.edit().putString(BackgroundLlmPlugin.COMPLETED_KEY, arr.toString()).apply();
     }
 
-    private void notifyFinished(JSONObject job, String title, String text) {
+    private boolean notifyFinished(JSONObject job, String title, String text) {
+        boolean updatedForegroundNotification = false;
         try {
-            Notification notification = buildNotification(title, text, false);
-            int id = 43200 + Math.abs((job == null ? title : job.optString("job_id", title)).hashCode() % 1000);
-            NotificationManagerCompat.from(this).notify(id, notification);
+            Notification foregroundNotification = buildNotification(title, text, false, RUNNING_CHANNEL_ID);
+            try {
+                startForeground(RUNNING_NOTIFICATION_ID, foregroundNotification);
+                updatedForegroundNotification = true;
+            } catch (Exception ignored) {
+                // Fall back to NotificationManager below. The stored result remains importable on next app open.
+            }
+
+            NotificationManagerCompat manager = NotificationManagerCompat.from(this);
+            try {
+                manager.notify(RUNNING_NOTIFICATION_ID, foregroundNotification);
+                updatedForegroundNotification = true;
+            } catch (Exception ignored) {
+                // Notification permission may be denied; the stored result is still imported on next app open.
+            }
         } catch (Exception ignored) {
             // Notification permission may be denied; the stored result is still imported on next app open.
+        }
+        return updatedForegroundNotification;
+    }
+
+    private void finishForegroundNotification(boolean keepNotification) {
+        if (Build.VERSION.SDK_INT >= 24) {
+            stopForeground(keepNotification ? Service.STOP_FOREGROUND_DETACH : Service.STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(!keepNotification);
         }
     }
 
     private Notification buildNotification(String title, String text, boolean ongoing) {
+        return buildNotification(title, text, ongoing, ongoing ? RUNNING_CHANNEL_ID : RESULT_CHANNEL_ID);
+    }
+
+    private Notification buildNotification(String title, String text, boolean ongoing, String channelId) {
         Intent open = new Intent(this, MainActivity.class);
         open.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -657,18 +707,21 @@ public class BackgroundLlmService extends Service {
         }
         PendingIntent pi = PendingIntent.getActivity(this, 0, open, flags);
 
-        String channelId = ongoing ? RUNNING_CHANNEL_ID : RESULT_CHANNEL_ID;
         return new NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(getApplicationInfo().icon)
+            .setSmallIcon(R.drawable.ic_stat_reverse_tutor)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
             .setOngoing(ongoing)
+            .setOnlyAlertOnce(ongoing)
             .setContentIntent(pi)
             .setAutoCancel(!ongoing)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(ongoing ? NotificationCompat.PRIORITY_DEFAULT : NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(ongoing ? 0 : (NotificationCompat.DEFAULT_SOUND | NotificationCompat.DEFAULT_VIBRATE))
+            .setWhen(System.currentTimeMillis())
+            .setShowWhen(true)
             .build();
     }
 

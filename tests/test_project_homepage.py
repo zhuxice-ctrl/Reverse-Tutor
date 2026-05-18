@@ -21,7 +21,7 @@ def test_mobile_settings_footer_includes_qq_group_number():
 
     assert "欢迎入qq群反馈给我更新动力" in html
     assert "QQ群：897804938" in html
-    assert "反转家教 v0.16.1-test.2 · 移动 PWA" in html
+    assert "反转家教 v0.16.1-test.4 · 移动 PWA" in html
 
 
 def test_readme_showcase_text_uses_explicit_alignment():
@@ -33,6 +33,7 @@ def test_readme_showcase_text_uses_explicit_alignment():
     assert '多协议 LLM' in svg
     assert 'viewBox="70 55 1060 548"' in svg
     assert 'OpenAI 与 Anthropic 可选' in svg
-    assert '后台回复与应用内更新' in svg
+    assert '引用与回档' in svg
+    assert '后台横幅通知与应用更新' in svg
     assert 'x="844" y="464"' in svg
     assert 'x="762" y="390" width="290"' in svg

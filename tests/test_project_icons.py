@@ -12,6 +12,9 @@ def test_android_launcher_uses_intro_icon_without_adaptive_override():
     assert 'android:roundIcon="@mipmap/ic_launcher"' in manifest
     assert not (ANDROID_RES / "mipmap-anydpi-v26" / "ic_launcher.xml").exists()
     assert not (ANDROID_RES / "mipmap-anydpi-v26" / "ic_launcher_round.xml").exists()
+    assert not (ANDROID_RES / "drawable-v24" / "ic_launcher_foreground.xml").exists()
+    assert not (ANDROID_RES / "drawable" / "ic_launcher_background.xml").exists()
+    assert not (ANDROID_RES / "values" / "ic_launcher_background.xml").exists()
 
 
 def test_android_launcher_round_icons_match_primary_icons():

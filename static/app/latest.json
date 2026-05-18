@@ -1,18 +1,20 @@
 {
-  "versionCode": 15,
-  "versionName": "0.16.0",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.0-debug.apk",
+  "versionCode": 19,
+  "versionName": "0.16.1-test.4",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.0/Back_Teacher-v0.16.0-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1-test.4/Back_Teacher-v0.16.1-test.4-debug.apk"
   ],
-  "sha256": "9ce0eec7eedf48c328d34c38aa9f41f88a00af033ab64458c8be36cc04d6e871",
-  "publishedAt": "2026-05-17",
+  "sha256": "a65bea1360bf442912a2788a402e0c545956939414a58ebbe7f02b36fb11dbc3",
+  "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "升级文档知识库：上传资料会进入检索、图谱和按需单支分析流程。",
-    "新增 TXT、Markdown、HTML、PPTX、EPUB 导入，继续支持 PDF 和 DOCX。",
-    "洞察图谱新增资料节点、章节节点、未解锁节点、诊断节点和随笔节点。",
-    "图谱节点支持编辑纠正、用户命名锁定和回顾聊天。",
-    "聊天消息支持长按或右键创建随笔，并同步显示在图谱中。",
-    "优化文档卡片、资料快照、节点简介和数理化文本显示，减少原文倾倒和噪声标题。"
+    "修复后台 LLM 回复：退出到桌面后继续生成，完成时只保留一条系统通知。",
+    "新增后台回复通知状态检测，并可直达系统的“后台 LLM 回复”通知分类设置。",
+    "新增消息引用回复：长按气泡可引用、随笔、回档或删除。",
+    "优化长按菜单：模仿 QQ 在气泡上方显示，点击空白区域关闭，长按背景不再误触发。",
+    "替换应用图标，移除旧启动图，减少启动白屏/黑屏突兀感。",
+    "统一聊天界面图标、失败重发按钮和弹窗动效。",
+    "文档导入入口统一标注文档格式，并支持多选导入 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB。",
+    "图片型或图文混排 PDF 在当前模型不支持视觉时，也会先读取可提取文字并生成洞察分支。"
   ]
 }

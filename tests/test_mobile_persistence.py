@@ -89,8 +89,16 @@ def test_mobile_new_session_can_optionally_import_documents_before_opening_turn(
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert 'id="new-source-files"' in html
+    assert 'id="new-source-files" type="file"' in html
+    assert 'multiple class="hidden"' in html
+    assert 'id="anchor-file" type="file"' in html
+    assert 'id="anchor-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple' in html
     assert 'id="new-source-status"' in html
+    assert "PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB" in html
+    assert "PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 等资料" in html
+    assert "选择多个文件" in html
     assert "async function importAnchorFiles(files, opts={})" in html
+    assert r"\.(pdf|docx|txt|md|markdown|html|htm|pptx?|epub)$" in html
     assert "const pendingSourceFiles = Array.from($('#new-source-files')?.files || []);" in html
     assert "await importAnchorFiles(pendingSourceFiles, { statusEl: $('#new-source-status'), render: false });" in html
     assert html.index("await importAnchorFiles(pendingSourceFiles") < html.index("await openingFor(s.id)")
@@ -125,6 +133,18 @@ def test_mobile_unreadable_pdf_is_visible_in_prompt_and_graph():
     assert "nodeType:'diagnostic'" in html
     assert "kind:'diagnostic'" in html
     assert "待视觉模型" in html
+
+
+def test_mobile_partial_visual_documents_still_build_text_graph():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function sourceHasVisualGaps" in html
+    assert "if ((diagnostics.char_count || 0) > 0) return false;" in html
+    assert "clean.length === 0" in html
+    assert "partial_text_with_visual" in html
+    assert "已先读取可提取文字并生成图谱" in html
+    assert "图片内容保留为待视觉模型补读" in html
+    assert "已先读取文字；图片内容待视觉模型补读" in html
 
 
 def test_mobile_document_import_persists_temporal_source_memory():
@@ -324,6 +344,55 @@ def test_mobile_failed_chat_message_can_be_retried_or_restored_to_input():
     assert "record.id = id" in html
 
 
+def test_mobile_message_action_sheet_supports_quote_essay_rollback_and_delete():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "selectedActionMessage: null" in html
+    assert "quotedMessage: null" in html
+    assert 'id="quote-preview"' in html
+    assert 'id="message-action-popover"' in html
+    assert "function openMessageActionSheet" in html
+    assert "function positionMessageActionPopover" in html
+    assert "message-action-popover" in html
+    assert "transition: opacity .14s ease, transform .14s ease, visibility .14s ease;" in html
+    assert "pointer-events: none;" in html
+    assert ".message-action-popover.hidden { display: none; }" not in html
+    assert ".message-action-active {" in html
+    assert "@keyframes messagePressPop" in html
+    assert 'data-message-id="${m.id}"' in html
+    assert 'class="flex ${isUser?\'justify-end\':\'justify-start\'}" id="msg-${m.id}"' in html
+    assert "const targetEl = anchorEl.closest?.('[data-message-id]') || anchorEl" in html
+    assert "const viewportWidth = Math.min(" in html
+    assert "screen.width || Infinity" in html
+    assert "const viewportRight = viewportLeft + viewportWidth" in html
+    assert "viewportRight - popRect.width - margin" in html
+    assert "clampMessageActionPopover()" in html
+    assert "requestAnimationFrame(clampMessageActionPopover)" in html
+    assert "const belowSpace = viewportBottom - rect.bottom - margin - gap" in html
+    assert "let side = aboveSpace >= popRect.height || aboveSpace >= belowSpace ? 'above' : 'below'" in html
+    assert "rect.top - gap - popRect.height" in html
+    assert "pop.style.setProperty('--popover-arrow-x'" in html
+    assert ".message-action-popover::after" in html
+    assert "setMessageActionAnchor(anchorEl" in html
+    assert "clearMessageActionAnchor()" in html
+    assert "positionMessageActionPopover(message, anchorEl" in html
+    assert "document.addEventListener('pointerdown'" in html
+    assert "if (e.target.closest('[data-message-id]')) return;" not in html
+    assert "function quoteMessageForReply" in html
+    assert "function rollbackFromMessage" in html
+    assert "function deleteSingleMessage" in html
+    assert "function cleanupMessageMemory" in html
+    assert "formatQuotedReplyContext" in html
+    assert "quoted_message_id" in html
+    assert "source_message_id" in html
+    assert "note_message_id" in html
+    assert "引用" in html
+    assert "随笔" in html
+    assert "回档" in html
+    assert "删除" in html
+    assert "openChoiceSheet({\n    title: '消息操作'" not in html
+
+
 def test_mobile_uses_lucide_icons_and_custom_proactive_segments():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
@@ -331,6 +400,22 @@ def test_mobile_uses_lucide_icons_and_custom_proactive_segments():
     assert "function refreshIcons" in html
     assert 'data-lucide="message-circle"' in html
     assert 'data-lucide="network"' in html
+    assert 'data-lucide="menu"' in html
+    assert 'data-lucide="plus"' in html
+    assert 'data-lucide="download"' in html
+    assert 'data-lucide="upload"' in html
+    assert 'data-lucide="trash-2"' in html
+    assert 'data-lucide="smartphone"' in html
+    assert 'data-lucide="check-circle-2"' in html
+    assert 'data-lucide="rotate-ccw"' in html
+    assert 'data-lucide="pencil"' in html
+    assert 'aria-label="删除会话"' in html
+    assert 'aria-label="删除锚点"' in html
+    assert "测试中…" in html
+    assert "联通 OK" in html
+    assert "🔌 测试中" not in html
+    assert "✅ 联通 OK" not in html
+    assert "❌ ${r.error" not in html
     assert 'id="proactive-mode-segments"' in html
     assert "data-proactive-mode" in html
     assert "native-config-select" in html

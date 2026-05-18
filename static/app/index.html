@@ -11,6 +11,15 @@
 <link rel="apple-touch-icon" href="./icon-192.png">
 <title>反转家教</title>
 
+<script>
+  (function () {
+    try {
+      const theme = localStorage.getItem('rt-mobile-theme') === 'warm' ? 'warm' : 'ink';
+      document.documentElement.classList.toggle('theme-warm', theme === 'warm');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'warm' ? '#c9c0b3' : '#252927');
+    } catch (_) {}
+  })();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -39,7 +48,7 @@
     --chat-mark: rgba(120, 160, 132, .12);
     --keyboard-bottom: 0px;
   }
-  body.theme-warm {
+  :root.theme-warm, body.theme-warm {
     color-scheme: light;
     --page: #c9c0b3;
     --panel: #d8d0c5;
@@ -94,6 +103,123 @@
     font-size: 11px;
     color: #fecaca;
     background: color-mix(in srgb, #7f1d1d 34%, transparent);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .message-failed-actions svg { width: 13px; height: 13px; display: block; }
+  .quote-preview {
+    margin-bottom: 8px;
+    border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--text);
+    padding: 8px 10px;
+  }
+  .quote-preview.hidden { display: none; }
+  .quote-preview-title {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .quote-preview-body {
+    font-size: 12px;
+    color: var(--text-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quote-preview button {
+    color: var(--muted);
+    padding: 2px;
+  }
+  .message-action-popover {
+    position: fixed;
+    z-index: 95;
+    width: max-content;
+    min-width: min(218px, calc(100vw - 24px));
+    max-width: min(calc(100vw - 24px), 292px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--panel) 98%, transparent);
+    box-shadow: 0 16px 44px rgba(0,0,0,.34);
+    backdrop-filter: blur(14px);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(48px, 1fr));
+    overflow: visible;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate3d(0, 0, 0) scale(1);
+    transform-origin: top left;
+    transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+    will-change: opacity, transform;
+  }
+  .message-action-popover::after {
+    content: '';
+    position: absolute;
+    left: var(--popover-arrow-x, 50%);
+    width: 10px;
+    height: 10px;
+    background: color-mix(in srgb, var(--panel) 98%, transparent);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .message-action-popover[data-side="above"] { transform-origin: bottom center; --popover-shift-x: 0px; --popover-shift-y: 7px; }
+  .message-action-popover[data-side="above"]::after { bottom: -6px; }
+  .message-action-popover[data-side="below"] { transform-origin: top center; --popover-shift-x: 0px; --popover-shift-y: -7px; }
+  .message-action-popover[data-side="below"]::after {
+    top: -6px;
+    transform: translateX(-50%) rotate(225deg);
+  }
+  .message-action-popover[data-side="center"] { transform-origin: top center; --popover-shift-x: 0px; --popover-shift-y: 4px; }
+  .message-action-popover.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(var(--popover-shift-x, 0px), var(--popover-shift-y, 4px), 0) scale(.96);
+  }
+  .message-action-popover button {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    min-height: 54px;
+    padding: 8px 10px 7px;
+    font-size: 11px;
+    color: var(--text);
+    border-left: 1px solid color-mix(in srgb, var(--line) 46%, transparent);
+    text-align: center;
+  }
+  .message-action-popover button:first-child {
+    border-left: 0;
+    border-radius: 13px 0 0 13px;
+  }
+  .message-action-popover button:last-child { border-radius: 0 13px 13px 0; }
+  .message-action-popover button:active { background: var(--accent-soft); }
+  .message-action-popover svg { width: 16px; height: 16px; color: var(--accent); }
+  #chat [data-message-id] {
+    transform-origin: center;
+    transition: transform .16s cubic-bezier(.2,.75,.25,1), box-shadow .16s ease, border-color .16s ease, filter .16s ease;
+  }
+  #chat [data-message-id].message-pressing {
+    transform: scale(.985);
+    filter: brightness(1.03);
+  }
+  #chat [data-message-id].message-action-active {
+    animation: messagePressPop .2s cubic-bezier(.2,.75,.25,1);
+    transform: scale(.99);
+    border-color: color-mix(in srgb, var(--accent) 68%, var(--line));
+    box-shadow: 0 12px 28px rgba(0,0,0,.18), 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  @keyframes messagePressPop {
+    0% { transform: scale(1); }
+    45% { transform: scale(.965); }
+    100% { transform: scale(.99); }
   }
   .pill { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; }
   .pill-ask { background:#1e3a8a; color:#bfdbfe; }
@@ -329,6 +455,10 @@
   .config-picker-title { font-size: 14px; font-weight: 700; line-height: 1.2; }
   .config-picker-sub { margin-top: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .config-picker-caret { color: var(--muted); font-size: 18px; line-height: 1; flex: none; }
+  .config-picker-caret svg { width: 18px; height: 18px; display: block; }
+  .button-icon { width: 16px; height: 16px; flex: none; }
+  .icon-only svg { width: 22px; height: 22px; display: block; }
+  #pwa-install:not(.hidden), #pwa-installed:not(.hidden) { display: flex; }
   .llm-config-card { padding: 14px !important; }
   .llm-help {
     border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
@@ -582,7 +712,7 @@
 
 <!-- ============== 顶栏 ============== -->
 <header class="safe-top bg-neutral-950 border-b border-neutral-800 flex items-center px-3 py-2 gap-2">
-  <button id="drawer-open" class="text-neutral-400 text-lg px-2" aria-label="打开会话抽屉">☰</button>
+  <button id="drawer-open" class="icon-only text-neutral-400 px-2" aria-label="打开会话抽屉"><i data-lucide="menu">菜单</i></button>
   <div class="flex-1 min-w-0">
     <div id="header-title" class="text-sm font-semibold truncate">反转家教</div>
     <div id="header-sub" class="text-[10px] text-neutral-500 truncate"></div>
@@ -600,7 +730,7 @@
       <button id="drawer-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
     </div>
     <div class="p-3 border-b border-neutral-800">
-      <button id="drawer-new" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2 rounded-lg text-sm font-medium">+ 新建会话</button>
+      <button id="drawer-new" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"><i class="button-icon" data-lucide="plus"></i><span>新建会话</span></button>
     </div>
     <div id="drawer-sess-list" class="flex-1 scroll-y p-3 space-y-2"></div>
   </aside>
@@ -613,6 +743,15 @@
   <section data-view="chat" class="view flex-1 min-h-0 flex flex-col">
     <div id="chat" class="flex-1 min-h-0 scroll-y px-3 py-3 space-y-2"></div>
     <div id="chat-composer" class="chat-composer border-t border-neutral-800 bg-neutral-950 px-2 py-2 safe-bottom">
+      <div id="quote-preview" class="quote-preview hidden">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div id="quote-preview-title" class="quote-preview-title">引用</div>
+            <div id="quote-preview-body" class="quote-preview-body"></div>
+          </div>
+          <button id="quote-clear" class="icon-only" aria-label="取消引用"><i data-lucide="x"></i></button>
+        </div>
+      </div>
       <div class="flex gap-2 items-end">
         <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" style="overflow-y:auto;max-height:128px;"></textarea>
         <button id="chat-send" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2 rounded-lg font-medium">发送</button>
@@ -631,11 +770,11 @@
       </div>
       <div class="flex gap-2">
         <label class="flex-1 text-center text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer">
-          导入 Word/PDF
+          导入资料（PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB，可多选）
           <input id="anchor-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
         </label>
         <input id="anchor-reprocess-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" class="hidden">
-        <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">仅本地解析，不上传图片</div>
+        <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">支持 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB，多选本地解析</div>
       </div>
     </form>
   </section>
@@ -670,6 +809,15 @@
             <span>AI 主动消息时弹出提示</span>
             <input id="popup-enabled" type="checkbox" class="accent-emerald-700">
           </label>
+          <div class="pt-2 border-t border-neutral-800 space-y-2">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-xs text-neutral-300">后台回复通知</div>
+                <div id="background-notification-status" class="text-[11px] text-neutral-500 leading-relaxed mt-1">检查中…</div>
+              </div>
+              <button id="background-notification-settings" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">设置</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -712,7 +860,7 @@
                 <span id="cfg-provider-title" class="config-picker-title">手动填写</span>
                 <span id="cfg-provider-summary" class="config-picker-sub">自定义 Base URL 和模型</span>
               </span>
-              <span class="config-picker-caret">⌄</span>
+              <span class="config-picker-caret"><i data-lucide="chevron-down"></i></span>
             </button>
           </label>
           <label class="block config-section">
@@ -781,20 +929,20 @@
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">数据</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
-          <button id="data-export" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left">📤 导出全部数据（JSON）</button>
+          <button id="data-export" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="download"></i><span>导出全部数据（JSON）</span></button>
           <label class="block">
-            <span class="w-full block text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left cursor-pointer">📥 导入数据（覆盖）</span>
+            <span class="w-full flex items-center gap-2 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left cursor-pointer"><i class="button-icon" data-lucide="upload"></i><span>导入数据（覆盖）</span></span>
             <input id="data-import" type="file" accept=".json,application/json" class="hidden">
           </label>
-          <button id="data-wipe" class="w-full text-xs px-3 py-2 rounded border border-red-900 text-red-400 active:bg-red-900/20 text-left">🗑️ 清空全部数据</button>
+          <button id="data-wipe" class="w-full text-xs px-3 py-2 rounded border border-red-900 text-red-400 active:bg-red-900/20 text-left flex items-center gap-2"><i class="button-icon" data-lucide="trash-2"></i><span>清空全部数据</span></button>
         </div>
       </div>
 
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">安装到主屏</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
-          <button id="pwa-install" class="hidden w-full text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white">📲 安装到主屏</button>
-          <div id="pwa-installed" class="hidden text-xs text-emerald-400 text-center py-1">✅ 已作为 PWA 运行</div>
+          <button id="pwa-install" class="hidden w-full text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white items-center justify-center gap-2"><i class="button-icon" data-lucide="smartphone"></i><span>安装到主屏</span></button>
+          <div id="pwa-installed" class="hidden text-xs text-emerald-400 py-1 items-center justify-center gap-2"><i class="button-icon" data-lucide="check-circle-2"></i><span>已作为 PWA 运行</span></div>
           <div id="pwa-hint-ios" class="hidden text-[11px] text-neutral-400 leading-relaxed">
             <b>iOS Safari</b>：点底栏「分享」 → 「添加到主屏幕」即可。
           </div>
@@ -808,7 +956,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">反转家教 v0.16.1-test.2 · 移动 PWA</div>
+        <div class="mt-3">反转家教 v0.16.1-test.4 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -908,10 +1056,10 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="text-xs font-semibold text-neutral-300">可选基础文档</div>
-            <div id="new-source-status" class="text-[11px] text-neutral-500 mt-1 truncate">创建时一并导入 Word/PDF</div>
+            <div id="new-source-status" class="text-[11px] text-neutral-500 mt-1 truncate">可多选导入 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB</div>
           </div>
           <label class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer whitespace-nowrap">
-            选择文件
+            选择多个文件
             <input id="new-source-files" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
           </label>
         </div>
@@ -961,6 +1109,13 @@
       <button id="graph-editor-save" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium">保存修正</button>
     </div>
   </div>
+</div>
+
+<div id="message-action-popover" class="message-action-popover hidden">
+  <button data-message-action="quote"><i data-lucide="quote"></i><span>引用</span></button>
+  <button data-message-action="essay"><i data-lucide="notebook-pen"></i><span>随笔</span></button>
+  <button data-message-action="rollback"><i data-lucide="history"></i><span>回档</span></button>
+  <button data-message-action="delete"><i data-lucide="trash-2"></i><span>删除</span></button>
 </div>
 
 <div id="essay-note-sheet" class="choice-sheet-overlay hidden">
@@ -1017,6 +1172,8 @@ const state = {
   graphSelected: '',
   graphEditingNode: null,
   essaySourceMessage: null,
+  selectedActionMessage: null,
+  quotedMessage: null,
 };
 
 function refreshIcons() {
@@ -1029,8 +1186,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 17;
-const APP_VERSION_NAME = '0.16.1-test.2';
+const APP_VERSION_CODE = 19;
+const APP_VERSION_NAME = '0.16.1-test.4';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest';
@@ -2394,6 +2551,26 @@ const NativeBackgroundLlm = (() => {
     }
   }
 
+  async function getNotificationStatus() {
+    const p = plugin();
+    if (!p || !p.getNotificationStatus) return { available: false };
+    try {
+      return await p.getNotificationStatus();
+    } catch (e) {
+      return { available: true, error: String(e.message || e) };
+    }
+  }
+
+  async function openBackgroundNotificationSettings() {
+    const p = plugin();
+    if (!p || !p.openBackgroundNotificationSettings) return { available: false, opened: false };
+    try {
+      return await p.openBackgroundNotificationSettings();
+    } catch (e) {
+      return { available: true, opened: false, error: String(e.message || e) };
+    }
+  }
+
   async function enqueueTurn(job) {
     const p = plugin();
     if (!p) throw new Error('BackgroundLlm plugin unavailable');
@@ -2429,7 +2606,7 @@ const NativeBackgroundLlm = (() => {
     }
   }
 
-  return { isAvailable, requestNotificationPermission, enqueueTurn, getCompletedTurns, clearCompletedTurn, downloadAndInstallApk };
+  return { isAvailable, requestNotificationPermission, getNotificationStatus, openBackgroundNotificationSettings, enqueueTurn, getCompletedTurns, clearCompletedTurn, downloadAndInstallApk };
 })();
 </script>
 
@@ -2590,7 +2767,7 @@ const ENGINE = (() => {
 ${format_anchors(anchors)}
 
 ${sourceContext ? `# 当前问题命中的上传资料片段（优先相信）
-这些内容来自用户导入的 Word/PDF。本轮回答必须优先利用这些资料；如果用户问某个文件是什么，先概括资料片段，不要假装不知道。
+这些内容来自用户导入的 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 等资料。本轮回答必须优先利用这些资料；如果用户问某个文件是什么，先概括资料片段，不要假装不知道。
 ${sourceContext}
 ` : ''}
 
@@ -2669,6 +2846,19 @@ ${format_actions()}
     return out;
   }
 
+  function formatQuotedReplyContext(quote, userInput) {
+    if (!quote || !quote.id) return '';
+    const roleLabel = quote.role === 'assistant' ? '学生 AI' : (quote.role === 'user' ? '用户/老师' : quote.role);
+    return [
+      '用户正在引用一条历史消息进行回复。',
+      `- 引用消息ID：${quote.id}`,
+      `- 引用角色：${roleLabel}`,
+      `- 引用内容：${String(quote.content || '').slice(0, 1200)}`,
+      `- 用户补充：${String(userInput || '').slice(0, 1200)}`,
+      '请优先围绕被引用内容和用户补充作答，不要把引用误当成最新发言。'
+    ].join('\n');
+  }
+
   async function upsert_mastery(sid, kp, correctness, depth) {
     if (!kp) return;
     const all = await DB.bySid('mastery', sid);
@@ -2687,8 +2877,8 @@ ${format_actions()}
     }
   }
 
-  async function add_anchor(sid, kind, content, weight=1.0) {
-    return DB.add('anchors', { sid, kind, content, weight, created_at: Date.now() });
+  async function add_anchor(sid, kind, content, weight=1.0, extra={}) {
+    return DB.add('anchors', { sid, kind, content, weight, created_at: Date.now(), ...extra });
   }
 
   async function add_message(sid, role, content, meta={}) {
@@ -2859,6 +3049,17 @@ ${openingTask}
         const reply = (raw.reply || '').trim() || '（后台回复已生成，但内容为空）';
         const updates = raw.anchor_updates || [];
 
+        if (pending && pending.id) {
+          pending.status = 'completed';
+          pending.meta = {
+            ...(pending.meta || {}),
+            kind: 'native_background_completed',
+            status: 'completed',
+            completed_at: Date.now(),
+          };
+          await DB.put('messages', pending);
+        }
+
         const bubbles = shapeReplyBubbles(reply, 1);
         for (let i = 0; i < bubbles.length; i++) {
           await add_message(job.sid, 'assistant', bubbles[i], {
@@ -2904,22 +3105,68 @@ ${openingTask}
     return { imported, lastReply };
   }
 
-  async function run_turn(sid, user_input, onUserAdded) {
+  async function tryQueueNativeTurnEarly(sid, user_input, sourceMessage, quoted, turnMeta={}) {
+    try {
+      const cfg = LLM.get_config();
+      if (cfg.mode !== 'live' || !supportsBackgroundChat(cfg)) return null;
+      if (!await NativeBackgroundLlm.isAvailable()) return null;
+      const session = await DB.get('sessions', sid);
+      const anchors = await DB.bySid('anchors', sid);
+      const masteries = await DB.bySid('mastery', sid);
+      const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+      const summary = find_latest_summary(msgs);
+      const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
+      const summary_text = summary ? summary.content : '';
+      const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
+      const sourceContext = formatSourceContext(sourceSnippets);
+      const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
+      const messages = build_messages(msgs, null, skip_id);
+      const quotedContext = formatQuotedReplyContext(quoted, user_input);
+      if (quotedContext) messages.push({ role: 'system', content: quotedContext });
+      messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
+      return await maybe_enqueue_native_background_turn(sid, system, messages, 0.85, 900, {
+        turn_id: turnMeta.turnId,
+        client_msg_id: turnMeta.clientMsgId,
+        reply_to_message_id: sourceMessage ? sourceMessage.id : null,
+      });
+    } catch (e) {
+      console.warn('early native background queue failed, falling back to foreground', e);
+      return null;
+    }
+  }
+
+  async function run_turn(sid, user_input, onUserAdded, opts={}) {
     const turnId = createTurnId();
     const clientMsgId = `client_${uuid()}`;
+    const quoted = opts.quotedMessage || null;
     let userMessage = null;
+    let userRendered = false;
+    async function renderUserOnce() {
+      if (userRendered || typeof onUserAdded !== 'function') return;
+      userRendered = true;
+      try { await onUserAdded(); } catch(e){}
+    }
     // 立即写入用户消息（让 UI 可乐观渲染），再做摘要 / LLM
     if (user_input != null) {
       userMessage = await add_message(sid, 'user', user_input, {
         turn_input: true,
         turn_id: turnId,
         client_msg_id: clientMsgId,
+        quoted_message_id: quoted?.id || null,
+        quoted_role: quoted?.role || null,
+        quoted_preview: quoted ? String(quoted.content || '').replace(/\s+/g, ' ').trim().slice(0, 180) : '',
         source: 'user',
         status: 'completed',
       });
-      if (typeof onUserAdded === 'function') { try { await onUserAdded(); } catch(e){} }
     }
     try {
+    const sourceMessage = userMessage || opts.sourceMessage || null;
+    const nativeQueued = await tryQueueNativeTurnEarly(sid, user_input, sourceMessage, quoted, { turnId, clientMsgId });
+    if (nativeQueued) {
+      await renderUserOnce();
+      return nativeQueued;
+    }
+    await renderUserOnce();
     await maybe_summarize(sid);
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
@@ -2935,14 +3182,9 @@ ${openingTask}
     const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
+    const quotedContext = formatQuotedReplyContext(quoted, user_input);
+    if (quotedContext) messages.push({ role: 'system', content: quotedContext });
     messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
-
-    const nativeQueued = await maybe_enqueue_native_background_turn(sid, system, messages, 0.85, 900, {
-      turn_id: turnId,
-      client_msg_id: clientMsgId,
-      reply_to_message_id: userMessage ? userMessage.id : null,
-    });
-    if (nativeQueued) return nativeQueued;
 
     const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
     const ev = cleanEvaluation(raw.evaluation || {});
@@ -2956,7 +3198,8 @@ ${openingTask}
         action: ac,
         evaluation: ev,
         turn_id: turnId,
-        reply_to_message_id: userMessage ? userMessage.id : null,
+        reply_to_message_id: sourceMessage ? sourceMessage.id : null,
+        source_message_id: sourceMessage ? sourceMessage.id : null,
         message_index: i,
         message_total: bubbles.length,
         source:'foreground_llm',
@@ -2968,7 +3211,10 @@ ${openingTask}
       await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
     }
     for (const u of updates) {
-      await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0);
+      await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0, {
+        source_turn_id: turnId,
+        source_message_id: sourceMessage ? sourceMessage.id : null,
+      });
     }
     await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);
     return { reply, action: ac, evaluation: ev };
@@ -3143,6 +3389,33 @@ function setChatInputValue(text, placeCaretAtEnd=true) {
   }
 }
 
+function messageRoleLabel(message) {
+  if (!message) return '消息';
+  if (message.role === 'assistant') return '学生 AI';
+  if (message.role === 'user') return '你';
+  return '系统';
+}
+
+function messagePreview(message, limit=180) {
+  return String(message?.content || '').replace(/\s+/g, ' ').trim().slice(0, limit);
+}
+
+function renderQuotePreview() {
+  const box = $('#quote-preview');
+  if (!box) return;
+  const msg = state.quotedMessage;
+  box.classList.toggle('hidden', !msg);
+  if (!msg) return;
+  $('#quote-preview-title').textContent = `引用 ${messageRoleLabel(msg)}`;
+  $('#quote-preview-body').textContent = messagePreview(msg, 220) || '空消息';
+  refreshIcons();
+}
+
+function clearQuotedMessage() {
+  state.quotedMessage = null;
+  renderQuotePreview();
+}
+
 // --- Tab 切换 ---
 function switchTab(name) {
   state.currentTab = name;
@@ -3211,6 +3484,10 @@ async function renderChat() {
       const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;
       const messageTotal = msgMeta.message_total ?? m.message_total ?? 1;
       const failed = isUser && (m.status === 'error' || msgMeta.status === 'error');
+      const quoteBlock = msgMeta.quoted_message_id ? `
+        <div class="text-[11px] mb-1 px-2 py-1 rounded border border-emerald-900/60 bg-emerald-900/20 text-neutral-400">
+          引用 ${esc(msgMeta.quoted_role === 'assistant' ? '学生 AI' : '你')}：${esc(msgMeta.quoted_preview || '')}
+        </div>` : '';
       const kp = a.knowledge_point ? `<span>${esc(a.knowledge_point)}</span>` : '';
       const bubblePos = messageTotal > 1 ? `<span>${messageIndex + 1}/${messageTotal}</span>` : '';
       const meta = (!isUser && a.type && messageIndex === 0) ? `
@@ -3225,17 +3502,18 @@ async function renderChat() {
         <div class="text-[11px] text-red-200 mt-2 leading-relaxed">
           发送失败：${esc(msgMeta.error || '网络或模型服务异常')}
           <div class="message-failed-actions">
-            <button data-retry-message="${m.id}">重发</button>
-            <button data-edit-message="${m.id}">编辑后发送</button>
+            <button data-retry-message="${m.id}"><i data-lucide="rotate-ccw"></i><span>重发</span></button>
+            <button data-edit-message="${m.id}"><i data-lucide="pencil"></i><span>编辑后发送</span></button>
           </div>
         </div>` : '';
       const bubbleClass = failed
         ? 'bg-red-950/30 border border-red-800'
         : (isUser ? 'bg-emerald-900/40 border border-emerald-800' : 'bg-neutral-900 border border-neutral-800');
       return `
-        <div class="flex ${isUser?'justify-end':'justify-start'}" data-message-id="${m.id}" id="msg-${m.id}">
-          <div class="max-w-[85%] ${bubbleClass} rounded-2xl px-3 py-2">
+        <div class="flex ${isUser?'justify-end':'justify-start'}" id="msg-${m.id}">
+          <div class="max-w-[85%] ${bubbleClass} rounded-2xl px-3 py-2" data-message-id="${m.id}">
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
+            ${quoteBlock}
             <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
             ${meta}
             ${failedActions}
@@ -3248,18 +3526,29 @@ async function renderChat() {
       e.preventDefault();
       const id = Number(el.dataset.messageId);
       const msg = msgs.find(x => Number(x.id) === id);
-      if (msg) openEssayComposer(msg);
+      if (msg) openMessageActionSheet(msg, el);
     });
     let pressTimer = null;
     el.addEventListener('touchstart', () => {
+      el.classList.add('message-pressing');
       pressTimer = setTimeout(() => {
         const id = Number(el.dataset.messageId);
         const msg = msgs.find(x => Number(x.id) === id);
-        if (msg) openEssayComposer(msg);
+        if (msg) openMessageActionSheet(msg, el);
       }, 620);
     }, { passive:true });
-    el.addEventListener('touchend', () => clearTimeout(pressTimer), { passive:true });
-    el.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive:true });
+    el.addEventListener('touchend', () => {
+      clearTimeout(pressTimer);
+      el.classList.remove('message-pressing');
+    }, { passive:true });
+    el.addEventListener('touchmove', () => {
+      clearTimeout(pressTimer);
+      el.classList.remove('message-pressing');
+    }, { passive:true });
+    el.addEventListener('touchcancel', () => {
+      clearTimeout(pressTimer);
+      el.classList.remove('message-pressing');
+    }, { passive:true });
   });
   $$('#chat [data-retry-message]').forEach(btn => btn.addEventListener('click', e => {
     e.preventDefault();
@@ -3271,7 +3560,195 @@ async function renderChat() {
     e.stopPropagation();
     restoreFailedMessageDraft(Number(btn.dataset.editMessage));
   }));
+  refreshIcons();
   chat.scrollTop = chat.scrollHeight;
+}
+
+function positionMessageActionPopover(message, anchorEl) {
+  const pop = $('#message-action-popover');
+  if (!pop || !anchorEl) return;
+  pop.classList.add('hidden');
+  pop.dataset.side = 'above';
+  pop.style.left = '-9999px';
+  pop.style.top = '-9999px';
+  pop.style.maxWidth = '';
+  pop.style.setProperty('--popover-arrow-x', '50%');
+  const targetEl = anchorEl.closest?.('[data-message-id]') || anchorEl;
+  const rect = targetEl.getBoundingClientRect();
+  const gap = 8;
+  const margin = 8;
+  const docWidth = document.documentElement.clientWidth || window.innerWidth;
+  const viewportLeft = Math.max(0, window.visualViewport?.offsetLeft || 0);
+  const viewportWidth = Math.min(
+    window.visualViewport?.width || window.innerWidth,
+    docWidth,
+    window.innerWidth,
+    screen.width || Infinity
+  );
+  const viewportRight = viewportLeft + viewportWidth;
+  const viewportTop = Math.max(0, window.visualViewport?.offsetTop || 0);
+  const viewportHeight = Math.min(
+    window.visualViewport?.height || window.innerHeight,
+    document.documentElement.clientHeight || window.innerHeight,
+    window.innerHeight
+  );
+  const viewportBottom = viewportTop + viewportHeight;
+  pop.style.maxWidth = `${Math.max(156, viewportWidth - margin * 2)}px`;
+  const popRect = pop.getBoundingClientRect();
+  const belowSpace = viewportBottom - rect.bottom - margin - gap;
+  const aboveSpace = rect.top - viewportTop - margin - gap;
+  let side = aboveSpace >= popRect.height || aboveSpace >= belowSpace ? 'above' : 'below';
+  let x = rect.left + rect.width / 2 - popRect.width / 2;
+  let y = side === 'above'
+    ? rect.top - gap - popRect.height
+    : rect.bottom + gap;
+  x = Math.min(Math.max(viewportLeft + margin, x), viewportRight - popRect.width - margin);
+  y = Math.min(Math.max(margin + viewportTop, y), viewportBottom - popRect.height - margin);
+  pop.dataset.side = side;
+  pop.style.left = `${Math.round(x)}px`;
+  pop.style.top = `${Math.round(y)}px`;
+  const arrowX = Math.min(
+    popRect.width - 18,
+    Math.max(18, rect.left + rect.width / 2 - x)
+  );
+  pop.style.setProperty('--popover-arrow-x', `${Math.round(arrowX)}px`);
+  requestAnimationFrame(() => {
+    pop.classList.remove('hidden');
+    requestAnimationFrame(clampMessageActionPopover);
+  });
+}
+
+function clampMessageActionPopover() {
+  const pop = $('#message-action-popover');
+  if (!pop || pop.classList.contains('hidden')) return;
+  const margin = 8;
+  const vv = window.visualViewport;
+  const fallbackWidth = Math.min(
+    document.documentElement.clientWidth || window.innerWidth,
+    window.innerWidth,
+    screen.width || Infinity
+  );
+  const fallbackHeight = Math.min(
+    document.documentElement.clientHeight || window.innerHeight,
+    window.innerHeight,
+    screen.height || Infinity
+  );
+  const leftBound = Math.max(0, vv?.offsetLeft || 0) + margin;
+  const rightBound = leftBound + Math.min(vv?.width || fallbackWidth, fallbackWidth) - margin;
+  const topBound = Math.max(0, vv?.offsetTop || 0) + margin;
+  const bottomBound = topBound + Math.min(vv?.height || fallbackHeight, fallbackHeight) - margin;
+  const rect = pop.getBoundingClientRect();
+  let left = rect.left;
+  let top = rect.top;
+  if (rect.right > rightBound) left -= rect.right - rightBound;
+  if (left < leftBound) left = leftBound;
+  if (rect.bottom > bottomBound) top -= rect.bottom - bottomBound;
+  if (top < topBound) top = topBound;
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+}
+
+function closeMessageActionPopover() {
+  $('#message-action-popover')?.classList.add('hidden');
+  clearMessageActionAnchor();
+}
+
+function clearMessageActionAnchor() {
+  $$('#chat [data-message-id].message-action-active, #chat [data-message-id].message-pressing')
+    .forEach(el => el.classList.remove('message-action-active', 'message-pressing'));
+}
+
+function setMessageActionAnchor(anchorEl) {
+  clearMessageActionAnchor();
+  const bubble = anchorEl?.matches?.('[data-message-id]')
+    ? anchorEl
+    : anchorEl?.closest?.('[data-message-id]');
+  bubble?.classList.add('message-action-active');
+}
+
+function openMessageActionSheet(message, anchorEl=null) {
+  if (!message || message.role === 'system') return;
+  state.selectedActionMessage = message;
+  const resolvedAnchor = anchorEl || document.querySelector(`[data-message-id="${message.id}"]`);
+  setMessageActionAnchor(resolvedAnchor);
+  positionMessageActionPopover(message, resolvedAnchor);
+  refreshIcons();
+}
+
+async function handleMessageAction(action) {
+  const msg = state.selectedActionMessage;
+  state.selectedActionMessage = null;
+  closeMessageActionPopover();
+  if (!msg) return;
+  if (action === 'quote') return quoteMessageForReply(msg);
+  if (action === 'essay') return openEssayComposer(msg);
+  if (action === 'rollback') return rollbackFromMessage(msg);
+  if (action === 'delete') return deleteSingleMessage(msg);
+}
+
+function quoteMessageForReply(message) {
+  state.quotedMessage = {
+    id: message.id,
+    role: message.role,
+    content: message.content || '',
+  };
+  renderQuotePreview();
+  $('#chat-input')?.focus();
+}
+
+async function cleanupMessageMemory(message) {
+  if (!message || !state.sid) return;
+  const meta = message.meta || {};
+  const anchors = await DB.bySid('anchors', state.sid);
+  for (const a of anchors) {
+    const linked =
+      Number(a.note_message_id || 0) === Number(message.id) ||
+      Number(a.source_message_id || 0) === Number(message.id) ||
+      (meta.turn_id && a.source_turn_id === meta.turn_id);
+    if (linked && a.kind !== 'source') await DB.del('anchors', a.id);
+  }
+  const summaries = (await DB.bySid('messages', state.sid))
+    .filter(m => m.role === 'system' && (m.meta || {}).kind === 'summary')
+    .filter(m => Number((m.meta || {}).summarized_until_id || 0) >= Number(message.id));
+  for (const s of summaries) await DB.del('messages', s.id);
+}
+
+async function deleteSingleMessage(message) {
+  if (!message || !state.sid) return;
+  if (!confirm('删除这条消息？关联的随笔/节点也会删除。')) return;
+  await cleanupMessageMemory(message);
+  await DB.del('messages', message.id);
+  if (state.quotedMessage?.id === message.id) clearQuotedMessage();
+  await renderChat();
+  if (state.currentTab === 'insights') await renderInsights();
+  if (state.currentTab === 'anchors') await renderAnchors();
+}
+
+async function rollbackFromMessage(message) {
+  if (!message || !state.sid) return;
+  if ($('#chat-send').disabled) return;
+  if (!confirm('回档会删除这条消息之后的聊天，并重新生成回复。继续？')) return;
+  const all = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
+  const boundaryId = message.role === 'assistant' ? Number(message.id) - 1 : Number(message.id);
+  const remove = all.filter(m => m.role !== 'system' && (message.role === 'assistant' ? m.id >= message.id : m.id > message.id));
+  const sourceUser = message.role === 'assistant'
+    ? all.find(m => m.id === (message.meta || {}).reply_to_message_id || m.id === message.reply_to_message_id)
+    : message;
+  if (sourceUser) await cleanupMessageMemory(sourceUser);
+  for (const m of remove) {
+    await cleanupMessageMemory(m);
+    await DB.del('messages', m.id);
+  }
+  if (state.quotedMessage && state.quotedMessage.id > boundaryId) clearQuotedMessage();
+  setChatSending(true);
+  try {
+    await renderChat();
+    await ENGINE.run_turn(state.sid, null, renderChat, { rollback_from_message_id: message.id, sourceMessage: sourceUser || null });
+  } finally {
+    setChatSending(false);
+    await renderChat();
+    refreshHeader();
+  }
 }
 
 function openEssayComposer(message) {
@@ -3316,11 +3793,18 @@ function setChatSending(sending) {
 
 async function submitChatText(txt, opts={}) {
   if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
+  await importNativeBackgroundTurns({ silent: true });
+  if (await hasPendingNativeBackgroundTurn(state.sid)) {
+    toast('上一条回复还在生成，完成后再继续，避免上下文断开。', 2600);
+    return;
+  }
+  const quotedMessage = opts.quotedMessage === undefined ? state.quotedMessage : opts.quotedMessage;
   if (opts.clearInput !== false) setChatInputValue('', false);
   setChatSending(true);
   try {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
-    await ENGINE.run_turn(state.sid, txt, renderChat);
+    await ENGINE.run_turn(state.sid, txt, renderChat, { quotedMessage });
+    if (quotedMessage && opts.clearQuote !== false) clearQuotedMessage();
   } catch(e) {
     toast('LLM 失败: ' + (e.message||e), 4000);
   } finally {
@@ -3328,6 +3812,15 @@ async function submitChatText(txt, opts={}) {
     await renderChat();
     refreshHeader();
   }
+}
+
+async function hasPendingNativeBackgroundTurn(sid) {
+  if (!sid) return false;
+  const msgs = await DB.bySid('messages', sid);
+  return msgs.some(m => m.role === 'system' && (
+    m.status === 'pending' ||
+    (m.meta || {}).status === 'pending'
+  ) && (m.meta || {}).kind === 'native_background_pending');
 }
 
 async function sendMessage() {
@@ -3349,7 +3842,7 @@ async function retryFailedMessage(id) {
   if (!text) return;
   await DB.del('messages', id);
   await renderChat();
-  await submitChatText(text, { clearInput: false });
+  await submitChatText(text, { clearInput: false, quotedMessage: null });
 }
 
 async function restoreFailedMessageDraft(id) {
@@ -3365,7 +3858,9 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
     if (r.imported) {
       if (state.sid) await renderChat();
       refreshHeader();
-      if (r.lastReply) notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background' });
+      if (r.lastReply && !silent) {
+        notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background', force: true });
+      }
     }
     return r;
   } catch (e) {
@@ -3424,6 +3919,7 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
 }
 
 $('#chat-send').addEventListener('click', sendMessage);
+$('#quote-clear').addEventListener('click', clearQuotedMessage);
 $('#chat-input').addEventListener('compositionstart', () => { chatInputComposing = true; });
 $('#chat-input').addEventListener('compositionend', e => {
   chatInputComposing = false;
@@ -3443,9 +3939,18 @@ document.addEventListener('focusout', () => {
   syncKeyboardLayout.focusedAt = 0;
   scheduleKeyboardLayout(80);
 });
-window.addEventListener('resize', () => scheduleKeyboardLayout(80));
-window.visualViewport?.addEventListener('resize', () => scheduleKeyboardLayout(60));
-window.visualViewport?.addEventListener('scroll', () => scheduleKeyboardLayout(60));
+window.addEventListener('resize', () => {
+  scheduleKeyboardLayout(80);
+  requestAnimationFrame(clampMessageActionPopover);
+});
+window.visualViewport?.addEventListener('resize', () => {
+  scheduleKeyboardLayout(60);
+  requestAnimationFrame(clampMessageActionPopover);
+});
+window.visualViewport?.addEventListener('scroll', () => {
+  scheduleKeyboardLayout(60);
+  requestAnimationFrame(clampMessageActionPopover);
+});
 
 // --- Anchors ---
 async function addLocalAnchor(kind, content, weight=1.5, extra={}) {
@@ -3666,6 +4171,7 @@ async function extractSourceByType(file, sourceType) {
 function sourceNeedsOcr(diagnostics) {
   if (!diagnostics) return false;
   if (diagnostics.source_diagnostics) return sourceNeedsOcr(diagnostics.source_diagnostics);
+  if ((diagnostics.char_count || 0) > 0) return false;
   const legacyEmptyPdf = diagnostics.kind === 'source'
     && diagnostics.source_type === 'pdf'
     && Object.prototype.hasOwnProperty.call(diagnostics, 'source_text')
@@ -3680,8 +4186,15 @@ function sourceDiagnosticMessage(a) {
   return '';
 }
 
+function sourceHasVisualGaps(a) {
+  const d = a?.source_diagnostics || a || {};
+  if (d.source_diagnostics) return sourceHasVisualGaps(d.source_diagnostics);
+  return !!(d.has_visual_pages || d.visual_content_unread || d.vision_page_count);
+}
+
 function diagnoseImportedSource(file, sourceType, text, meta={}) {
   const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  const visualPages = Array.isArray(meta.pages) ? meta.pages.length : 0;
   const diagnostics = {
     status: 'readable',
     code: 'ok',
@@ -3689,14 +4202,22 @@ function diagnoseImportedSource(file, sourceType, text, meta={}) {
     char_count: clean.length,
     page_count: meta.pageCount || null,
     pages_read: meta.pagesRead || null,
+    has_visual_pages: visualPages > 0,
+    vision_page_count: visualPages,
   };
-  if (sourceType === 'pdf' && clean.length < 80) {
+  if (sourceType === 'pdf' && clean.length === 0) {
     diagnostics.status = 'needs_ocr';
     diagnostics.code = 'pdf_empty_text';
     diagnostics.needs_ocr = true;
-    diagnostics.has_visual_pages = Array.isArray(meta.pages) && meta.pages.length > 0;
-    diagnostics.vision_page_count = Array.isArray(meta.pages) ? meta.pages.length : 0;
     diagnostics.message = '需要视觉模型：这份 PDF 需要看页面图片，当前 AI 尚未真正读到正文。';
+  } else if (sourceType === 'pdf' && clean.length < 120) {
+    diagnostics.status = 'partial_text';
+    diagnostics.code = 'partial_text_with_visual';
+    diagnostics.needs_ocr = false;
+    diagnostics.visual_content_unread = visualPages > 0;
+    diagnostics.message = visualPages
+      ? '已先读取可提取文字并生成图谱；图片内容会保留为待视觉补读。'
+      : '已读取少量文字，会先基于可读内容生成粗略图谱。';
   } else if (clean.length < 120) {
     diagnostics.status = 'low_text';
     diagnostics.code = 'low_text';
@@ -4057,7 +4578,11 @@ async function importAnchorFiles(files, opts={}) {
         await addLocalAnchor('source', parsed.content, 1.2, parsed.extra);
       }
       const diagnostics = parsed.diagnostics;
-      if (sourceNeedsOcr(diagnostics)) toast(`${file.name} 已导入，但需要视觉模型才能理解正文`, 4200);
+      if (sourceNeedsOcr(diagnostics)) {
+        toast(`${file.name} 已导入，但需要视觉模型才能理解正文`, 4200);
+      } else if (sourceHasVisualGaps(diagnostics)) {
+        toast(`${file.name} 已先读取文字；图片内容待视觉模型补读`, 4200);
+      }
       ok++;
       if (opts.replaceAnchorId) break;
     } catch (err) {
@@ -4079,6 +4604,7 @@ function anchorVisualState(a) {
   const nodes = sourceMemoryNodes(a);
   const expanded = nodes.filter(n => n.status === 'expanded').length;
   const pending = nodes.filter(n => n.pending_expansion).length;
+  if (sourceHasVisualGaps(a)) return pending ? `已读文字 · 图片待补读 · 待分析 ${pending}` : '已读文字 · 图片待补读';
   if (expanded) return `已分析 ${expanded}`;
   if (pending) return `待分析 ${pending}`;
   return '已建图';
@@ -4093,6 +4619,9 @@ function sourcePreviewText(a) {
   const meta = [`${type}`, chars ? `${chars} 字` : '', pages ? `${pages} 页` : ''].filter(Boolean).join(' · ');
   if (sourceNeedsOcr(a)) {
     return `${meta || type}\n需要视觉模型读取页面图片后，才能生成章节分支和候选知识节点。`;
+  }
+  if (sourceHasVisualGaps(a)) {
+    return `${meta || type}\n已先读取可提取文字并生成资料分支；图片内容保留为待视觉模型补读。`;
   }
   return `${meta || type}\n文档内容已保存为检索证据，聊天命中相关知识后再展开单支分析。`;
 }
@@ -4119,7 +4648,7 @@ async function renderAnchors() {
       <div class="flex-1 text-neutral-200">
         ${a.kind === 'source' ? sourceAnchorCardHtml(a) : `<div>${esc(a.content)} <span class="text-neutral-600">w=${a.weight.toFixed(1)}</span></div>`}
       </div>
-      <button data-del="${a.id}" class="text-neutral-500 active:text-red-400 text-base px-1">✕</button>
+      <button data-del="${a.id}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除锚点"><i data-lucide="x"></i></button>
     </div>
   `).join('') || '<div class="text-xs text-neutral-500 text-center mt-10">尚无锚</div>';
   $$('#anchors-list [data-reprocess-source]').forEach(b => b.addEventListener('click', () => {
@@ -4131,6 +4660,7 @@ async function renderAnchors() {
     await DB.del('anchors', +b.dataset.del);
     renderAnchors();
   }));
+  refreshIcons();
 }
 $('#anchor-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -4162,9 +4692,9 @@ function normalizeGraphTopic(s) {
 
 function sourceDisplayName(a, fallback='资料') {
   const name = a?.source_name || '';
-  if (name) return String(name).replace(/\.(pdf|docx|pptx?)$/i, '');
+  if (name) return String(name).replace(/\.(pdf|docx|txt|md|markdown|html|htm|pptx?|epub)$/i, '');
   const hit = String(a?.content || '').match(/\[(?:文件|File)[:：]\s*([^\]\n]+)\]/i);
-  return hit ? hit[1].replace(/\.(pdf|docx|pptx?)$/i, '') : fallback;
+  return hit ? hit[1].replace(/\.(pdf|docx|txt|md|markdown|html|htm|pptx?|epub)$/i, '') : fallback;
 }
 
 function graphSourceText(a) {
@@ -5203,6 +5733,49 @@ function renderVisionCapabilityHint() {
   el.className = 'text-[11px] mt-1 leading-relaxed ' + (supportsVision ? 'text-emerald-400' : 'text-amber-400');
 }
 
+function notificationStatusCopy(status) {
+  if (!status || status.available === false) return {
+    text: '当前不是 Android 原生环境，只显示应用内提示。',
+    cls: 'text-[11px] text-neutral-500 leading-relaxed mt-1',
+  };
+  if (status.error) return {
+    text: `通知状态读取失败：${status.error}`,
+    cls: 'text-[11px] text-amber-400 leading-relaxed mt-1',
+  };
+  if (!status.notificationsEnabled) return {
+    text: '系统通知未允许。点“设置”打开应用通知页后，先允许通知。',
+    cls: 'text-[11px] text-red-400 leading-relaxed mt-1',
+  };
+  if (status.channelBlocked) return {
+    text: '“后台 LLM 回复”通知分类已关闭。点“设置”打开后开启该分类。',
+    cls: 'text-[11px] text-red-400 leading-relaxed mt-1',
+  };
+  if (!status.channelHighImportance) return {
+    text: '通知权限已允许，但分类不是高优先级；横幅/悬浮可能不会弹出。',
+    cls: 'text-[11px] text-amber-400 leading-relaxed mt-1',
+  };
+  return {
+    text: '通知权限已允许，后台回复分类为高优先级；若仍无横幅，请在系统页确认“横幅/悬浮通知”。',
+    cls: 'text-[11px] text-emerald-400 leading-relaxed mt-1',
+  };
+}
+
+async function renderBackgroundNotificationSettings() {
+  const statusEl = $('#background-notification-status');
+  const btn = $('#background-notification-settings');
+  if (!statusEl || !btn) return;
+  try {
+    const status = await NativeBackgroundLlm.getNotificationStatus();
+    const copy = notificationStatusCopy(status);
+    statusEl.textContent = copy.text;
+    statusEl.className = copy.cls;
+    btn.classList.toggle('hidden', status.available === false);
+  } catch (e) {
+    statusEl.textContent = `通知状态读取失败：${e.message || e}`;
+    statusEl.className = 'text-[11px] text-amber-400 leading-relaxed mt-1';
+  }
+}
+
 function renderConfigPickerUi() {
   const provider = llmProviderById($('#cfg-provider')?.value || 'custom');
   const model = $('#cfg-model')?.value || provider.model || '';
@@ -5257,7 +5830,7 @@ async function renderSettings() {
         <div class="text-sm truncate ${state.sid===s.id?'text-emerald-400':''}">${esc(s.title)}</div>
         <div class="text-[10px] text-neutral-500 truncate">${esc(s.persona.role)} · ${esc(s.persona.goal)}</div>
       </button>
-      <button data-del-sess="${s.id}" class="text-neutral-500 active:text-red-400 text-base px-2">✕</button>
+      <button data-del-sess="${s.id}" class="text-neutral-500 active:text-red-400 px-2 icon-only" aria-label="删除会话"><i data-lucide="x"></i></button>
     </div>
   `).join('') : '<div class="text-xs text-neutral-500 text-center py-3">尚无会话</div>';
   $$('#sess-list [data-open]').forEach(b => b.addEventListener('click', async () => {
@@ -5293,7 +5866,9 @@ async function renderSettings() {
   applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
   setPopupEnabled(popupEnabled());
   renderProactiveSettings();
+  renderBackgroundNotificationSettings();
   renderUpdateSettings();
+  refreshIcons();
 }
 
 function renderProactiveSettings() {
@@ -5355,14 +5930,14 @@ async function testLlm() {
   const oldText = btn.textContent;
   try {
     await saveLlmConfig();
-    $('#cfg-status').textContent = '🔌 测试中…';
+    $('#cfg-status').textContent = '测试中…';
     $('#cfg-status').className = 'text-xs text-neutral-400';
     const r = await LLM.ping();
     if (r.ok) {
-      $('#cfg-status').textContent = `✅ 联通 OK（${r.mode} · ${r.model||''}）`;
+      $('#cfg-status').textContent = `联通 OK（${r.mode} · ${r.model||''}）`;
       $('#cfg-status').className = 'text-xs text-emerald-400';
     } else {
-      $('#cfg-status').textContent = `❌ ${r.error || r.reason || '失败'}`;
+      $('#cfg-status').textContent = `连接失败：${r.error || r.reason || '失败'}`;
       $('#cfg-status').className = 'text-xs text-red-400';
     }
   } finally {
@@ -5404,6 +5979,24 @@ $('#choice-sheet-close').addEventListener('click', closeChoiceSheet);
 $('#choice-sheet').addEventListener('click', e => {
   if (e.target.id === 'choice-sheet') closeChoiceSheet();
 });
+$('#message-action-popover').addEventListener('click', e => {
+  const btn = e.target.closest('[data-message-action]');
+  if (!btn) return;
+  e.stopPropagation();
+  handleMessageAction(btn.dataset.messageAction);
+});
+document.addEventListener('pointerdown', e => {
+  const pop = $('#message-action-popover');
+  if (!pop || pop.classList.contains('hidden')) return;
+  if (pop.contains(e.target)) return;
+  closeMessageActionPopover();
+}, true);
+document.addEventListener('click', e => {
+  const pop = $('#message-action-popover');
+  if (!pop || pop.classList.contains('hidden')) return;
+  if (pop.contains(e.target)) return;
+  closeMessageActionPopover();
+});
 async function restoreRuntimeConfigOnResume() {
   try {
     // 回到前台时弹出后台期间缓存的通知
@@ -5429,6 +6022,25 @@ setInterval(() => maybeRunProactiveTurn({ reason: 'online_tick' }), 60000);
 $('#theme-ink').addEventListener('click', () => applyTheme('ink'));
 $('#theme-warm').addEventListener('click', () => applyTheme('warm'));
 $('#popup-enabled').addEventListener('change', e => setPopupEnabled(e.target.checked));
+$('#background-notification-settings')?.addEventListener('click', async () => {
+  const btn = $('#background-notification-settings');
+  if (btn?.disabled) return;
+  if (btn) btn.disabled = true;
+  try {
+    await NativeBackgroundLlm.requestNotificationPermission();
+    const r = await NativeBackgroundLlm.openBackgroundNotificationSettings();
+    if (r.available === false) {
+      toast('当前环境没有 Android 通知设置页', 2600);
+    } else if (r.opened) {
+      toast('已打开后台回复通知设置', 2600);
+    } else {
+      toast(`通知设置打开失败：${r.error || '系统不支持'}`, 3200);
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    setTimeout(renderBackgroundNotificationSettings, 800);
+  }
+});
 $('#proactive-enabled')?.addEventListener('change', e => {
   setProactiveConfig({ enabled: e.target.checked });
   renderProactiveSettings();
@@ -5488,7 +6100,7 @@ async function renderSessionDrawer() {
       + '<div class="text-sm truncate ' + active + '">' + esc(s.title) + '</div>'
       + '<div class="text-[10px] text-neutral-500 truncate">' + esc(s.persona.role) + ' / ' + esc(s.persona.goal) + '</div>'
       + '</button>'
-      + '<button data-drawer-del="' + s.id + '" class="text-neutral-500 active:text-red-400 text-base px-2">×</button>'
+      + '<button data-drawer-del="' + s.id + '" class="text-neutral-500 active:text-red-400 px-2 icon-only" aria-label="删除会话"><i data-lucide="x"></i></button>'
       + '</div>';
   }).join('') : '<div class="text-xs text-neutral-500 text-center py-8">暂无会话，先新建一个</div>';
   list.querySelectorAll('[data-drawer-open]').forEach(b => b.addEventListener('click', async () => {
@@ -5512,6 +6124,7 @@ async function renderSessionDrawer() {
     }
     renderSessionDrawer();
   }));
+  refreshIcons();
 }
 
 async function openDrawer() {
@@ -5599,7 +6212,7 @@ $('#new-source-files').addEventListener('change', e => {
   const files = Array.from(e.target.files || []);
   $('#new-source-status').textContent = files.length
     ? `已选择 ${files.length} 个文件，创建后导入`
-    : '创建时一并导入 Word/PDF';
+    : '可多选导入 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB';
 });
 
 $('#new-create').addEventListener('click', async () => {

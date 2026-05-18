@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="static/app/icon-192.png" width="96" alt="Back Teacher logo">
+  <img src="static/app/icon-192.png" width="112" alt="反转家教应用图标">
 </p>
 
 <h1 align="center">反转家教 Back Teacher</h1>
 
 <p align="center">
-  把 AI 从“答案机器”变成会追问、会复盘、会持续推动目标的学生。
+  把 AI 从“答案机器”变成会追问、会引用上下文、会在后台继续回复的学生。
 </p>
 
 <p align="center">
@@ -13,12 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Back_Teacher?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.16.1--test.4-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.0-debug.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">查看最新版本</a>
   ·
@@ -33,9 +34,9 @@
 
 ## 这是什么
 
-反转家教是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话中推动你把事情做完。
+反转家教是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话里推动你把事情做完。
 
-它最初适合学习场景：用“教别人”的方式逼自己真正理解。现在也支持更宽泛的目标型使用，例如项目推进、方案打磨、习惯监督、面试训练、产品讨论和个人任务复盘。
+它最初适合学习场景：用“教别人”的方式逼自己真正理解。现在也支持更宽泛的目标型使用，例如项目推进、方案打磨、习惯监督、面试训练、产品讨论和个人任务复盘。移动端走本地优先路线：会话、资料、API 配置保存在设备侧，APK 里还带后台回复服务。
 
 ## 核心能力
 
@@ -43,11 +44,14 @@
 |---|---|
 | 反向教学对话 | AI 扮演你设定的人格，用追问和反馈逼近清晰表达，而不是直接替你完成。 |
 | 目标锚点 | 记录目标、要求、知识点和新增约束，减少长对话中的跑偏。 |
-| 洞察窗口 | 汇总掌握度、重点、下一步动作和对话中的结构化信息。 |
+| 资料知识库 | 支持 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 等资料导入，并进入检索和洞察图谱。 |
+| 洞察图谱 | 汇总掌握度、资料节点、随笔节点、重点和下一步动作，便于从聊天跳回结构化线索。 |
+| 引用回复 | 长按消息可引用 AI 或自己的发言，让后续回复明确基于哪一句上下文。 |
+| 随笔、回档、删除 | 长按气泡可写随笔、从某条消息回档重生成，或永久删除单条消息及关联记忆。 |
 | 主动对话 | 在线模式下可按间隔主动发起提醒，离线模式保持静默，睡眠模式降低频率。 |
 | 多模型接入 | 移动端支持 OpenAI Chat API 与 Anthropic Messages API 两类协议，内置 DeepSeek、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio 等预设。 |
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
-| Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务。 |
+| Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
 
 ## 产品结构
@@ -127,7 +131,7 @@ mobile/android/app/build/outputs/apk/debug/app-debug.apk
 
 当前公开测试包：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.0-debug.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest
 
 ## 应用更新
@@ -149,16 +153,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 15,
-  "versionName": "0.16.0",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.0-debug.apk",
+  "versionCode": 19,
+  "versionName": "0.16.1-test.4",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.0/Back_Teacher-v0.16.0-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1-test.4/Back_Teacher-v0.16.1-test.4-debug.apk"
   ],
-  "publishedAt": "2026-05-16",
+  "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "重做接口类型配置",
-    "替换启动封面并加入进入动画"
+    "修复后台 LLM 回复通知",
+    "新增引用回复、回档和消息删除",
+    "文档导入支持多选和 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 全格式提示"
   ]
 }
 ```
@@ -195,7 +200,7 @@ npm run build:apk
 
 ## 当前状态
 
-这个项目还处在快速迭代阶段，Debug APK 适合自用测试。正式分发仍需要 release 签名、权限说明、隐私政策和更完整的设备兼容测试。
+这个项目还处在快速迭代阶段，Debug APK 适合自用测试。当前版本重点改善 Android 实机体验，包括后台回复通知、长按消息菜单、启动动画和应用图标。正式分发仍需要 release 签名、权限说明、隐私政策和更完整的设备兼容测试。
 
 ## 加入交流群
 

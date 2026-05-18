@@ -1,6 +1,6 @@
 {
   "name": "reverse-tutor-mobile",
-  "version": "0.16.1-test.2",
+  "version": "0.16.1-test.4",
   "private": true,
   "description": "Reverse Tutor - local-only Android wrapper via Capacitor",
   "scripts": {

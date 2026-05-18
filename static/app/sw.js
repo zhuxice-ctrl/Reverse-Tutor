@@ -5,7 +5,7 @@
  *   - LLM API 请求始终 network-only（不缓存）
  *   - 缓存版本随发布更新
  */
-const VERSION = 'rt-mobile-v12-test2';
+const VERSION = 'rt-mobile-v12-test4';
 const SHELL = [
   './',
   './index.html',

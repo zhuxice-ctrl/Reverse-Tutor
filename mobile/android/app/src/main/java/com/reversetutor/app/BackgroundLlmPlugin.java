@@ -33,6 +33,7 @@ public class BackgroundLlmPlugin extends Plugin {
     static final String PREFS_NAME = "BackgroundLlm";
     static final String COMPLETED_KEY = "rt-native-background-llm-completed";
     static final String PENDING_KEY = "rt-native-background-llm-pending";
+    private static final String RESULT_CHANNEL_ID = "background_llm_result_v4";
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
@@ -51,8 +52,8 @@ public class BackgroundLlmPlugin extends Plugin {
         }
         try {
             ensureResultChannel();
-            android.app.Notification notification = new androidx.core.app.NotificationCompat.Builder(getContext(), "background_llm_result_v2")
-                .setSmallIcon(getContext().getApplicationInfo().icon)
+            android.app.Notification notification = new androidx.core.app.NotificationCompat.Builder(getContext(), RESULT_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_reverse_tutor)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new androidx.core.app.NotificationCompat.BigTextStyle().bigText(body))
@@ -60,6 +61,7 @@ public class BackgroundLlmPlugin extends Plugin {
                 .setCategory(androidx.core.app.NotificationCompat.CATEGORY_MESSAGE)
                 .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_SOUND | androidx.core.app.NotificationCompat.DEFAULT_VIBRATE)
                 .build();
             int id = 43300 + Math.abs(body.hashCode() % 500);
             androidx.core.app.NotificationManagerCompat.from(getContext()).notify(id, notification);
@@ -74,13 +76,63 @@ public class BackgroundLlmPlugin extends Plugin {
         }
     }
 
+    @PluginMethod
+    public void getNotificationStatus(PluginCall call) {
+        ensureResultChannel();
+        JSObject ret = new JSObject();
+        ret.put("available", true);
+        ret.put("notificationsEnabled", androidx.core.app.NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
+        ret.put("channelId", RESULT_CHANNEL_ID);
+
+        if (Build.VERSION.SDK_INT >= 26) {
+            android.app.NotificationManager mgr = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            android.app.NotificationChannel ch = mgr == null ? null : mgr.getNotificationChannel(RESULT_CHANNEL_ID);
+            int importance = ch == null ? android.app.NotificationManager.IMPORTANCE_NONE : ch.getImportance();
+            ret.put("channelImportance", importance);
+            ret.put("channelBlocked", importance == android.app.NotificationManager.IMPORTANCE_NONE);
+            ret.put("channelHighImportance", importance >= android.app.NotificationManager.IMPORTANCE_HIGH);
+        } else {
+            ret.put("channelImportance", android.app.NotificationManager.IMPORTANCE_HIGH);
+            ret.put("channelBlocked", false);
+            ret.put("channelHighImportance", true);
+        }
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openBackgroundNotificationSettings(PluginCall call) {
+        try {
+            ensureResultChannel();
+            Intent intent;
+            if (Build.VERSION.SDK_INT >= 26) {
+                intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+                intent.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
+                intent.putExtra(Settings.EXTRA_CHANNEL_ID, RESULT_CHANNEL_ID);
+            } else {
+                intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("opened", true);
+            ret.put("channelId", RESULT_CHANNEL_ID);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("opened", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
+        }
+    }
+
     private void ensureResultChannel() {
         if (Build.VERSION.SDK_INT < 26) return;
         android.app.NotificationManager mgr = (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         if (mgr == null) return;
-        if (mgr.getNotificationChannel("background_llm_result_v2") != null) return;
+        if (mgr.getNotificationChannel(RESULT_CHANNEL_ID) != null) return;
         android.app.NotificationChannel ch = new android.app.NotificationChannel(
-            "background_llm_result_v2", "后台 LLM 回复", android.app.NotificationManager.IMPORTANCE_HIGH);
+            RESULT_CHANNEL_ID, "后台 LLM 回复", android.app.NotificationManager.IMPORTANCE_HIGH);
         ch.setDescription("后台 LLM 回复完成后弹出实际回复内容。");
         ch.enableVibration(true);
         mgr.createNotificationChannel(ch);
@@ -88,6 +140,7 @@ public class BackgroundLlmPlugin extends Plugin {
 
     @PluginMethod
     public void requestNotificationPermission(PluginCall call) {
+        ensureResultChannel();
         if (Build.VERSION.SDK_INT < 33) {
             resolveNotificationPermission(call, true, false);
             return;
