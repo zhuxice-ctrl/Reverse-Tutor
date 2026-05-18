@@ -2,11 +2,12 @@
 
 ## v0.17.0 - 2026-05-19
 
-- 新增流式输出：AI 回复逐字出现，带生成中指示器，支持 OpenAI/Anthropic 双协议流式，不支持的 provider 自动降级。
-- 新增用户多消息：AI 回复过程中可连续发送多条消息自动排队，完成后依次处理。
-- 新增 AI 多气泡输出：AI 可通过 `|||` 分隔符生成多条连续消息气泡。
-- LLM 拆分为双路并行调用：Eval call（结构化评估）+ Reply call（流式文本），解决 JSON mode 与 streaming 互斥问题。
-- Mock 模式也支持流式逐字输出，方便离线体验。
+- 新增 LLM 流式原语：`openai_text_stream()` 支持 SSE 解析并自动降级非流式；`anthropic_text_stream()` 处理 `content_block_delta`；统一路由器 `chat_text_stream()` 兼容 Mock 模式逐字输出（25-60ms 间隔）。
+- 新增 Eval 专用调用 `chat_json_eval_only()`：只输出 evaluation/action/anchor_updates，不含 reply 文本，解决 JSON mode 与 streaming 互斥。
+- Engine 流式分支：`run_turn` 新增 `opts.stream`，Eval call 与 Reply call 双路并行；流式 token 通过 `onStreamToken` / `onBubbleComplete` 回调推送；Mock 模式复用同一 `mockResponse` 保证一致性。
+- 流式 UI 渲染：`getOrCreateStreamingBubble()` / `updateStreamingBubble()` / `finalizeStreamingBubble()` 实时更新气泡，带 ● 生成中指示器，AI 回复逐字出现。
+- 用户多消息队列：生成中可连续发送，消息自动排队（按钮显示「发送 (N)」），`processMessageQueue()` 依次消费，聊天区显示 ⏳ N 条消息待发送。
+- AI 多气泡输出：流式路径中 `shapeReplyBubbles(reply, 3)`，LLM 用 `|||` 分隔可生成多条连续消息气泡。
 
 ## v0.16.1 - 2026-05-19
 
