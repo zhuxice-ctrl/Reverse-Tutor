@@ -1,9 +1,9 @@
 {
   "versionCode": 20,
   "versionName": "0.16.1",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-debug.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1/Back_Teacher-v0.16.1-debug.apk"
+    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1/Back_Teacher-v0.16.1.apk"
   ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [

@@ -3,6 +3,14 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.reversetutor.app"
     compileSdk rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            storeFile file('release.jks')
+            storePassword 'reversetutor2026'
+            keyAlias 'reverse-tutor'
+            keyPassword 'reversetutor2026'
+        }
+    }
     defaultConfig {
         applicationId "com.reversetutor.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -18,6 +26,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
