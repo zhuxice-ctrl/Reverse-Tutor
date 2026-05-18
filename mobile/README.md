@@ -54,7 +54,7 @@ Capacitor 官方文档生成 keystore。
 当前默认更新源：
 
 ```text
-https://raw.githubusercontent.com/zhuxice-ctrl/Back_Teacher/main/static/app/latest.json
+https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json
 ```
 
 示例：

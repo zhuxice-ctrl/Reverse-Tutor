@@ -2,15 +2,15 @@
   <img src="static/app/icon-192.png" width="112" alt="反转家教应用图标">
 </p>
 
-<h1 align="center">反转家教 Back Teacher</h1>
+<h1 align="center">反转家教 Reverse Tutor</h1>
 
 <p align="center">
   把 AI 从“答案机器”变成会追问、会引用上下文、会在后台继续回复的学生。
 </p>
 
 <p align="center">
-  <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">
-    <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Back_Teacher?style=for-the-badge&label=release&color=0f766e">
+  <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">
+    <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
   <img alt="Current APK" src="https://img.shields.io/badge/apk-0.16.1-0f766e?style=for-the-badge">
@@ -19,9 +19,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1/Back_Teacher-v0.16.1-debug.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.16.1/Back_Teacher-v0.16.1.apk"><strong>下载 Android APK</strong></a>
   ·
-  <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">查看最新版本</a>
+  <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
   <a href="#快速开始">本地运行</a>
   ·
@@ -131,7 +131,7 @@ mobile/android/app/build/outputs/apk/debug/app-debug.apk
 
 当前公开测试包：
 
-- GitHub Release：https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest
+- GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
 
@@ -154,7 +154,7 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 {
   "versionCode": 20,
   "versionName": "0.16.1",
-  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1/Back_Teacher-v0.16.1-debug.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1.apk",
   "publishedAt": "2026-05-19",
   "releaseNotes": [
     "修复后台通知：退到桌面后弹出系统通知",

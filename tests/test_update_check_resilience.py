@@ -15,7 +15,7 @@ def test_update_check_has_timeout_cache_buster_and_fallback_feed():
     assert "cacheBustUrl" in html
     assert "GITHUB_LATEST_RELEASE_URL" in html
     assert "updateFeedCandidates" in html
-    assert "api.github.com/repos/zhuxice-ctrl/Back_Teacher/releases/latest" in html
+    assert "api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest" in html
 
 
 def test_update_check_prefers_self_hosted_source_and_migrates_legacy_github_feed():
@@ -24,7 +24,7 @@ def test_update_check_prefers_self_hosted_source_and_migrates_legacy_github_feed
     assert "LEGACY_UPDATE_FEED_URLS" in html
     assert "normalizeStoredUpdateFeedUrl" in html
     assert "ensureSelfHostedApkMirror" in html
-    assert "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v${versionName}-debug.apk" in html
+    assert "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v${versionName}.apk" in html
     assert "默认使用自建高速更新源" in html
     assert "out.push({ label: '自建高速更新源', url: DEFAULT_UPDATE_FEED_URL })" in html
 
