@@ -1,15 +1,15 @@
 {
-  "versionCode": 20,
-  "versionName": "0.16.1",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1.apk",
+  "versionCode": 21,
+  "versionName": "0.17.0",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.17.0.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.16.1/Back_Teacher-v0.16.1.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Back_Teacher-v0.17.0.apk"
   ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "修复后台通知：退到桌面后 LLM 继续生成，完成时弹出系统通知；新增原生通知插件，设置页可直达通知开关。",
-    "修复输入法光标跳转：中文输入不再跳到末尾，输入过程中不触碰 textarea 样式，兼容华为鸿蒙 WebView。",
-    "新增消息长按菜单：引用回复、创建随笔、回档、删除，模仿 QQ 在气泡上方弹出，点击空白关闭。",
-    "替换应用图标与启动画面，减少启动白屏；聊天界面图标统一为 Lucide，主动对话改为分段控件。"
+    "新增流式输出：AI 回复逐字出现，带生成中指示器，OpenAI/Anthropic 双协议流式，不支持的 provider 自动降级",
+    "新增用户多消息：AI 回复过程中可连续发送多条消息，自动排队依次处理",
+    "新增 AI 多气泡：LLM 可通过分隔符生成多条连续消息气泡",
+    "Mock 模式也支持流式逐字输出，方便离线体验"
   ]
 }

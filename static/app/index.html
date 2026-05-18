@@ -1174,6 +1174,8 @@ const state = {
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
+  messageQueue: [],
+  isGenerating: false,
 };
 
 function refreshIcons() {
@@ -2191,6 +2193,20 @@ const LLM = (() => {
     return pack(intent, kp, emotion, correctness, depth, reqs);
   }
 
+  async function* mock_stream_response(messages) {
+    const response = mock_response(messages);
+    const bubbles = shapeReplyBubbles(response.reply, 3);
+    for (let b = 0; b < bubbles.length; b++) {
+      if (b > 0) yield { type: 'bubble_boundary' };
+      const chars = [...bubbles[b]];
+      for (let i = 0; i < chars.length; i++) {
+        await new Promise(r => setTimeout(r, 20 + Math.random() * 35));
+        yield { delta: chars[i], accumulated: bubbles[b].slice(0, i + 1), bubbleIndex: b };
+      }
+    }
+    return response;
+  }
+
   // === OpenAI 兼容真调 ===
   function network_error(e, url) {
     const message = e && e.message ? e.message : String(e || 'unknown error');
@@ -2310,6 +2326,68 @@ const LLM = (() => {
     return raw;
   }
 
+  async function openai_text_stream(system, messages, temperature=0.7, max_tokens=900) {
+    const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
+    const body = {
+      model: cfg.model,
+      messages: [{ role:'system', content: system }, ...sanitizeMessagesForCapability(messages)],
+      temperature, max_tokens,
+      stream: true,
+    };
+    const headers = { 'Content-Type':'application/json' };
+    if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
+    let r;
+    try {
+      r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    } catch (e) {
+      throw network_error(e, url);
+    }
+    if (!r.ok) {
+      // Provider might not support streaming, fall back to non-streaming
+      const errText = await r.text().catch(()=>'');
+      if (/stream/i.test(errText) || r.status === 400) {
+        const fullText = await openai_text(system, messages, temperature, max_tokens, false);
+        return {
+          fullText: () => fullText,
+          async *[Symbol.asyncIterator]() {
+            yield { delta: fullText, accumulated: fullText };
+          }
+        };
+      }
+      throw new Error(`LLM streaming ${r.status}: ${errText}`);
+    }
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    return {
+      fullText: () => fullText,
+      async *[Symbol.asyncIterator]() {
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            const s = line.trim();
+            if (!s || !s.startsWith('data: ')) continue;
+            const payload = s.slice(6);
+            if (payload === '[DONE]') return;
+            try {
+              const chunk = JSON.parse(payload);
+              const delta = chunk.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullText += delta;
+                yield { delta, accumulated: fullText };
+              }
+            } catch (e) { /* skip unparseable chunks */ }
+          }
+        }
+      }
+    };
+  }
+
   async function openai_chat(system, messages, temperature=0.7, max_tokens=900) {
     return extract_json(await openai_text(system, messages, temperature, max_tokens, true));
   }
@@ -2410,6 +2488,72 @@ const LLM = (() => {
     if (!raw.trim()) throw new Error(`LLM returned empty anthropic output: ${text.slice(0, 200)}`);
     return raw;
   }
+
+  async function anthropic_text_stream(system, messages, temperature=0.7, max_tokens=900) {
+    const url = cfg.base_url.replace(/\/+$/, '') + '/v1/messages';
+    const payload = anthropicPayload(system, messages);
+    const body = {
+      model: cfg.model,
+      system: payload.system,
+      messages: payload.messages,
+      temperature,
+      max_tokens,
+      stream: true,
+    };
+    const headers = {
+      'Content-Type':'application/json',
+      'anthropic-version':'2023-06-01',
+    };
+    if (cfg.api_key) headers['x-api-key'] = cfg.api_key;
+    let r;
+    try {
+      r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    } catch (e) {
+      throw network_error(e, url);
+    }
+    if (!r.ok) {
+      const errText = await r.text().catch(()=>'');
+      if (/stream/i.test(errText) || r.status === 400) {
+        const fullText = await anthropic_text(system, messages, temperature, max_tokens);
+        return {
+          fullText: () => fullText,
+          async *[Symbol.asyncIterator]() {
+            yield { delta: fullText, accumulated: fullText };
+          }
+        };
+      }
+      throw new Error(`LLM streaming ${r.status}: ${errText}`);
+    }
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    return {
+      fullText: () => fullText,
+      async *[Symbol.asyncIterator]() {
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            const s = line.trim();
+            if (!s || !s.startsWith('data: ')) continue;
+            const payload = s.slice(6);
+            if (!payload || payload === '[DONE]') continue;
+            try {
+              const event = JSON.parse(payload);
+              if (event.type === 'content_block_delta' && event.delta?.text) {
+                fullText += event.delta.text;
+                yield { delta: event.delta.text, accumulated: fullText };
+              }
+            } catch (e) { /* skip unparseable chunks */ }
+          }
+        }
+      }
+    };
+  }
   function extract_json(raw) {
     let s = (raw || '').trim();
     // strip <think>...</think> (DeepSeek-R1 style)
@@ -2487,6 +2631,66 @@ const LLM = (() => {
       : openai_text(system, messages, temperature, max_tokens, jsonMode);
   }
 
+  function chat_text_stream(system, messages, opts={}) {
+    if (!has_real()) {
+      const response = mock_response(messages);
+      const gen = mock_stream_response(messages);
+      let _fullText = '';
+      return {
+        fullText: () => _fullText,
+        mockResponse: response,
+        async *[Symbol.asyncIterator]() {
+          let lastResponse = null;
+          for await (const chunk of gen) {
+            if (chunk.type === 'bubble_boundary') { yield chunk; continue; }
+            if (chunk.delta !== undefined) {
+              _fullText += chunk.delta;
+              yield chunk;
+            } else {
+              lastResponse = chunk;
+            }
+          }
+          return lastResponse || response;
+        }
+      };
+    }
+    const t = opts.temperature ?? 0.7;
+    const mt = opts.max_tokens ?? 900;
+    return cfg.api_type === 'anthropic'
+      ? anthropic_text_stream(system, messages, t, mt)
+      : openai_text_stream(system, messages, t, mt);
+  }
+
+  async function chat_json_eval_only(system, messages, opts={}) {
+    if (!has_real()) return mock_response(messages);
+    const t = opts.temperature ?? 0.7;
+    const mt = opts.max_tokens ?? 400;
+    const evalSystem = system + '\n\n# 输出格式\n只输出 evaluation、action、anchor_updates 三个字段，**不要**包含 reply 字段。严格 JSON 对象，以 { 开头。';
+    let firstRaw = '';
+    try {
+      firstRaw = await chat_text(evalSystem, messages, t, mt, true);
+      return extract_json(firstRaw);
+    } catch (e) {
+      const firstMessage = String(e.message || e);
+      if (!/did not return valid JSON|empty content/.test(firstMessage)) throw e;
+      const sys2 = evalSystem + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
+      try {
+        const retryRaw = await chat_text(sys2, messages, Math.min(t, 0.3), mt, false);
+        try {
+          return extract_json(retryRaw);
+        } catch (parseRetryErr) {
+          const fallback = fallback_json(retryRaw || firstRaw, 'eval_only_fallback');
+          if (fallback) return fallback;
+          throw parseRetryErr;
+        }
+      } catch (retryErr) {
+        const fallback = fallback_json(firstRaw, 'eval_only_fallback_first');
+        if (fallback) return fallback;
+        throw new Error(`${retryErr.message || retryErr}; first invalid response: ${firstMessage.slice(0, 180)}`);
+      }
+    }
+  }
+
   async function chat_json(system, messages, opts={}) {
     if (!has_real()) return mock_response(messages);
     const t = opts.temperature ?? 0.7;
@@ -2532,7 +2736,7 @@ const LLM = (() => {
     return cfg.capability === 'vision' || cfg.capability === 'vision_files';
   }
 
-  return { has_real, set_config, get_config, chat_json, ping, parse_json: extract_json, fallback_json, supports_vision };
+  return { has_real, set_config, get_config, chat_json, chat_text_stream, chat_json_eval_only, mock_stream_response, ping, parse_json: extract_json, fallback_json, supports_vision };
 })();
 </script>
 
@@ -3194,6 +3398,84 @@ ${openingTask}
     const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
     await persistSourceMemoryHits(anchors, sourceSnippets, user_input, userMessage ? [userMessage.id] : []);
     const sourceContext = formatSourceContext(sourceSnippets);
+
+    if (opts.stream) {
+      const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
+      const messagesStream = build_messages(msgs, null, skip_id);
+      const qcStream = formatQuotedReplyContext(quoted, user_input);
+      if (qcStream) messagesStream.push({ role: 'system', content: qcStream });
+      messagesStream.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
+
+      const evalSystem = systemStream + '\n\n# 输出要求\n只输出 evaluation、action、anchor_updates 三个字段，**不要**包含 reply 字段。严格 JSON，以 { 开头。';
+      const replySystem = systemStream + '\n\n# 输出要求\n你现在是角色扮演，就输出你（学生）要说的自然语言回复。**不要**输出 JSON、不要 markdown 代码块、不要 evaluation、不要 action 字段。就正常说话。';
+
+      const streamObj = LLM.chat_text_stream(replySystem, messagesStream, { temperature: 0.85, max_tokens: 600 });
+      const evalPromise = streamObj.mockResponse
+        ? Promise.resolve(streamObj.mockResponse)
+        : LLM.chat_json_eval_only(evalSystem, messagesStream, { temperature: 0.85, max_tokens: 400 });
+
+      let currentBubbleText = '';
+      try {
+        if (typeof opts.onBubbleStart === 'function') opts.onBubbleStart(0);
+        for await (const chunk of streamObj) {
+          if (chunk.type === 'bubble_boundary') continue;
+          currentBubbleText += chunk.delta;
+          if (typeof opts.onStreamToken === 'function') {
+            opts.onStreamToken({ delta: chunk.delta, accumulated: chunk.accumulated || streamObj.fullText(), bubbleIndex: 0 });
+          }
+        }
+      } catch (streamErr) {
+        console.warn('streaming interrupted', streamErr);
+        if (typeof opts.onError === 'function') opts.onError(streamErr);
+      }
+
+      let ev = {}, ac = {}, updates = [];
+      try {
+        const evalResult = await evalPromise;
+        ev = cleanEvaluation(evalResult.evaluation || {});
+        ac = normalizeAction(evalResult.action || {}, '自由回复');
+        updates = evalResult.anchor_updates || [];
+      } catch (evalErr) {
+        console.warn('eval call failed', evalErr);
+        ac = normalizeAction({}, '自由回复');
+      }
+
+      if (typeof opts.onMetadataReady === 'function') {
+        opts.onMetadataReady({ evaluation: ev, action: ac, anchor_updates: updates });
+      }
+
+      const fullReply = streamObj.fullText() || currentBubbleText;
+      const reply = (fullReply||'').trim() || '（……我有点走神了，你刚才说啥？）';
+      const bubbles = shapeReplyBubbles(reply, 3);
+      for (let i = 0; i < bubbles.length; i++) {
+        if (i > 0 && typeof opts.onBubbleStart === 'function') opts.onBubbleStart(i);
+        if (typeof opts.onBubbleComplete === 'function') opts.onBubbleComplete(i, bubbles[i]);
+        await add_message(sid, 'assistant', bubbles[i], {
+          action: ac, evaluation: ev,
+          turn_id: turnId,
+          reply_to_message_id: sourceMessage ? sourceMessage.id : null,
+          source_message_id: sourceMessage ? sourceMessage.id : null,
+          message_index: i, message_total: bubbles.length,
+          source:'foreground_llm', status: 'completed',
+        });
+      }
+
+      if (ac.knowledge_point) {
+        await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+      }
+      for (const u of updates) {
+        await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0, {
+          source_turn_id: turnId, source_message_id: sourceMessage ? sourceMessage.id : null,
+        });
+      }
+      await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);
+
+      const result = { reply, action: ac, evaluation: ev, bubbles };
+      if (typeof opts.onTurnComplete === 'function') opts.onTurnComplete(result);
+      return result;
+    }
+
+    // Non-streaming path
     const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
@@ -3462,6 +3744,43 @@ async function refreshHeader() {
   }
 }
 
+// --- Streaming Bubble ---
+
+function getOrCreateStreamingBubble() {
+  let bubble = $('#streaming-bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.id = 'streaming-bubble';
+    bubble.className = 'flex justify-start';
+    bubble.innerHTML = `<div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
+      <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">● 生成中</span></div>
+      <div class="md text-sm stream-content"></div></div>`;
+    $('#chat').appendChild(bubble);
+  }
+  return { container: bubble, content: bubble.querySelector('.stream-content'), indicator: bubble.querySelector('.streaming-indicator') };
+}
+
+function updateStreamingBubble(htmlText) {
+  const { content } = getOrCreateStreamingBubble();
+  content.innerHTML = safeChatHtml(htmlText);
+  const chat = $('#chat');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function finalizeStreamingBubble() {
+  const bubble = $('#streaming-bubble');
+  if (bubble) {
+    const indicator = bubble.querySelector('.streaming-indicator');
+    if (indicator) indicator.remove();
+    bubble.removeAttribute('id');
+  }
+}
+
+function removeStreamingBubble() {
+  const bubble = $('#streaming-bubble');
+  if (bubble) bubble.remove();
+}
+
 // --- Chat ---
 async function renderChat() {
   const chat = $('#chat');
@@ -3536,6 +3855,13 @@ async function renderChat() {
         </div>`;
     }).join('');
   chat.innerHTML = banner + (html || '<div class="text-xs text-neutral-500 text-center mt-10">学生 AI 还没说话。点 "发送" 它会先开场……或者发一句 "开始吧"</div>');
+  // Show queued pending messages indicator
+  if (state.messageQueue.length) {
+    const pendingDiv = document.createElement('div');
+    pendingDiv.className = 'text-[11px] text-amber-400 text-center mt-1';
+    pendingDiv.textContent = `⏳ ${state.messageQueue.length} 条消息待发送`;
+    chat.appendChild(pendingDiv);
+  }
   $$('#chat [data-message-id]').forEach(el => {
     el.addEventListener('contextmenu', async e => {
       e.preventDefault();
@@ -3741,7 +4067,7 @@ async function deleteSingleMessage(message) {
 
 async function rollbackFromMessage(message) {
   if (!message || !state.sid) return;
-  if ($('#chat-send').disabled) return;
+  if (state.isGenerating) return;
   if (!confirm('回档会删除这条消息之后的聊天，并重新生成回复。继续？')) return;
   const all = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
   const boundaryId = message.role === 'assistant' ? Number(message.id) - 1 : Number(message.id);
@@ -3802,8 +4128,9 @@ async function saveEssayNote() {
 
 function setChatSending(sending) {
   const btn = $('#chat-send');
-  btn.disabled = sending;
-  btn.textContent = sending ? '…' : '发送';
+  state.isGenerating = sending;
+  btn.textContent = sending ? '…' : (state.messageQueue.length ? `发送 (${state.messageQueue.length})` : '发送');
+  renderQueueIndicator();
 }
 
 async function submitChatText(txt, opts={}) {
@@ -3816,16 +4143,40 @@ async function submitChatText(txt, opts={}) {
   const quotedMessage = opts.quotedMessage === undefined ? state.quotedMessage : opts.quotedMessage;
   if (opts.clearInput !== false) setChatInputValue('', false);
   setChatSending(true);
+  removeStreamingBubble();
   try {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
-    await ENGINE.run_turn(state.sid, txt, renderChat, { quotedMessage });
+    await ENGINE.run_turn(state.sid, txt, renderChat, {
+      quotedMessage,
+      stream: true,
+      onStreamToken({ delta, accumulated, bubbleIndex }) {
+        updateStreamingBubble(accumulated);
+      },
+      onBubbleStart(bubbleIndex) {
+        // streaming bubble handles all display
+      },
+      onBubbleComplete(bubbleIndex, text) {
+        // bubble completed (tracked internally)
+      },
+      onMetadataReady({ evaluation, action, anchor_updates }) {
+        // eval metadata ready, could show confidence indicator
+      },
+      onTurnComplete({ reply, action, evaluation, bubbles }) {
+        finalizeStreamingBubble();
+      },
+      onError(err) {
+        removeStreamingBubble();
+      }
+    });
     if (quotedMessage && opts.clearQuote !== false) clearQuotedMessage();
   } catch(e) {
     toast('LLM 失败: ' + (e.message||e), 4000);
+    removeStreamingBubble();
   } finally {
     setChatSending(false);
     await renderChat();
     refreshHeader();
+    processMessageQueue();
   }
 }
 
@@ -3839,18 +4190,64 @@ async function hasPendingNativeBackgroundTurn(sid) {
 }
 
 async function sendMessage() {
-  if ($('#chat-send').disabled) return;
   const txt = $('#chat-input').value.trim();
   if (!txt) {
     if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
-    // 空消息当 "请开场" 处理
     return openingFor(state.sid);
+  }
+  if (state.isGenerating) {
+    // Queue for later processing
+    state.messageQueue.push({ text: txt, quotedMessage: state.quotedMessage });
+    setChatInputValue('', false);
+    if (state.quotedMessage) clearQuotedMessage();
+    renderQueueIndicator();
+    toast(`已排队（${state.messageQueue.length}）`, 1500);
+    return;
   }
   await submitChatText(txt);
 }
 
+async function processMessageQueue() {
+  if (!state.sid || state.isGenerating) return;
+  const next = state.messageQueue.shift();
+  if (!next) { renderQueueIndicator(); return; }
+  renderQueueIndicator();
+  try {
+    await submitChatText(next.text, { quotedMessage: next.quotedMessage });
+  } catch (e) {
+    toast('队列消息发送失败: ' + (e.message||e), 4000);
+  }
+  if (state.messageQueue.length > 0) {
+    processMessageQueue();
+  }
+}
+
+function renderQueueIndicator() {
+  let badge = $('#queue-badge');
+  const count = state.messageQueue.length;
+  if (!count) {
+    if (badge) badge.remove();
+    return;
+  }
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'queue-badge';
+    badge.className = 'bg-amber-700 text-amber-100 text-[10px] px-2 py-0.5 rounded-full';
+    $('#chat-composer')?.appendChild(badge);
+  }
+  badge.textContent = `${count} 条排队`;
+}
+
+async function renderPendingQueueMessages() {
+  if (!state.sid || !state.messageQueue.length) return;
+  // Don't re-render during streaming (would disrupt the streaming bubble)
+  // The queue indicator is already handled by renderQueueIndicator
+  if (state.isGenerating) return;
+  await renderChat();
+}
+
 async function retryFailedMessage(id) {
-  if ($('#chat-send').disabled) return;
+  if (state.isGenerating) return;
   const msg = await DB.get('messages', id);
   if (!msg) return;
   const text = String(msg.meta?.retry_text || msg.content || '').trim();
@@ -3885,7 +4282,7 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
 }
 
 async function openingFor(sid) {
-  if ($('#chat-send').disabled) return;
+  if (state.isGenerating) return;
   setChatSending(true);
   try {
     const result = await ENGINE.run_opening_turn(sid);
