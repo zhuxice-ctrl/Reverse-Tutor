@@ -24,7 +24,7 @@ def test_update_check_prefers_self_hosted_source_and_migrates_legacy_github_feed
     assert "LEGACY_UPDATE_FEED_URLS" in html
     assert "normalizeStoredUpdateFeedUrl" in html
     assert "ensureSelfHostedApkMirror" in html
-    assert "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v${versionName}.apk" in html
+    assert "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v${versionName}.apk" in html
     assert "默认使用自建高速更新源" in html
     assert "out.push({ label: '自建高速更新源', url: DEFAULT_UPDATE_FEED_URL })" in html
 

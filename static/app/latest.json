@@ -1,9 +1,9 @@
 {
   "versionCode": 21,
   "versionName": "0.17.0",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.17.0.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.0.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Back_Teacher-v0.17.0.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Reverse-Tutor-v0.17.0.apk"
   ],
   "sha256": "b6d18479a2e394c133afeee20edd03978bd148af18dfd1cd999fb96d6c605e7c",
   "publishedAt": "2026-05-19",

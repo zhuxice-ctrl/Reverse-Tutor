@@ -1471,7 +1471,7 @@ function compareVersionName(a, b) {
 function ensureSelfHostedApkMirror(apkUrls, versionName) {
   const urls = Array.isArray(apkUrls) ? apkUrls.slice() : [];
   if (/^\d+\.\d+\.\d+/.test(String(versionName || ''))) {
-    urls.unshift(`https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v${versionName}.apk`);
+    urls.unshift(`https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v${versionName}.apk`);
   }
   return urls
     .map(x => String(x || '').trim())
