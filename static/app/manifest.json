@@ -1,6 +1,6 @@
 {
-  "name": "反转家教 Reverse Tutor",
-  "short_name": "反转家教",
+  "name": "Reverse Tutor",
+  "short_name": "Reverse Tutor",
   "description": "你来当老师，AI 扮演学生。教学过程中加深你的理解，所有数据本地存储。",
   "start_url": "./",
   "scope": "./",

@@ -1,4 +1,4 @@
-# 反转家教 Android APK 打包
+# Reverse Tutor Android APK 打包
 
 把 `../static/app/` 的 PWA 用 Capacitor 包成 .apk。**纯本地、无网也能跑**（mock 模式）。
 
@@ -21,11 +21,11 @@ npx cap sync android      # 后续每次改 web 都跑这个
 
 # 3. 编译 APK
 cd android
-.\gradlew assembleDebug   # 首次 ~10min（下 gradle + 依赖）
-# 产出：android/app/build/outputs/apk/debug/app-debug.apk
+.\gradlew assembleRelease # 首次 ~10min（下 gradle + 依赖）
+# 产出：android/app/build/outputs/apk/release/app-release.apk
 
 # 4. 装机
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/release/app-release.apk
 # 或者把 .apk 用 U 盘/微信 传到手机点击安装（需开「未知来源」）
 ```
 
@@ -33,13 +33,13 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ```powershell
 npm run sync   # = sync-web.js + cap sync android
-# 然后重新 gradlew assembleDebug
+# 然后重新 gradlew assembleRelease
 ```
 
 ## 签名发布版（可选，自用免）
 
-debug APK 默认有 Android debug 签名，可直接装。如需 Play Store 发布，参考
-Capacitor 官方文档生成 keystore。
+当前工程已配置 release 签名，正式测试包使用 release APK；如需 Play Store 发布，参考
+Capacitor 官方文档管理 keystore。
 
 ## 应用内检查更新
 
@@ -54,16 +54,19 @@ Capacitor 官方文档生成 keystore。
 当前默认更新源：
 
 ```text
-https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json
+https://dl.zeroxcore.tech/reverse-tutor/latest.json
 ```
 
 示例：
 
 ```json
 {
-  "versionCode": 2,
-  "versionName": "0.12.0",
-  "apkUrl": "https://github.com/<owner>/<repo>/releases/download/v0.12.0/app-release.apk",
+  "versionCode": 21,
+  "versionName": "0.17.0",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.0.apk",
+  "apkMirrors": [
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Reverse-Tutor-v0.17.0.apk"
+  ],
   "publishedAt": "2026-05-14",
   "releaseNotes": [
     "新增检查更新功能",

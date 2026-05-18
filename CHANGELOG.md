@@ -2,12 +2,15 @@
 
 ## v0.17.0 - 2026-05-19
 
+- 品牌命名统一为 Reverse Tutor，正式 APK 命名为 `Reverse-Tutor-v0.17.0.apk`，不再使用 test/debug 后缀；Android 包名继续保留 `com.reversetutor.app` 以支持覆盖升级。
 - 新增 LLM 流式原语：`openai_text_stream()` 支持 SSE 解析并自动降级非流式；`anthropic_text_stream()` 处理 `content_block_delta`；统一路由器 `chat_text_stream()` 兼容 Mock 模式逐字输出（25-60ms 间隔）。
 - 新增 Eval 专用调用 `chat_json_eval_only()`：只输出 evaluation/action/anchor_updates，不含 reply 文本，解决 JSON mode 与 streaming 互斥。
 - Engine 流式分支：`run_turn` 新增 `opts.stream`，Eval call 与 Reply call 双路并行；流式 token 通过 `onStreamToken` / `onBubbleComplete` 回调推送；Mock 模式复用同一 `mockResponse` 保证一致性。
 - 流式 UI 渲染：`getOrCreateStreamingBubble()` / `updateStreamingBubble()` / `finalizeStreamingBubble()` 实时更新气泡，带 ● 生成中指示器，AI 回复逐字出现。
 - 用户多消息队列：生成中可连续发送，消息自动排队（按钮显示「发送 (N)」），`processMessageQueue()` 依次消费，聊天区显示 ⏳ N 条消息待发送。
 - AI 多气泡输出：流式路径中 `shapeReplyBubbles(reply, 3)`，LLM 用 `|||` 分隔可生成多条连续消息气泡。
+- 延续 v0.16.1 的 Android 体验修复：后台 LLM 生成、原生通知、中文输入法光标修复、长按引用/随笔/回档/删除菜单、图标与启动页统一。
+- 补强文档导入：PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 多选导入，图文混排 PDF 在不支持视觉时也会先读取可提取文字。
 
 ## v0.16.1 - 2026-05-19
 

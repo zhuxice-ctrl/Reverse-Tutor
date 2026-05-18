@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="反转家教">
+<meta name="apple-mobile-web-app-title" content="Reverse Tutor">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<title>反转家教</title>
+<title>Reverse Tutor</title>
 
 <script>
   (function () {
@@ -706,7 +706,7 @@
   <div class="entry-splash-mark">
     <img src="./icon-192.png" alt="">
   </div>
-  <div class="entry-splash-title">反转家教</div>
+  <div class="entry-splash-title">Reverse Tutor</div>
   <div class="entry-splash-line"><span></span></div>
 </div>
 
@@ -714,7 +714,7 @@
 <header class="safe-top bg-neutral-950 border-b border-neutral-800 flex items-center px-3 py-2 gap-2">
   <button id="drawer-open" class="icon-only text-neutral-400 px-2" aria-label="打开会话抽屉"><i data-lucide="menu">菜单</i></button>
   <div class="flex-1 min-w-0">
-    <div id="header-title" class="text-sm font-semibold truncate">反转家教</div>
+    <div id="header-title" class="text-sm font-semibold truncate">Reverse Tutor</div>
     <div id="header-sub" class="text-[10px] text-neutral-500 truncate"></div>
   </div>
   <div id="header-mode" class="text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60">mock</div>
@@ -956,7 +956,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">反转家教 v0.16.1-test.4 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.0 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1502,7 +1502,7 @@ function normalizeUpdateInfo(raw) {
 
 function isNewerUpdate(info) {
   if (info.versionCode && info.versionCode > APP_VERSION_CODE) return true;
-  // 相同 versionCode：正式版优先于测试版（如 0.16.1 > 0.16.1-test.4）
+  // 相同 versionCode：正式版优先于预发布版
   if (info.versionCode && info.versionCode === APP_VERSION_CODE) {
     const currentIsPrerelease = /[-](test|alpha|beta|rc|dev)/i.test(APP_VERSION_NAME);
     const remoteIsPrerelease = /[-](test|alpha|beta|rc|dev)/i.test(info.versionName || '');
@@ -3739,7 +3739,7 @@ async function refreshHeader() {
       $('#header-sub').textContent = `${s.persona.role} · ${s.persona.goal}`;
     }
   } else {
-    $('#header-title').textContent = '反转家教';
+    $('#header-title').textContent = 'Reverse Tutor';
     $('#header-sub').textContent = '点 设置 创建你的第一个会话';
   }
 }

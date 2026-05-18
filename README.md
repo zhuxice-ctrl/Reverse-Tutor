@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="static/app/icon-192.png" width="112" alt="反转家教应用图标">
+  <img src="static/app/icon-192.png" width="112" alt="Reverse Tutor app icon">
 </p>
 
-<h1 align="center">反转家教 Reverse Tutor</h1>
+<h1 align="center">Reverse Tutor</h1>
 
 <p align="center">
-  把 AI 从“答案机器”变成会追问、会引用上下文、会在后台继续回复的学生。
+  把 AI 从“答案机器”变成会追问、会引用上下文、会实时回复的学生。
 </p>
 
 <p align="center">
@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.16.1-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.0-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.16.1/Back_Teacher-v0.16.1.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.0.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -29,12 +29,12 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/readme-showcase.svg" alt="Back Teacher showcase">
+  <img src="docs/assets/readme-showcase.svg" alt="Reverse Tutor showcase">
 </p>
 
 ## 这是什么
 
-反转家教是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话里推动你把事情做完。
+Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话里推动你把事情做完。
 
 它最初适合学习场景：用“教别人”的方式逼自己真正理解。现在也支持更宽泛的目标型使用，例如项目推进、方案打磨、习惯监督、面试训练、产品讨论和个人任务复盘。移动端走本地优先路线：会话、资料、API 配置保存在设备侧，APK 里还带后台回复服务。
 
@@ -54,16 +54,27 @@
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
 
+## v0.17.0 更新重点
+
+- 品牌统一为 **Reverse Tutor**，APK 命名为 `Reverse-Tutor-v0.17.0.apk`，不再使用 `test` 或 `debug` 后缀；Android 包名仍保留 `com.reversetutor.app`，便于覆盖升级。
+- 新增流式输出：OpenAI SSE 与 Anthropic delta 双协议逐字生成，不支持流式的 provider 自动降级。
+- Eval 评估与 Reply 回复解耦，JSON 评估不再阻塞实时回复显示。
+- 聊天 UI 支持实时气泡逐字渲染和 `● 生成中` 指示器，回复不再等整段完成才出现。
+- 新增多消息队列：AI 生成中仍可继续发送，消息会按顺序排队处理。
+- 新增 AI 多气泡：LLM 可用 `|||` 分隔输出多条连续消息气泡，更接近真实聊天软件。
+- 延续 v0.16.1 的 Android 体验修复：后台 LLM 生成、原生通知、中文输入法光标修复、长按引用/随笔/回档/删除菜单、图标与启动页统一。
+- 补强文档导入：PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 多选导入，图文混排 PDF 在不支持视觉时也会先读取可提取文字。
+
 ## 产品结构
 
 <p align="center">
-  <img src="docs/assets/readme-architecture.svg" alt="Back Teacher architecture">
+  <img src="docs/assets/readme-architecture.svg" alt="Reverse Tutor architecture">
 </p>
 
 ```text
 .
 ├── server.py                 # FastAPI 服务入口
-├── engine.py                 # 反转家教核心对话引擎
+├── engine.py                 # Reverse Tutor 核心对话引擎
 ├── llm.py                    # 服务端 LLM / mock 适配层
 ├── db.py                     # SQLite 数据模型与操作
 ├── adapters/                 # 飞书 / QQ / Hermes 等平台适配
@@ -121,11 +132,12 @@ npm run build:apk
 产物位置：
 
 ```text
-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+mobile/android/app/build/outputs/apk/release/app-release.apk
 ```
 
-当前公开测试包：
+当前公开版本：
 
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.0.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -147,15 +159,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 20,
-  "versionName": "0.16.1",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1.apk",
+  "versionCode": 21,
+  "versionName": "0.17.0",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.0.apk",
+  "apkMirrors": [
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Reverse-Tutor-v0.17.0.apk"
+  ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "修复后台通知：退到桌面后弹出系统通知",
-    "修复输入法光标跳转，兼容华为鸿蒙 WebView",
-    "新增消息长按菜单：引用、随笔、回档、删除",
-    "替换应用图标与启动画面"
+    "品牌命名统一为 Reverse Tutor",
+    "新增 OpenAI/Anthropic 双协议流式输出",
+    "新增多消息队列和 AI 多气泡输出"
   ]
 }
 ```

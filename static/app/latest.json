@@ -5,12 +5,16 @@
   "apkMirrors": [
     "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Reverse-Tutor-v0.17.0.apk"
   ],
-  "sha256": "b6d18479a2e394c133afeee20edd03978bd148af18dfd1cd999fb96d6c605e7c",
+  "sha256": "fb9d34140a3a929f941832353f1b08f1248984aa655878dbe1c164148dbde994",
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "新增流式输出：AI 回复逐字出现，带生成中指示器，OpenAI/Anthropic 双协议流式，不支持的 provider 自动降级",
-    "新增用户多消息：AI 回复过程中可连续发送多条消息，自动排队依次处理",
-    "新增 AI 多气泡：LLM 可通过分隔符生成多条连续消息气泡",
-    "Mock 模式也支持流式逐字输出，方便离线体验"
+    "品牌命名统一为 Reverse Tutor，APK 命名为 Reverse-Tutor-v0.17.0.apk，不再使用 test/debug 后缀。",
+    "新增流式输出：OpenAI SSE 与 Anthropic delta 双协议逐字生成，不支持流式的 provider 自动降级。",
+    "Eval 评估与 Reply 回复解耦，JSON 评估不再阻塞实时回复显示。",
+    "聊天 UI 新增实时气泡逐字渲染和 ● 生成中指示器，回复不再等整段生成完成才出现。",
+    "新增多消息队列：AI 生成中仍可继续发送，消息会按顺序排队处理。",
+    "新增 AI 多气泡：LLM 可用 ||| 分隔输出多条连续消息气泡，更接近真实聊天软件。",
+    "延续 v0.16.1 的 Android 体验修复：后台 LLM 生成、原生通知、中文输入法光标修复、长按引用/随笔/回档/删除菜单、图标与启动页统一。",
+    "补强文档导入：PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 多选导入，图文混排 PDF 在不支持视觉时也会先读取可提取文字。"
   ]
 }
