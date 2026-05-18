@@ -13,3 +13,6 @@ dist/
 release-artifacts/
 .DS_Store
 Thumbs.db
+*.apk
+*.jks
+*.keystore
