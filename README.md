@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Back_Teacher?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.16.1--test.4-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.16.1-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1/Back_Teacher-v0.16.1-debug.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest">查看最新版本</a>
   ·
@@ -131,7 +131,6 @@ mobile/android/app/build/outputs/apk/debug/app-debug.apk
 
 当前公开测试包：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Back_Teacher/releases/latest
 
 ## 应用更新
@@ -153,17 +152,15 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 19,
-  "versionName": "0.16.1-test.4",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Back_Teacher-v0.16.1-test.4-debug.apk",
-  "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1-test.4/Back_Teacher-v0.16.1-test.4-debug.apk"
-  ],
+  "versionCode": 20,
+  "versionName": "0.16.1",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Back_Teacher/releases/download/v0.16.1/Back_Teacher-v0.16.1-debug.apk",
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "修复后台 LLM 回复通知",
-    "新增引用回复、回档和消息删除",
-    "文档导入支持多选和 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 全格式提示"
+    "修复后台通知：退到桌面后弹出系统通知",
+    "修复输入法光标跳转，兼容华为鸿蒙 WebView",
+    "新增消息长按菜单：引用、随笔、回档、删除",
+    "替换应用图标与启动画面"
   ]
 }
 ```

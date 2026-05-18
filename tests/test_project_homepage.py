@@ -37,3 +37,15 @@ def test_readme_showcase_text_uses_explicit_alignment():
     assert '后台横幅通知与应用更新' in svg
     assert 'x="844" y="464"' in svg
     assert 'x="762" y="390" width="290"' in svg
+
+
+def test_release_docs_summarize_v0161_major_changes():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    latest = (ROOT / "static" / "app" / "latest.json").read_text(encoding="utf-8")
+
+    for text in (readme, changelog, latest):
+        assert "0.16.1" in text
+        assert "通知" in text or "后台" in text
+        assert "光标" in text or "输入法" in text
+        assert "长按" in text or "菜单" in text
