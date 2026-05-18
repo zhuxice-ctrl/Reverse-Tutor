@@ -41,6 +41,17 @@ npm run sync   # = sync-web.js + cap sync android
 当前工程已配置 release 签名，正式测试包使用 release APK；如需 Play Store 发布，参考
 Capacitor 官方文档管理 keystore。
 
+签名规范固定如下，后续发布不要再变动：
+
+- Keystore：`mobile/android/app/release.jks`
+- Alias：`reverse-tutor`
+- Android applicationId：`com.reversetutor.app`
+- 证书 DN：`CN=Reverse Tutor, OU=App, O=ReverseTeacher, L=CN, ST=CN, C=CN`
+- 证书 SHA-256：`d21ff63c6b75494dd2229caccd6977ec763c8b17d95807ff1d7c455d39ac41c2`
+- 正式 APK 命名：`Reverse-Tutor-v{versionName}.apk`
+
+不要删除、替换或重新生成 `release.jks`；不要再用 Android Debug 签名发布对外 APK。旧 debug/test 包切到 v0.17.0 release 签名时需要卸载旧包，后续只要保持该签名即可覆盖升级。
+
 ## 应用内检查更新
 
 移动端设置页里有「软件更新」：
