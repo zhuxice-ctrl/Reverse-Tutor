@@ -70,7 +70,8 @@ def test_mobile_pdf_sources_are_retrieved_for_each_llm_turn():
     assert "formatSourceContext" in html
     assert "当前问题命中的上传资料片段" in html
     assert "const sourceSnippets = retrieveSourceSnippets(anchors, user_input);" in html
-    assert "const sourceContext = formatSourceContext(sourceSnippets);" in html
+    assert "const sourceContext = formatSourceContext(sourceSnippets, user_input, anchors);" in html
+    assert "const sourceContext = formatSourceContext(sourceSnippets, effectiveUserInput, anchors);" in html
     assert "build_system_prompt(session, anchors, masteries, summary_text, sourceContext)" in html
 
 
@@ -333,11 +334,43 @@ def test_mobile_chat_input_preserves_caret_and_handles_keyboard_layout():
     assert "padding-bottom: calc(0.75rem + var(--keyboard-bottom))" in html
     assert "scroll-padding-bottom: calc(86px + var(--keyboard-bottom))" in html
     assert "function keepChatTailVisible" in html
-    assert "keepChatTailVisible(80)" in html
-    assert "keepChatTailVisible(0)" in html
+    assert "function isChatNearBottom" in html
+    assert "opts.wasNearBottom" in html
+    assert "const shouldFollowChat = state.currentTab === 'chat'" in html
+    assert "keepChatTailVisible(80, { wasNearBottom: shouldFollowChat })" in html
+    assert "keepChatTailVisible(0, { wasNearBottom })" in html
+    assert "addEventListener('pointerdown'" in html
+    assert "addEventListener('pointerup'" in html
+    assert "chatSendHandledByPointer" in html
+    assert "e.pointerType !== 'mouse'" in html
+    assert "document.activeElement?.id === 'chat-input'" in html
+    assert "e.preventDefault()" in html
     assert "overflow: hidden;" in html
     assert ".bottom-nav { flex-shrink: 0;" in html
     assert "overscroll-behavior: contain;" in html
+
+
+def test_mobile_chat_handles_topic_drift_fuzzy_retrieval_and_visible_thinking_status():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "话题偏离与关联性判断" in html
+    assert "强相关、弱相关、暂时无关" in html
+    assert "先解决用户此刻的问题" in html
+    assert "不要硬拽用户回“中点”" in html
+    assert "function sourceTermVariants" in html
+    assert "function fuzzySourceTermScore" in html
+    assert "function sourceEditDistanceLimited" in html
+    assert "function isDefinitionLikeQuery" in html
+    assert "joinedLatin" in html
+    assert "v.length >= 4 ? 10 : 4" in html
+    assert "broadIntent && idx === 0" in html
+    assert "资料里暂时没检到直接定义" in html
+    assert "思考模式（状态）" in html
+    assert "function updateThinkingStage" in html
+    assert "onThinkingStage" in html
+    assert "检索资料" in html
+    assert "组织回复" in html
+    assert "开始输出" in html
 
 
 def test_mobile_failed_chat_message_can_be_retried_or_restored_to_input():
@@ -387,6 +420,8 @@ def test_mobile_message_action_sheet_supports_quote_essay_rollback_and_delete():
     assert "document.addEventListener('pointerdown'" in html
     assert "if (e.target.closest('[data-message-id]')) return;" not in html
     assert "function quoteMessageForReply" in html
+    quote_fn = html.split("function quoteMessageForReply", 1)[1].split("async function cleanupMessageMemory", 1)[0]
+    assert ".focus()" not in quote_fn
     assert "function rollbackFromMessage" in html
     assert "function deleteSingleMessage" in html
     assert "function cleanupMessageMemory" in html

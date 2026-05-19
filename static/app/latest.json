@@ -1,19 +1,19 @@
 {
-  "versionCode": 24,
-  "versionName": "0.17.3",
+  "versionCode": 25,
+  "versionName": "0.17.4",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.3.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.3/Reverse-Tutor-v0.17.3.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.4/Reverse-Tutor-v0.17.4.apk"
   ],
-  "sha256": "af88f612db6b6b9ec6d65aca0b17ca1f4ff9af2ca7a25f604b4f4f9e301876a6",
+  "sha256": "dfcc6874fa67b99c30539e33385c1815ed6f7fb72441b083091b04debc81fc31",
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "导出功能改为 Android 原生系统分享面板，可直接分享到 QQ、微信或其他应用。",
-    "新增“保存到文件管理器（JSON）”，通过系统文件选择器真正写入本地文件。",
-    "修复设置页快速上滑时底栏跟着内容上移的问题。",
-    "优化聊天页输入法联动，键盘弹起时新消息和流式回复会保持在可见区域。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.3.apk，不使用 test/debug 后缀。"
+    "对话逻辑新增关联性判断：用户主动偏离主线时先解决当前问题，再自然引回目标。",
+    "资料检索增强模糊术语理解，支持 vibecoding / vibe coding 这类英文术语、拼写不完整和概念型提问。",
+    "新增可折叠“思考模式（状态）”，展示理解问题、检索资料、组织回复、开始输出等公开进度。",
+    "优化发送与引用交互：发送后键盘不再自动收起又弹起，引用消息时不会强制滚到底部。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.4.apk，不使用 test/debug 后缀。"
   ]
 }

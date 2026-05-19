@@ -968,7 +968,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.3 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.4 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1200,8 +1200,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 24;
-const APP_VERSION_NAME = '0.17.3';
+const APP_VERSION_CODE = 25;
+const APP_VERSION_NAME = '0.17.4';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -2917,9 +2917,77 @@ const ENGINE = (() => {
     return String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
   }
   function sourceQueryTokens(query) {
-    const stop = new Set(['这个','那个','什么','怎么','为什么','一下','老师','文件','pdf','docx','ppt','pptx','the','and','for','with','from','what','why','how']);
-    const raw = String(query || '').toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}_-]{1,}/gu) || [];
-    return Array.from(new Set(raw.map(t => t.replace(/^_+|_+$/g, '')).filter(t => t.length >= 2 && !stop.has(t))));
+    const stop = new Set(['这个','那个','什么','怎么','为什么','一下','老师','文件','资料','文档','pdf','docx','ppt','pptx','是','的','了','吗','呢','啊','the','and','for','with','from','what','why','how','is','are','to','of','a','an']);
+    const text = String(query || '').toLowerCase();
+    const raw = text.match(/[\p{L}\p{N}][\p{L}\p{N}_-]*/gu) || [];
+    const tokens = raw
+      .map(t => t.replace(/^_+|_+$/g, ''))
+      .filter(t => t.length >= 1 && !stop.has(t));
+    const latin = text.match(/[a-z][a-z0-9_-]*/g) || [];
+    const joinedLatin = latin.join('');
+    if (joinedLatin.length >= 3) tokens.push(joinedLatin);
+    const joinedAll = normalizeSourceNeedle(text);
+    if (joinedAll.length >= 3 && /[a-z0-9]/i.test(joinedAll)) tokens.push(joinedAll);
+    return Array.from(new Set(tokens));
+  }
+  function sourceTermVariants(term) {
+    const clean = String(term || '').toLowerCase().trim();
+    const compact = normalizeSourceNeedle(clean);
+    const variants = new Set([clean, compact].filter(x => x && x.length >= 1));
+    if (/^[a-z0-9]{4,}$/i.test(compact)) {
+      variants.add(compact.replace(/coding$/i, ' coding'));
+      variants.add(compact.replace(/code$/i, ' code'));
+      variants.add(compact.replace(/programming$/i, ' programming'));
+    }
+    return Array.from(variants).filter(Boolean);
+  }
+  function sourceEditDistanceLimited(a, b, limit=2) {
+    a = String(a || '');
+    b = String(b || '');
+    if (Math.abs(a.length - b.length) > limit) return limit + 1;
+    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      let last = prev[0];
+      prev[0] = i;
+      let rowMin = prev[0];
+      for (let j = 1; j <= b.length; j++) {
+        const tmp = prev[j];
+        prev[j] = a[i - 1] === b[j - 1]
+          ? last
+          : Math.min(prev[j - 1] + 1, prev[j] + 1, last + 1);
+        last = tmp;
+        rowMin = Math.min(rowMin, prev[j]);
+      }
+      if (rowMin > limit) return limit + 1;
+    }
+    return prev[b.length];
+  }
+  function fuzzySourceTermScore(chunk, token) {
+    const t = normalizeSourceNeedle(token);
+    if (!t) return 0;
+    const lower = String(chunk || '').toLowerCase();
+    const compact = normalizeSourceNeedle(lower);
+    let score = 0;
+    for (const variant of sourceTermVariants(token)) {
+      const rawVariant = String(variant).toLowerCase();
+      const v = normalizeSourceNeedle(rawVariant);
+      if (!v) continue;
+      const exactHits = rawVariant ? lower.split(rawVariant).length - 1 : 0;
+      if (exactHits > 0) score += Math.min(14, exactHits * 4);
+      if (compact.includes(v)) score += v.length >= 4 ? 10 : 4;
+    }
+    if (/^[a-z0-9]{4,}$/i.test(t)) {
+      const words = lower.match(/[a-z0-9]{3,}/g) || [];
+      for (const w of words.slice(0, 400)) {
+        const wc = normalizeSourceNeedle(w);
+        if (wc.startsWith(t) || t.startsWith(wc)) score += 4;
+        else if (Math.min(t.length, wc.length) >= 5 && sourceEditDistanceLimited(t, wc, 2) <= 2) score += 3;
+      }
+    }
+    return Math.min(score, 24);
+  }
+  function isDefinitionLikeQuery(query) {
+    return /(是什么|什么意思|啥意思|解释|概念|定义|what\s+is|meaning|define|explain)/i.test(String(query || ''));
   }
   function sourceChunks(text, size=1100, overlap=180) {
     const clean = String(text || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
@@ -2936,6 +3004,7 @@ const ENGINE = (() => {
     if (!sources.length) return [];
     const tokens = sourceQueryTokens(query);
     const queryNorm = normalizeSourceNeedle(query);
+    const broadIntent = isDefinitionLikeQuery(query) || tokens.some(t => /^[a-z0-9_-]{3,}$/i.test(t));
     const scored = [];
     for (const a of sources) {
       const name = sourceAnchorName(a);
@@ -2963,22 +3032,27 @@ const ENGINE = (() => {
         continue;
       }
       sourceChunks(text).forEach((chunk, idx) => {
-        const lower = chunk.toLowerCase();
+        const chunkNorm = normalizeSourceNeedle(chunk);
         let score = fileMentioned ? 24 : (nameHit ? 10 : 0);
+        if (queryNorm.length >= 4 && chunkNorm.includes(queryNorm)) score += 18;
         for (const t of tokens) {
-          const hits = lower.split(t).length - 1;
-          if (hits > 0) score += Math.min(12, hits * 3);
+          score += fuzzySourceTermScore(chunk, t);
         }
-        if (score > 0 || (fileMentioned && idx === 0)) {
+        if (score > 0 || (fileMentioned && idx === 0) || (broadIntent && idx === 0 && sources.length <= 3)) {
           const memoryNode = bestSourceMemoryNodeForChunk(a, chunk, idx);
-          scored.push({ source_id:a.id, node_id:memoryNode?.id || '', node_label:memoryNode?.label || '', file:name, type:a.source_type || 'doc', score, index:idx + 1, text:chunk });
+          scored.push({ source_id:a.id, node_id:memoryNode?.id || '', node_label:memoryNode?.label || '', file:name, type:a.source_type || 'doc', score: score || 1, index:idx + 1, text:chunk });
         }
       });
     }
     return scored.sort((a,b)=>b.score-a.score).slice(0, maxSnippets);
   }
-  function formatSourceContext(snippets) {
-    if (!snippets || !snippets.length) return '';
+  function formatSourceContext(snippets, query='', anchors=[]) {
+    if (!snippets || !snippets.length) {
+      if (!isDefinitionLikeQuery(query)) return '';
+      const sources = (anchors || []).filter(a => a.kind === 'source');
+      if (!sources.length) return '';
+      return `本轮没有高置信命中的资料片段，但用户像是在询问概念/术语：“${String(query || '').slice(0, 120)}”。请先按用户原问题解释；如果资料没有直接证据，要明确说“资料里暂时没检到直接定义”，再用通用知识给出谨慎解释。`;
+    }
     return snippets.map(s => {
       const visual = s.visual_pages?.length ? `\n[该片段包含 ${s.visual_pages.length} 张 PDF 页面图片，只有视觉模型能直接读取。]` : '';
       return `- 文件: ${s.file} · 片段 ${s.index} · score=${s.score}${visual}\n${s.text}`;
@@ -3030,6 +3104,14 @@ ${format_mastery(masteries)}
 # 你的可用动作
 ${format_actions()}
 
+# 话题偏离与关联性判断（重要）
+- 每一轮先判断用户的新输入和主线锚、资料、上一轮话题的关联度：强相关、弱相关、暂时无关。
+- 强相关：继续沿主线推进。
+- 弱相关：先解决用户此刻的问题，再用一句自然桥接把它和主线目标联系起来。
+- 暂时无关：不要固执要求用户回到原知识点；先按用户当前问题给出有帮助的回答。回答完后只轻轻提示“如果要回到主线，可以从……继续”，不要压迫。
+- 用户明显不懂专业名词、拼写不完整、只打了英文缩写或模糊词时，先解释可能含义并确认意图，不要因为术语不标准就判错。
+- 如果资料检索没有命中，也不要说“无法理解”；先根据用户文字推断最可能的概念，再说明需要更多上下文才能精确定位。
+
 # 输出格式（必须严格遵守，**只返回 JSON**，不要任何解释）
 \`\`\`json
 {
@@ -3075,6 +3157,8 @@ ${format_actions()}
 - 只写学生 AI 的下一次回复，不写用户/老师的台词，不替用户行动、感受或决定。
 - 尊重用户自主权：用户说不会、拒绝、索要不现实内容或偏离目标时，先承接情绪，再用角色关系把话题推回一个现实可回应的小目标。
 - 当前 mode: ${mode}。${mode === 'goal_support' ? '不要把非学习目标强行改成教学/知识点讲解；围绕人格、关系和目标自然推进。' : '可以请教、追问或复述，但每次只推进一个具体知识点。'}
+- 如果用户主动偏离主线，先判断关联性：无关时先解决当前问题，弱相关时先回答再自然桥接回目标，强相关时继续推进主线。不要硬拽用户回“中点”。
+- 如果用户输入的是模糊术语、英文拼写不完整或自己也不确定的概念，先给出最可能解释并反问确认，而不是直接判定没听懂。
 - 回复像即时聊天：${concise}不要连续输出多个独立段落，不要重复称呼或重复同一个请求。
 - 输出仍然只能是一个 JSON 对象，reply 字段放最终自然语言回复。`;
   }
@@ -3397,7 +3481,7 @@ ${openingTask}
       const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
       const summary_text = summary ? summary.content : '';
       const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
-      const sourceContext = formatSourceContext(sourceSnippets);
+      const sourceContext = formatSourceContext(sourceSnippets, user_input, anchors);
       const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
       const messages = build_messages(msgs, null, skip_id);
       const quotedContext = formatQuotedReplyContext(quoted, user_input);
@@ -3488,7 +3572,13 @@ ${openingTask}
 
     const sourceSnippets = retrieveSourceSnippets(anchors, effectiveUserInput);
     await persistSourceMemoryHits(anchors, sourceSnippets, effectiveUserInput, userMessage ? [userMessage.id] : []);
-    const sourceContext = formatSourceContext(sourceSnippets);
+    const sourceContext = formatSourceContext(sourceSnippets, effectiveUserInput, anchors);
+    if (typeof opts.onThinkingStage === 'function') {
+      opts.onThinkingStage({
+        stage: sourceSnippets.length ? '检索资料' : '理解问题',
+        detail: sourceSnippets.length ? `命中 ${sourceSnippets.length} 个片段` : '根据当前输入判断意图'
+      });
+    }
 
     if (opts.stream) {
       const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
@@ -3496,6 +3586,7 @@ ${openingTask}
       const qcStream = formatQuotedReplyContext(quoted, effectiveUserInput);
       if (qcStream) messagesStream.push({ role: 'system', content: qcStream });
       messagesStream.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
+      if (typeof opts.onThinkingStage === 'function') opts.onThinkingStage({ stage: '组织回复', detail: '结合主线、资料和当前问题' });
 
       const evalSystem = systemStream + '\n\n# 输出要求\n只输出 evaluation、action、anchor_updates 三个字段，**不要**包含 reply 字段。严格 JSON，以 { 开头。';
       const replySystem = systemStream + '\n\n# 输出要求\n你现在是角色扮演，就输出你（学生）要说的自然语言回复。**不要**输出 JSON、不要 markdown 代码块、不要 evaluation、不要 action 字段。就正常说话。';
@@ -3508,6 +3599,7 @@ ${openingTask}
       let currentBubbleText = '';
       try {
         if (typeof opts.onBubbleStart === 'function') opts.onBubbleStart(0);
+        if (typeof opts.onThinkingStage === 'function') opts.onThinkingStage({ stage: '开始输出', detail: '正在生成回复' });
         for await (const chunk of streamObj) {
           if (chunk.type === 'bubble_boundary') continue;
           currentBubbleText += chunk.delta;
@@ -3741,7 +3833,15 @@ function scheduleKeyboardLayout(delay=120) {
   keyboardLayoutTimer = setTimeout(syncKeyboardLayout, delay);
 }
 
-function keepChatTailVisible(delay=40) {
+function isChatNearBottom(threshold=160) {
+  const chat = $('#chat');
+  if (!chat) return true;
+  return chat.scrollHeight - chat.scrollTop - chat.clientHeight <= threshold;
+}
+
+function keepChatTailVisible(delay=40, opts={}) {
+  const shouldFollow = opts.force || opts.wasNearBottom === true || (opts.wasNearBottom === undefined && isChatNearBottom());
+  if (!shouldFollow) return;
   clearTimeout(chatKeyboardScrollTimer);
   chatKeyboardScrollTimer = setTimeout(() => {
     if (state.currentTab !== 'chat') return;
@@ -3766,10 +3866,11 @@ function syncKeyboardLayout() {
   const viewportShrink = Math.max(0, viewportBaselineHeight - (window.innerHeight || viewportBaselineHeight));
   const touchDevice = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const focusSettled = syncKeyboardLayout.focusedAt && now - syncKeyboardLayout.focusedAt > 220;
+  const shouldFollowChat = state.currentTab === 'chat' && document.activeElement?.id === 'chat-input' && isChatNearBottom();
   const open = heightLoss > 80 || viewportShrink > 80 || (touchDevice && focusSettled && document.activeElement?.id === 'chat-input');
   document.body.classList.toggle('keyboard-open', open);
   document.documentElement.style.setProperty('--keyboard-bottom', open && heightLoss > 0 ? `${heightLoss}px` : '0px');
-  if (open && document.activeElement?.id === 'chat-input') keepChatTailVisible(80);
+  if (open && document.activeElement?.id === 'chat-input') keepChatTailVisible(80, { wasNearBottom: shouldFollowChat });
 }
 
 function resizeChatInput(el=$('#chat-input'), force=false) {
@@ -3780,11 +3881,13 @@ function resizeChatInput(el=$('#chat-input'), force=false) {
   el.style.height = Math.min(el.scrollHeight, 128) + 'px';
 }
 
-function setChatInputValue(text, placeCaretAtEnd=true) {
+function setChatInputValue(text, placeCaretAtEnd=true, opts={}) {
   const input = $('#chat-input');
+  const wasFocused = document.activeElement === input;
   input.value = text || '';
   resizeChatInput(input, false);
-  input.focus();
+  const shouldFocus = opts.focus === true || (opts.preserveFocus !== false && wasFocused);
+  if (shouldFocus) input.focus({ preventScroll: true });
   if (placeCaretAtEnd) {
     const pos = input.value.length;
     requestAnimationFrame(() => {
@@ -3861,16 +3964,31 @@ function getOrCreateStreamingBubble() {
     bubble.className = 'flex justify-start';
     bubble.innerHTML = `<div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
       <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">● 生成中</span></div>
+      <details class="thinking-panel text-[11px] text-neutral-500 mb-2" open>
+        <summary class="cursor-pointer select-none text-neutral-400">思考模式（状态）</summary>
+        <div class="thinking-stage mt-1">理解问题…</div>
+      </details>
       <div class="md text-sm stream-content"></div></div>`;
     $('#chat').appendChild(bubble);
   }
   return { container: bubble, content: bubble.querySelector('.stream-content'), indicator: bubble.querySelector('.streaming-indicator') };
 }
 
+function updateThinkingStage(stage, detail='') {
+  const wasNearBottom = isChatNearBottom();
+  const { container } = getOrCreateStreamingBubble();
+  const stageEl = container.querySelector('.thinking-stage');
+  if (stageEl) stageEl.textContent = detail ? `${stage}：${detail}` : `${stage}…`;
+  keepChatTailVisible(0, { wasNearBottom });
+}
+
 function updateStreamingBubble(htmlText) {
-  const { content } = getOrCreateStreamingBubble();
+  const wasNearBottom = isChatNearBottom();
+  const { container, content } = getOrCreateStreamingBubble();
+  const details = container.querySelector('.thinking-panel');
+  if (details) details.open = false;
   content.innerHTML = safeChatHtml(htmlText);
-  keepChatTailVisible(0);
+  keepChatTailVisible(0, { wasNearBottom });
 }
 
 function finalizeStreamingBubble() {
@@ -3911,6 +4029,7 @@ function queuedUserStatusLabel(message) {
 function appendQueuedUserMessageBubble(message) {
   const chat = $('#chat');
   if (!chat || !message) return;
+  const wasNearBottom = isChatNearBottom();
   const meta = message.meta || {};
   const quoteBlock = meta.quoted_message_id ? `
     <div class="text-[11px] mb-1 px-2 py-1 rounded border border-emerald-900/60 bg-emerald-900/20 text-neutral-400">
@@ -3929,7 +4048,7 @@ function appendQueuedUserMessageBubble(message) {
       ${statusBlock}
     </div>`;
   chat.appendChild(row);
-  keepChatTailVisible(0);
+  keepChatTailVisible(0, { wasNearBottom });
 }
 
 // --- Chat ---
@@ -3939,6 +4058,7 @@ async function renderChat() {
     chat.innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10 px-6">尚无会话<br><br>点右下角 <b>+ 新会话</b> 打开抽屉创建第一节。</div>';
     return;
   }
+  const wasNearBottom = isChatNearBottom();
   const msgs = (await DB.bySid('messages', state.sid)).sort(compareChatMessages);
 
   // 摘要 banner
@@ -4056,7 +4176,7 @@ async function renderChat() {
     restoreFailedMessageDraft(Number(btn.dataset.editMessage));
   }));
   refreshIcons();
-  keepChatTailVisible(0);
+  keepChatTailVisible(0, { wasNearBottom });
 }
 
 function positionMessageActionPopover(message, anchorEl) {
@@ -4188,7 +4308,6 @@ function quoteMessageForReply(message) {
     content: message.content || '',
   };
   renderQuotePreview();
-  $('#chat-input')?.focus();
 }
 
 async function cleanupMessageMemory(message) {
@@ -4299,6 +4418,7 @@ async function submitChatText(txt, opts={}) {
   if (opts.clearInput !== false) setChatInputValue('', false);
   setChatSending(true);
   removeStreamingBubble();
+  updateThinkingStage('理解问题', '正在读取你的输入');
   try {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
     await ENGINE.run_turn(state.sid, txt, renderChat, {
@@ -4307,6 +4427,9 @@ async function submitChatText(txt, opts={}) {
       stream: true,
       onStreamToken({ delta, accumulated, bubbleIndex }) {
         updateStreamingBubble(accumulated);
+      },
+      onThinkingStage({ stage, detail }) {
+        updateThinkingStage(stage, detail || '');
       },
       onBubbleStart(bubbleIndex) {
         // streaming bubble handles all display
@@ -4430,7 +4553,7 @@ async function retryFailedMessage(id) {
 async function restoreFailedMessageDraft(id) {
   const msg = await DB.get('messages', id);
   if (!msg) return;
-  setChatInputValue(String(msg.meta?.retry_text || msg.content || ''));
+  setChatInputValue(String(msg.meta?.retry_text || msg.content || ''), true, { focus: true });
   toast('已放回输入框，可修改后发送');
 }
 
@@ -4501,7 +4624,26 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
   }
 }
 
-$('#chat-send').addEventListener('click', sendMessage);
+let chatSendHandledByPointer = false;
+$('#chat-send').addEventListener('pointerdown', e => {
+  if (document.activeElement?.id === 'chat-input') e.preventDefault();
+});
+$('#chat-send').addEventListener('pointerup', e => {
+  if (e.pointerType !== 'mouse' && document.activeElement?.id === 'chat-input') {
+    e.preventDefault();
+    chatSendHandledByPointer = true;
+    setTimeout(() => { chatSendHandledByPointer = false; }, 350);
+    sendMessage();
+  }
+});
+$('#chat-send').addEventListener('click', e => {
+  if (chatSendHandledByPointer) {
+    e.preventDefault();
+    chatSendHandledByPointer = false;
+    return;
+  }
+  sendMessage();
+});
 $('#quote-clear').addEventListener('click', clearQuotedMessage);
 $('#chat-input').addEventListener('compositionstart', () => { chatInputComposing = true; });
 $('#chat-input').addEventListener('compositionend', e => {

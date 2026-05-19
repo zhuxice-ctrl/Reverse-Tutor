@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.3-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.4-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.3.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -54,12 +54,12 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
 
-## v0.17.3 更新重点
+## v0.17.4 更新重点
 
-- 导出功能改为 Android 原生系统分享面板，可直接分享到 QQ、微信或其他应用。
-- 新增“保存到文件管理器（JSON）”，通过系统文件选择器真正写入本地文件。
-- 修复设置页快速上滑时底栏跟着内容上移的问题，底栏现在固定在应用底部。
-- 优化聊天页输入法联动，键盘弹起时新消息和流式回复会跟随保持在可见区域。
+- 对话逻辑新增关联性判断：用户主动偏离主线时先解决当前问题，再自然引回目标。
+- 资料检索增强模糊术语理解，支持 vibecoding / vibe coding 这类英文术语、拼写不完整和概念型提问。
+- 新增可折叠“思考模式（状态）”，展示理解问题、检索资料、组织回复、开始输出等公开进度。
+- 优化发送与引用交互：发送后键盘不再自动收起又弹起，引用消息时不会强制滚到底部。
 
 ## v0.17.1 更新重点
 
@@ -150,7 +150,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.3.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -172,11 +172,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 24,
-  "versionName": "0.17.3",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.3.apk",
+  "versionCode": 25,
+  "versionName": "0.17.4",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.3/Reverse-Tutor-v0.17.3.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.4/Reverse-Tutor-v0.17.4.apk"
   ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [
