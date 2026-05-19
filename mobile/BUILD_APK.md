@@ -204,7 +204,7 @@ cd android
 
 ```powershell
 $apksigner = "$env:LOCALAPPDATA\Android\Sdk\build-tools\34.0.0\apksigner.bat"
-& $apksigner verify --print-certs release-artifacts\Reverse-Tutor-v0.17.1.apk
+& $apksigner verify --print-certs release-artifacts\Reverse-Tutor-v0.17.2.apk
 ```
 
 输出中必须包含：

@@ -73,11 +73,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 22,
-  "versionName": "0.17.1",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.1.apk",
+  "versionCode": 23,
+  "versionName": "0.17.2",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.2.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.1/Reverse-Tutor-v0.17.1.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.2/Reverse-Tutor-v0.17.2.apk"
   ],
   "publishedAt": "2026-05-14",
   "releaseNotes": [

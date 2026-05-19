@@ -1,17 +1,17 @@
 {
-  "versionCode": 22,
-  "versionName": "0.17.1",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.1.apk",
+  "versionCode": 23,
+  "versionName": "0.17.2",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.2.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.1/Reverse-Tutor-v0.17.1.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.2/Reverse-Tutor-v0.17.2.apk"
   ],
-  "sha256": "ab17fff68771f6f3a7ed3849c109f2459f7b20bd52aec09963b74809e91322ce",
+  "sha256": "34d2f8c43fbd09885465bf76dbf6fa24e0af3cfb977d67bf14215920c9e28b71",
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "连续发送优化：AI 生成中继续发送的新消息会立刻进入对话并写入本地库，显示待处理/处理中。",
-    "上一轮回复完成后，连续输入会合并为下一轮上下文再输出，避免重复创建用户消息并减少重复 token 消耗。",
-    "输出链更接近 ReAct：先观察连续输入，再在当前 turn 结束后统一决策回复。",
+    "修复 Android 后台 LLM 生成 pending 时无法连续发送的问题：新输入会立刻进入对话并排队，不再提示上一条回复还在生成。",
+    "后台回复导入后，会继续消费排队消息，合并为下一轮上下文输出。",
+    "保留 0.17.1 的连续发送优化：AI 生成中继续发送的新消息会立刻进入对话并写入本地库，显示待处理/处理中。",
     "Android 桌面显示名回归中文“反转家教”，Reverse Tutor 仓库名、包名、release 签名和 APK 命名规范保持不变。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.1.apk，不使用 test/debug 后缀。"
+    "正式 APK 命名为 Reverse-Tutor-v0.17.2.apk，不使用 test/debug 后缀。"
   ]
 }

@@ -429,6 +429,8 @@ def test_mobile_queued_user_messages_are_visible_and_reused_for_next_turn():
     assert "已进入对话，等待上一条回复完成" in html
     assert "existingUserMessages" in html
     assert "queuedUserMessages" in html
+    assert "await hasPendingNativeBackgroundTurn(state.sid)" in html
+    assert "return queueForNextTurn();" in html
     assert "const batch = state.messageQueue.splice(0)" in html
     assert "await submitChatText(combinedText, { queuedUserMessages" in html
     assert "queued_user_message" in html
