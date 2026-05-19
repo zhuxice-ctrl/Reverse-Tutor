@@ -1,6 +1,8 @@
 package com.reversetutor.app;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -9,6 +11,7 @@ import android.os.Build;
 import android.provider.Settings;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -17,11 +20,18 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import androidx.activity.result.ActivityResult;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 @CapacitorPlugin(
     name = "BackgroundLlm",
@@ -259,6 +269,108 @@ public class BackgroundLlmPlugin extends Plugin {
         ret.put("background", true);
         ret.put("urlCount", urls.length());
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void shareJsonFile(PluginCall call) {
+        String fileName = safeExportFileName(call.getString("fileName", "reverse-tutor-backup.json"));
+        String content = call.getString("content", "");
+        if (content == null || content.trim().isEmpty()) {
+            call.reject("missing export content");
+            return;
+        }
+
+        try {
+            File exportDir = new File(getContext().getCacheDir(), "exports");
+            if (!exportDir.exists() && !exportDir.mkdirs()) {
+                call.reject("cannot create export directory");
+                return;
+            }
+            File outFile = new File(exportDir, fileName);
+            try (FileOutputStream fos = new FileOutputStream(outFile, false)) {
+                fos.write(content.getBytes(StandardCharsets.UTF_8));
+            }
+
+            Uri uri = FileProvider.getUriForFile(
+                getContext(),
+                getContext().getPackageName() + ".fileprovider",
+                outFile
+            );
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("application/json");
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.putExtra(Intent.EXTRA_SUBJECT, "反转家教数据备份");
+            send.setClipData(ClipData.newUri(getContext().getContentResolver(), fileName, uri));
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            Intent chooser = Intent.createChooser(send, "导出反转家教数据");
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(chooser);
+
+            JSObject ret = new JSObject();
+            ret.put("shared", true);
+            ret.put("fileName", fileName);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("share export failed", e);
+        }
+    }
+
+    @PluginMethod
+    public void saveJsonFile(PluginCall call) {
+        String fileName = safeExportFileName(call.getString("fileName", "reverse-tutor-backup.json"));
+        String content = call.getString("content", "");
+        if (content == null || content.trim().isEmpty()) {
+            call.reject("missing export content");
+            return;
+        }
+
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, fileName);
+        startActivityForResult(call, intent, "saveJsonFileResult");
+    }
+
+    @ActivityCallback
+    private void saveJsonFileResult(PluginCall call, ActivityResult result) {
+        if (call == null) {
+            return;
+        }
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null || result.getData().getData() == null) {
+            JSObject ret = new JSObject();
+            ret.put("saved", false);
+            ret.put("cancelled", true);
+            call.resolve(ret);
+            return;
+        }
+
+        String content = call.getString("content", "");
+        Uri uri = result.getData().getData();
+        try (OutputStream os = getContext().getContentResolver().openOutputStream(uri, "w")) {
+            if (os == null) {
+                call.reject("cannot open export destination");
+                return;
+            }
+            os.write(content.getBytes(StandardCharsets.UTF_8));
+            JSObject ret = new JSObject();
+            ret.put("saved", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("save export failed", e);
+        }
+    }
+
+    private String safeExportFileName(String raw) {
+        String clean = raw == null ? "" : raw.trim().replaceAll("[^A-Za-z0-9._-]+", "-");
+        if (clean.isEmpty()) {
+            clean = "reverse-tutor-backup.json";
+        }
+        if (!clean.toLowerCase().endsWith(".json")) {
+            clean = clean + ".json";
+        }
+        return clean;
     }
 
     private JSONArray normalizeApkUrls(JSONArray rawUrls, String fallbackUrl) {

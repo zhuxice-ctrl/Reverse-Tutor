@@ -330,6 +330,14 @@ def test_mobile_chat_input_preserves_caret_and_handles_keyboard_layout():
     assert "function syncKeyboardLayout" in html
     assert "body.keyboard-open .bottom-nav" in html
     assert "--keyboard-bottom" in html
+    assert "padding-bottom: calc(0.75rem + var(--keyboard-bottom))" in html
+    assert "scroll-padding-bottom: calc(86px + var(--keyboard-bottom))" in html
+    assert "function keepChatTailVisible" in html
+    assert "keepChatTailVisible(80)" in html
+    assert "keepChatTailVisible(0)" in html
+    assert "overflow: hidden;" in html
+    assert ".bottom-nav { flex-shrink: 0;" in html
+    assert "overscroll-behavior: contain;" in html
 
 
 def test_mobile_failed_chat_message_can_be_retried_or_restored_to_input():
@@ -402,7 +410,8 @@ def test_mobile_uses_lucide_icons_and_custom_proactive_segments():
     assert 'data-lucide="network"' in html
     assert 'data-lucide="menu"' in html
     assert 'data-lucide="plus"' in html
-    assert 'data-lucide="download"' in html
+    assert 'data-lucide="share-2"' in html
+    assert 'data-lucide="folder-down"' in html
     assert 'data-lucide="upload"' in html
     assert 'data-lucide="trash-2"' in html
     assert 'data-lucide="smartphone"' in html

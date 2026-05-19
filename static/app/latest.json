@@ -1,17 +1,19 @@
 {
-  "versionCode": 23,
-  "versionName": "0.17.2",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.2.apk",
+  "versionCode": 24,
+  "versionName": "0.17.3",
+  "name": "Reverse Tutor",
+  "displayName": "反转家教",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.3.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.2/Reverse-Tutor-v0.17.2.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.3/Reverse-Tutor-v0.17.3.apk"
   ],
-  "sha256": "34d2f8c43fbd09885465bf76dbf6fa24e0af3cfb977d67bf14215920c9e28b71",
+  "sha256": "af88f612db6b6b9ec6d65aca0b17ca1f4ff9af2ca7a25f604b4f4f9e301876a6",
   "publishedAt": "2026-05-19",
   "releaseNotes": [
-    "修复 Android 后台 LLM 生成 pending 时无法连续发送的问题：新输入会立刻进入对话并排队，不再提示上一条回复还在生成。",
-    "后台回复导入后，会继续消费排队消息，合并为下一轮上下文输出。",
-    "保留 0.17.1 的连续发送优化：AI 生成中继续发送的新消息会立刻进入对话并写入本地库，显示待处理/处理中。",
-    "Android 桌面显示名回归中文“反转家教”，Reverse Tutor 仓库名、包名、release 签名和 APK 命名规范保持不变。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.2.apk，不使用 test/debug 后缀。"
+    "导出功能改为 Android 原生系统分享面板，可直接分享到 QQ、微信或其他应用。",
+    "新增“保存到文件管理器（JSON）”，通过系统文件选择器真正写入本地文件。",
+    "修复设置页快速上滑时底栏跟着内容上移的问题。",
+    "优化聊天页输入法联动，键盘弹起时新消息和流式回复会保持在可见区域。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.3.apk，不使用 test/debug 后缀。"
   ]
 }

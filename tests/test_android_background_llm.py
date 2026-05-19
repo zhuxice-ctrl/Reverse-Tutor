@@ -157,3 +157,36 @@ def test_mobile_update_download_opens_native_installer_when_available():
     assert "后台下载新版" in html
     assert "已打开安装页面" in html
     assert "APK 已下载，请在通知栏或文件管理器中打开安装" not in html
+
+
+def test_mobile_export_uses_native_android_share_sheet():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    plugin = (JAVA / "BackgroundLlmPlugin.java").read_text(encoding="utf-8")
+    manifest = (ANDROID / "AndroidManifest.xml").read_text(encoding="utf-8")
+    file_paths = (ANDROID / "res" / "xml" / "file_paths.xml").read_text(encoding="utf-8")
+
+    assert "shareJsonFile" in html
+    assert "saveJsonFile" in html
+    assert "data-save-file" in html
+    assert "buildDataExportPayload" in html
+    assert "const nativeShare = await NativeBackgroundLlm.shareJsonFile(fileName, jsonStr)" in html
+    assert "const nativeSave = await NativeBackgroundLlm.saveJsonFile(fileName, jsonStr)" in html
+    assert "已打开系统分享" in html
+    assert "已保存数据文件" in html
+    assert "public void shareJsonFile(PluginCall call)" in plugin
+    assert "public void saveJsonFile(PluginCall call)" in plugin
+    assert "saveJsonFileResult" in plugin
+    assert "safeExportFileName" in plugin
+    assert "getContext().getCacheDir()" in plugin
+    assert "FileProvider.getUriForFile" in plugin
+    assert "Intent.ACTION_SEND" in plugin
+    assert "Intent.ACTION_CREATE_DOCUMENT" in plugin
+    assert "Intent.CATEGORY_OPENABLE" in plugin
+    assert "Intent.createChooser" in plugin
+    assert "application/json" in plugin
+    assert "ClipData.newUri" in plugin
+    assert "FLAG_GRANT_READ_URI_PERMISSION" in plugin
+    assert "@ActivityCallback" in plugin
+    assert "openOutputStream(uri, \"w\")" in plugin
+    assert "androidx.core.content.FileProvider" in manifest
+    assert '<cache-path name="my_cache_images" path="."' in file_paths
