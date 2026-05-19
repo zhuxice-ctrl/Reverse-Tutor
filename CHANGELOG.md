@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.17.1 - 2026-05-19
+
+- 连续发送消息会立刻显示在对话中并写入本地 IndexedDB，生成中状态下不再只藏在发送队列里。
+- 当前 AI 回复完成后，会把连续输入合并为下一轮上下文处理，避免重复创建用户消息并减少重复 token 消耗。
+- 队列用户消息新增“待处理/处理中”状态，失败时仍保留重发与编辑后发送能力。
+- Android 桌面显示名回归中文“反转家教”；包名、release 签名和 APK 命名规范保持不变。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.1.apk`。
+
 ## v0.17.0 - 2026-05-19
 
 - 品牌命名统一为 Reverse Tutor，正式 APK 命名为 `Reverse-Tutor-v0.17.0.apk`，不再使用 test/debug 后缀；Android 包名继续保留 `com.reversetutor.app` 以支持覆盖升级。

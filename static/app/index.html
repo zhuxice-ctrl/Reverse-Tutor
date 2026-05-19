@@ -956,7 +956,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.0 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.1 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1188,8 +1188,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 21;
-const APP_VERSION_NAME = '0.17.0';
+const APP_VERSION_CODE = 22;
+const APP_VERSION_NAME = '0.17.1';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -3052,9 +3052,21 @@ ${format_actions()}
     }
     return null;
   }
+
+  function conversationSortValue(m) {
+    const meta = m.meta || {};
+    const logical = Number(meta.logical_created_at || 0);
+    if (Number.isFinite(logical) && logical > 0) return logical;
+    return Number(m.created_at || m.id || 0);
+  }
+
+  function compareConversationMessages(a, b) {
+    return conversationSortValue(a) - conversationSortValue(b) || (a.id || 0) - (b.id || 0);
+  }
+
   function build_messages(msgs, user_input, skip_until_id=0) {
     const out = [];
-    const recent = msgs.slice(-30);
+    const recent = [...msgs].sort(compareConversationMessages).slice(-30);
     for (const m of recent) {
       if (m.id <= skip_until_id) continue;
       if (m.role === 'user' || m.role === 'assistant') {
@@ -3119,9 +3131,23 @@ ${format_actions()}
     return record;
   }
 
+  async function queue_pending_user_message(sid, content, quoted=null) {
+    return add_message(sid, 'user', content, {
+      kind: 'queued_user_message',
+      source: 'user',
+      status: 'pending',
+      retry_text: content,
+      queued_at: Date.now(),
+      logical_created_at: Date.now() + 86400000,
+      quoted_message_id: quoted?.id || null,
+      quoted_role: quoted?.role || null,
+      quoted_preview: quoted ? String(quoted.content || '').replace(/\s+/g, ' ').trim().slice(0, 180) : '',
+    });
+  }
+
   // 压缩：模拟后端 maybe_summarize
   async function maybe_summarize(sid) {
-    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const msgs = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
     const last_sum = find_latest_summary(msgs);
     const cutoff = last_sum ? (last_sum.meta.summarized_until_id || 0) : 0;
     const after = msgs.filter(m => m.id > cutoff && (m.role==='user' || m.role==='assistant'));
@@ -3332,7 +3358,7 @@ ${openingTask}
       const session = await DB.get('sessions', sid);
       const anchors = await DB.bySid('anchors', sid);
       const masteries = await DB.bySid('mastery', sid);
-      const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+      const msgs = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
       const summary = find_latest_summary(msgs);
       const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
       const summary_text = summary ? summary.content : '';
@@ -3358,6 +3384,10 @@ ${openingTask}
     const turnId = createTurnId();
     const clientMsgId = `client_${uuid()}`;
     const quoted = opts.quotedMessage || null;
+    const queuedUserMessages = Array.isArray(opts.queuedUserMessages)
+      ? opts.queuedUserMessages.filter(Boolean)
+      : [];
+    let effectiveUserInput = user_input;
     let userMessage = null;
     let userRendered = false;
     async function renderUserOnce() {
@@ -3365,8 +3395,34 @@ ${openingTask}
       userRendered = true;
       try { await onUserAdded(); } catch(e){}
     }
+    async function markQueuedUserMessages(status, extra={}) {
+      const logicalBase = status === 'processing' ? Date.now() : null;
+      for (let i = 0; i < queuedUserMessages.length; i++) {
+        const msg = queuedUserMessages[i];
+        if (!msg || !msg.id) continue;
+        msg.status = status;
+        msg.meta = {
+          ...(msg.meta || {}),
+          status,
+          turn_input: true,
+          turn_id: msg.turn_id || (msg.meta || {}).turn_id || turnId,
+          client_msg_id: msg.client_msg_id || (msg.meta || {}).client_msg_id || `queued_${msg.id}`,
+          queued_user_message: true,
+          ...(logicalBase ? { logical_created_at: logicalBase + i } : {}),
+          ...extra,
+        };
+        msg.turn_id = msg.meta.turn_id;
+        msg.client_msg_id = msg.meta.client_msg_id;
+        await DB.put('messages', msg);
+      }
+    }
+
     // 立即写入用户消息（让 UI 可乐观渲染），再做摘要 / LLM
-    if (user_input != null) {
+    if (queuedUserMessages.length) {
+      userMessage = queuedUserMessages[queuedUserMessages.length - 1];
+      effectiveUserInput = queuedUserMessages.map(m => String(m.content || '').trim()).filter(Boolean).join('\n');
+      await markQueuedUserMessages('processing', { processing_at: Date.now() });
+    } else if (user_input != null) {
       userMessage = await add_message(sid, 'user', user_input, {
         turn_input: true,
         turn_id: turnId,
@@ -3380,8 +3436,9 @@ ${openingTask}
     }
     try {
     const sourceMessage = userMessage || opts.sourceMessage || null;
-    const nativeQueued = await tryQueueNativeTurnEarly(sid, user_input, sourceMessage, quoted, { turnId, clientMsgId });
+    const nativeQueued = await tryQueueNativeTurnEarly(sid, effectiveUserInput, sourceMessage, quoted, { turnId, clientMsgId });
     if (nativeQueued) {
+      await markQueuedUserMessages('completed', { completed_at: Date.now(), native_background: true });
       await renderUserOnce();
       return nativeQueued;
     }
@@ -3390,19 +3447,19 @@ ${openingTask}
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
     const masteries = await DB.bySid('mastery', sid);
-    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const msgs = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
     const summary = find_latest_summary(msgs);
     const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
     const summary_text = summary ? summary.content : '';
 
-    const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
-    await persistSourceMemoryHits(anchors, sourceSnippets, user_input, userMessage ? [userMessage.id] : []);
+    const sourceSnippets = retrieveSourceSnippets(anchors, effectiveUserInput);
+    await persistSourceMemoryHits(anchors, sourceSnippets, effectiveUserInput, userMessage ? [userMessage.id] : []);
     const sourceContext = formatSourceContext(sourceSnippets);
 
     if (opts.stream) {
       const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
       const messagesStream = build_messages(msgs, null, skip_id);
-      const qcStream = formatQuotedReplyContext(quoted, user_input);
+      const qcStream = formatQuotedReplyContext(quoted, effectiveUserInput);
       if (qcStream) messagesStream.push({ role: 'system', content: qcStream });
       messagesStream.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
 
@@ -3468,7 +3525,8 @@ ${openingTask}
           source_turn_id: turnId, source_message_id: sourceMessage ? sourceMessage.id : null,
         });
       }
-      await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);
+      await markQueuedUserMessages('completed', { completed_at: Date.now() });
+      await expandSourceMemoryBranches(anchors, sourceSnippets, effectiveUserInput);
 
       const result = { reply, action: ac, evaluation: ev, bubbles };
       if (typeof opts.onTurnComplete === 'function') opts.onTurnComplete(result);
@@ -3479,7 +3537,7 @@ ${openingTask}
     const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
-    const quotedContext = formatQuotedReplyContext(quoted, user_input);
+    const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
     if (quotedContext) messages.push({ role: 'system', content: quotedContext });
     messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
 
@@ -3513,19 +3571,22 @@ ${openingTask}
         source_message_id: sourceMessage ? sourceMessage.id : null,
       });
     }
-    await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);
+    await markQueuedUserMessages('completed', { completed_at: Date.now() });
+    await expandSourceMemoryBranches(anchors, sourceSnippets, effectiveUserInput);
     return { reply, action: ac, evaluation: ev };
     } catch (err) {
-      if (userMessage && userMessage.id) {
-        userMessage.status = 'error';
-        userMessage.meta = {
-          ...(userMessage.meta || {}),
+      const failedMessages = queuedUserMessages.length ? queuedUserMessages : (userMessage ? [userMessage] : []);
+      for (const msg of failedMessages) {
+        if (!msg || !msg.id) continue;
+        msg.status = 'error';
+        msg.meta = {
+          ...(msg.meta || {}),
           status: 'error',
           error: String(err.message || err),
-          retry_text: user_input,
+          retry_text: String(msg.content || effectiveUserInput || ''),
           failed_at: Date.now(),
         };
-        await DB.put('messages', userMessage);
+        await DB.put('messages', msg);
       }
       throw err;
     }
@@ -3537,7 +3598,7 @@ ${openingTask}
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
     const masteries = await DB.bySid('mastery', sid);
-    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const msgs = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
     const summary = find_latest_summary(msgs);
     const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
     const summary_text = summary ? summary.content : '';
@@ -3607,7 +3668,7 @@ ${openingTask}
     ]);
   }
 
-  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, ACTION_TYPES };
+  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, queue_pending_user_message, ACTION_TYPES };
 })();
 </script>
 
@@ -3781,6 +3842,51 @@ function removeStreamingBubble() {
   if (bubble) bubble.remove();
 }
 
+function chatSortValue(m) {
+  const meta = m?.meta || {};
+  const logical = Number(meta.logical_created_at || 0);
+  if (Number.isFinite(logical) && logical > 0) return logical;
+  return Number(m?.created_at || m?.id || 0);
+}
+
+function compareChatMessages(a, b) {
+  return chatSortValue(a) - chatSortValue(b) || (a.id || 0) - (b.id || 0);
+}
+
+function queuedUserStatusLabel(message) {
+  if (!message || message.role !== 'user') return '';
+  const meta = message.meta || {};
+  if (meta.kind !== 'queued_user_message') return '';
+  const status = message.status || meta.status || 'pending';
+  if (status === 'pending') return '待处理';
+  if (status === 'processing') return '处理中';
+  return '';
+}
+
+function appendQueuedUserMessageBubble(message) {
+  const chat = $('#chat');
+  if (!chat || !message) return;
+  const meta = message.meta || {};
+  const quoteBlock = meta.quoted_message_id ? `
+    <div class="text-[11px] mb-1 px-2 py-1 rounded border border-emerald-900/60 bg-emerald-900/20 text-neutral-400">
+      引用 ${esc(meta.quoted_role === 'assistant' ? '学生 AI' : '你')}：${esc(meta.quoted_preview || '')}
+    </div>` : '';
+  const statusLabel = queuedUserStatusLabel(message);
+  const statusBlock = statusLabel ? `<div class="text-[10px] text-amber-300 mt-1">${statusLabel}</div>` : '';
+  const row = document.createElement('div');
+  row.className = 'flex justify-end';
+  row.id = `msg-${message.id}`;
+  row.innerHTML = `
+    <div class="max-w-[85%] bg-emerald-900/40 border border-emerald-800 rounded-2xl px-3 py-2" data-message-id="${message.id}">
+      <div class="text-[10px] text-neutral-500 mb-1">你（老师）</div>
+      ${quoteBlock}
+      <div class="md text-sm">${renderRichText(message.content || '')}</div>
+      ${statusBlock}
+    </div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
 // --- Chat ---
 async function renderChat() {
   const chat = $('#chat');
@@ -3788,7 +3894,7 @@ async function renderChat() {
     chat.innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10 px-6">尚无会话<br><br>点右下角 <b>+ 新会话</b> 打开抽屉创建第一节。</div>';
     return;
   }
-  const msgs = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
+  const msgs = (await DB.bySid('messages', state.sid)).sort(compareChatMessages);
 
   // 摘要 banner
   let banner = '';
@@ -3818,6 +3924,7 @@ async function renderChat() {
       const messageIndex = msgMeta.message_index ?? m.message_index ?? 0;
       const messageTotal = msgMeta.message_total ?? m.message_total ?? 1;
       const failed = isUser && (m.status === 'error' || msgMeta.status === 'error');
+      const queuedStatus = queuedUserStatusLabel(m);
       const quoteBlock = msgMeta.quoted_message_id ? `
         <div class="text-[11px] mb-1 px-2 py-1 rounded border border-emerald-900/60 bg-emerald-900/20 text-neutral-400">
           引用 ${esc(msgMeta.quoted_role === 'assistant' ? '学生 AI' : '你')}：${esc(msgMeta.quoted_preview || '')}
@@ -3840,6 +3947,7 @@ async function renderChat() {
             <button data-edit-message="${m.id}"><i data-lucide="pencil"></i><span>编辑后发送</span></button>
           </div>
         </div>` : '';
+      const queuedState = queuedStatus ? `<div class="text-[10px] text-amber-300 mt-1">${queuedStatus}</div>` : '';
       const bubbleClass = failed
         ? 'bg-red-950/30 border border-red-800'
         : (isUser ? 'bg-emerald-900/40 border border-emerald-800' : 'bg-neutral-900 border border-neutral-800');
@@ -3849,6 +3957,7 @@ async function renderChat() {
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
             ${quoteBlock}
             <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
+            ${queuedState}
             ${meta}
             ${failedActions}
           </div>
@@ -4140,6 +4249,7 @@ async function submitChatText(txt, opts={}) {
     toast('上一条回复还在生成，完成后再继续，避免上下文断开。', 2600);
     return;
   }
+  const queuedUserMessages = Array.isArray(opts.queuedUserMessages) ? opts.queuedUserMessages.filter(Boolean) : [];
   const quotedMessage = opts.quotedMessage === undefined ? state.quotedMessage : opts.quotedMessage;
   if (opts.clearInput !== false) setChatInputValue('', false);
   setChatSending(true);
@@ -4148,6 +4258,7 @@ async function submitChatText(txt, opts={}) {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
     await ENGINE.run_turn(state.sid, txt, renderChat, {
       quotedMessage,
+      queuedUserMessages,
       stream: true,
       onStreamToken({ delta, accumulated, bubbleIndex }) {
         updateStreamingBubble(accumulated);
@@ -4196,12 +4307,14 @@ async function sendMessage() {
     return openingFor(state.sid);
   }
   if (state.isGenerating) {
-    // Queue for later processing
-    state.messageQueue.push({ text: txt, quotedMessage: state.quotedMessage });
+    const quotedMessage = state.quotedMessage;
+    const queuedMessage = await ENGINE.queue_pending_user_message(state.sid, txt, quotedMessage);
+    state.messageQueue.push({ text: txt, message: queuedMessage, quotedMessage });
     setChatInputValue('', false);
-    if (state.quotedMessage) clearQuotedMessage();
+    if (quotedMessage) clearQuotedMessage();
+    appendQueuedUserMessageBubble(queuedMessage);
     renderQueueIndicator();
-    toast(`已排队（${state.messageQueue.length}）`, 1500);
+    toast('已进入对话，等待上一条回复完成', 1500);
     return;
   }
   await submitChatText(txt);
@@ -4209,11 +4322,16 @@ async function sendMessage() {
 
 async function processMessageQueue() {
   if (!state.sid || state.isGenerating) return;
-  const next = state.messageQueue.shift();
-  if (!next) { renderQueueIndicator(); return; }
+  if (await hasPendingNativeBackgroundTurn(state.sid)) { renderQueueIndicator(); return; }
+  const batch = state.messageQueue.splice(0);
+  if (!batch.length) { renderQueueIndicator(); return; }
+  const queuedUserMessages = batch.map(item => item.message).filter(Boolean);
+  const existingUserMessages = queuedUserMessages.filter(msg => msg && msg.id);
+  const combinedText = existingUserMessages.map(msg => String(msg.content || '').trim()).filter(Boolean).join('\n');
+  if (!combinedText) { renderQueueIndicator(); return; }
   renderQueueIndicator();
   try {
-    await submitChatText(next.text, { quotedMessage: next.quotedMessage });
+    await submitChatText(combinedText, { queuedUserMessages, quotedMessage: null, clearInput: false, clearQuote: false });
   } catch (e) {
     toast('队列消息发送失败: ' + (e.message||e), 4000);
   }
@@ -4270,6 +4388,7 @@ async function importNativeBackgroundTurns({ silent=false } = {}) {
     if (r.imported) {
       if (state.sid) await renderChat();
       refreshHeader();
+      if (state.messageQueue.length) processMessageQueue();
       if (r.lastReply && !silent) {
         notifyAssistantReply('后台 LLM 回复', r.lastReply, 4200, { source: 'native_background', force: true });
       }

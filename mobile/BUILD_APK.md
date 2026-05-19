@@ -187,7 +187,7 @@ cd android
 | Alias | `reverse-tutor` |
 | Android applicationId | `com.reversetutor.app` |
 | APK 命名 | `Reverse-Tutor-v{versionName}.apk` |
-| Android 桌面显示名 | 下一版起回归中文：`反转家教` |
+| Android 桌面显示名 | 从 v0.17.1 起回归中文：`反转家教` |
 | 证书 DN | `CN=Reverse Tutor, OU=App, O=ReverseTeacher, L=CN, ST=CN, C=CN` |
 | 证书 SHA-256 | `d21ff63c6b75494dd2229caccd6977ec763c8b17d95807ff1d7c455d39ac41c2` |
 
@@ -197,14 +197,14 @@ cd android
 - 不要删除、替换、重新生成 `release.jks`。
 - 不要再用 Android Debug 签名发布对外 APK。
 - 不要修改 `applicationId "com.reversetutor.app"`，否则旧用户无法覆盖升级。
-- 下一版只把手机桌面显示名改回 `反转家教`；仓库名、Release 标题、APK 文件名仍保持 `Reverse Tutor` / `Reverse-Tutor-v{versionName}.apk`。
+- 从 v0.17.1 起手机桌面显示名回归 `反转家教`；仓库名、Release 标题、APK 文件名仍保持 `Reverse Tutor` / `Reverse-Tutor-v{versionName}.apk`。
 - 如用户已安装旧 debug/test 包，第一次切到 `v0.17.0` release 签名时需要卸载旧包；从 `v0.17.0` 往后，只要保持该签名即可覆盖安装升级。
 
 发布前必须校验签名：
 
 ```powershell
 $apksigner = "$env:LOCALAPPDATA\Android\Sdk\build-tools\34.0.0\apksigner.bat"
-& $apksigner verify --print-certs release-artifacts\Reverse-Tutor-v0.17.0.apk
+& $apksigner verify --print-certs release-artifacts\Reverse-Tutor-v0.17.1.apk
 ```
 
 输出中必须包含：

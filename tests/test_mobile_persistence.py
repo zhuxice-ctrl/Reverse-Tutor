@@ -164,8 +164,8 @@ def test_mobile_source_memory_is_updated_lazily_when_chat_hits_a_node():
 
     assert "function recordSourceMemoryHit" in html
     assert "async function persistSourceMemoryHits" in html
-    assert "const sourceSnippets = retrieveSourceSnippets(anchors, user_input);" in html
-    assert "await persistSourceMemoryHits(anchors, sourceSnippets, user_input, userMessage ? [userMessage.id] : []);" in html
+    assert "const sourceSnippets = retrieveSourceSnippets(anchors, effectiveUserInput);" in html
+    assert "await persistSourceMemoryHits(anchors, sourceSnippets, effectiveUserInput, userMessage ? [userMessage.id] : []);" in html
     assert "event: 'chat_hit'" in html
     assert "status = node.status === 'raw' ? 'outlined' : node.status" in html
 
@@ -178,7 +178,7 @@ def test_mobile_second_layer_expands_only_hit_source_memory_branches():
     assert "event: 'branch_expand'" in html
     assert "node.status = 'expanded'" in html
     assert "node.pending_expansion = false" in html
-    assert "await expandSourceMemoryBranches(anchors, sourceSnippets, user_input);" in html
+    assert "await expandSourceMemoryBranches(anchors, sourceSnippets, effectiveUserInput);" in html
     assert "最多分析 1 个命中的资料节点" in html
 
 
@@ -335,7 +335,7 @@ def test_mobile_chat_input_preserves_caret_and_handles_keyboard_layout():
 def test_mobile_failed_chat_message_can_be_retried_or_restored_to_input():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "retry_text: user_input" in html
+    assert "retry_text: String(msg.content || effectiveUserInput || '')" in html
     assert "data-retry-message" in html
     assert "data-edit-message" in html
     assert "async function retryFailedMessage" in html
@@ -419,6 +419,21 @@ def test_mobile_uses_lucide_icons_and_custom_proactive_segments():
     assert 'id="proactive-mode-segments"' in html
     assert "data-proactive-mode" in html
     assert "native-config-select" in html
+
+
+def test_mobile_queued_user_messages_are_visible_and_reused_for_next_turn():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "async function queue_pending_user_message" in html
+    assert "kind: 'queued_user_message'" in html
+    assert "已进入对话，等待上一条回复完成" in html
+    assert "existingUserMessages" in html
+    assert "queuedUserMessages" in html
+    assert "const batch = state.messageQueue.splice(0)" in html
+    assert "await submitChatText(combinedText, { queuedUserMessages" in html
+    assert "queued_user_message" in html
+    assert "待处理" in html
+    assert "处理中" in html
 
 
 def test_mobile_import_accepts_reader_friendly_document_formats():

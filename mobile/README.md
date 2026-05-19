@@ -49,9 +49,9 @@ Capacitor 官方文档管理 keystore。
 - 证书 DN：`CN=Reverse Tutor, OU=App, O=ReverseTeacher, L=CN, ST=CN, C=CN`
 - 证书 SHA-256：`d21ff63c6b75494dd2229caccd6977ec763c8b17d95807ff1d7c455d39ac41c2`
 - 正式 APK 命名：`Reverse-Tutor-v{versionName}.apk`
-- Android 桌面显示名：下一版起回归中文 `反转家教`
+- Android 桌面显示名：从 v0.17.1 起回归中文 `反转家教`
 
-不要删除、替换或重新生成 `release.jks`；不要再用 Android Debug 签名发布对外 APK。旧 debug/test 包切到 v0.17.0 release 签名时需要卸载旧包，后续只要保持该签名即可覆盖升级。下一版只把手机桌面显示名改回 `反转家教`，仓库名、Release 标题和 APK 文件名仍保持 Reverse Tutor / `Reverse-Tutor-v{versionName}.apk`。
+不要删除、替换或重新生成 `release.jks`；不要再用 Android Debug 签名发布对外 APK。旧 debug/test 包切到 v0.17.0 release 签名时需要卸载旧包，后续只要保持该签名即可覆盖升级。Android 桌面显示名从 v0.17.1 起回归 `反转家教`，仓库名、Release 标题和 APK 文件名仍保持 Reverse Tutor / `Reverse-Tutor-v{versionName}.apk`。
 
 ## 应用内检查更新
 
@@ -73,11 +73,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 21,
-  "versionName": "0.17.0",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.0.apk",
+  "versionCode": 22,
+  "versionName": "0.17.1",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.1.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.0/Reverse-Tutor-v0.17.0.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.1/Reverse-Tutor-v0.17.1.apk"
   ],
   "publishedAt": "2026-05-14",
   "releaseNotes": [
