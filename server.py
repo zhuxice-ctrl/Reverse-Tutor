@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session as DbSession
 import db
 import engine
 import llm
+import trial
 from adapters import dispatch_webhook
 
 # --- App ---------------------------------------------------------------------
@@ -80,6 +81,11 @@ class AnchorReq(BaseModel):
     kind: Literal["initial", "requirement", "milestone", "constraint"] = "requirement"
     content: str
     weight: float = 1.0
+
+
+class TrialRedeemReq(BaseModel):
+    code: str
+    device_id: str
 
 
 # --- 健康 / 元信息 -----------------------------------------------------------
@@ -165,6 +171,57 @@ def _write_env_values(path: Path, values: dict[str, str]) -> None:
         out.append("")
     out.extend(f"{key}={value}" for key, value in pending.items())
     path.write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
+
+
+# --- Trial LLM proxy ---------------------------------------------------------
+
+@app.post("/api/trial/redeem")
+def redeem_trial(req: TrialRedeemReq, d: DbSession = Depends(get_db)) -> dict:
+    try:
+        return trial.redeem_code(d, req.code, req.device_id)
+    except trial.TrialError as e:
+        raise HTTPException(e.status_code, str(e)) from e
+
+
+@app.get("/api/trial/status")
+def trial_status(
+    authorization: str = Header(default=""),
+    d: DbSession = Depends(get_db),
+) -> dict:
+    try:
+        row = trial.get_code_by_token(d, _bearer_token(authorization))
+        return trial.quota_status(row)
+    except trial.TrialError as e:
+        raise HTTPException(e.status_code, str(e)) from e
+
+
+@app.post("/api/trial/chat/completions")
+async def trial_chat_completions(
+    body: dict,
+    authorization: str = Header(default=""),
+    d: DbSession = Depends(get_db),
+) -> dict:
+    if body.get("stream"):
+        raise HTTPException(400, "trial proxy does not support stream; retry without stream")
+    try:
+        row = trial.get_code_by_token(d, _bearer_token(authorization))
+        payload = trial.build_provider_payload(body)
+        trial.ensure_quota_available(row, payload)
+        response = await trial.call_provider(payload)
+        trial.charge_usage(d, row, payload, response)
+        return response
+    except trial.TrialError as e:
+        raise HTTPException(e.status_code, str(e)) from e
+
+
+def _bearer_token(authorization: str) -> str:
+    prefix = "Bearer "
+    if not authorization or not authorization.startswith(prefix):
+        raise trial.TrialError("缺少体验 token", status_code=401)
+    token = authorization[len(prefix):].strip()
+    if not token:
+        raise trial.TrialError("缺少体验 token", status_code=401)
+    return token
 
 
 # --- Sessions ---------------------------------------------------------------

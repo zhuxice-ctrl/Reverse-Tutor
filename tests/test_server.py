@@ -5,6 +5,8 @@ import httpx
 import pytest
 
 import server
+import db
+import trial
 from server import app
 
 
@@ -146,6 +148,88 @@ async def test_llm_config_save_writes_local_env_and_masks_key(client, tmp_path, 
     assert "sk-local-test" not in str(cfg)
 
     await client.post("/api/llm-config", json={"base_url": "", "api_key": "", "model": ""})
+
+
+async def test_trial_redeem_binds_device_and_proxy_charges_usage(client, monkeypatch):
+    with db.SessionLocal() as s:
+        s.add(db.TrialCode(code="RT-TEST", total_quota_micro_cny=500_000, daily_quota_micro_cny=0))
+        s.commit()
+
+    r = await client.post("/api/trial/redeem", json={"code": "rt-test", "device_id": "device-abc-123"})
+    assert r.status_code == 200
+    redeemed = r.json()
+    token = redeemed["trial_token"]
+    assert redeemed["daily_limit_enabled"] is False
+    assert redeemed["daily_remaining_yuan"] == 0.5
+    assert redeemed["total_remaining_yuan"] == 0.5
+
+    r = await client.post("/api/trial/redeem", json={"code": "RT-TEST", "device_id": "device-other-999"})
+    assert r.status_code == 403
+
+    async def fake_call_provider(payload):
+        assert payload["model"] == trial.provider_model()
+        assert payload["max_tokens"] <= trial.max_output_tokens()
+        return {
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "choices": [{"message": {"role": "assistant", "content": "ok"}}],
+            "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+        }
+
+    monkeypatch.setattr(trial, "call_provider", fake_call_provider)
+    r = await client.post(
+        "/api/trial/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "model": "client-side-model-is-ignored",
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 9999,
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["choices"][0]["message"]["content"] == "ok"
+
+    r = await client.get("/api/trial/status", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    status = r.json()
+    assert status["request_count"] == 1
+    assert status["total_remaining_micro_cny"] < 500_000
+
+
+async def test_trial_proxy_rejects_stream_for_client_fallback(client):
+    with db.SessionLocal() as s:
+        s.add(db.TrialCode(code="RT-STREAM", total_quota_micro_cny=500_000, daily_quota_micro_cny=0))
+        s.commit()
+    r = await client.post("/api/trial/redeem", json={"code": "RT-STREAM", "device_id": "device-stream-1"})
+    token = r.json()["trial_token"]
+
+    r = await client.post(
+        "/api/trial/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "ping"}], "stream": True},
+    )
+    assert r.status_code == 400
+    assert "stream" in r.text
+
+
+async def test_trial_proxy_prechecks_quota_before_provider_call(client, monkeypatch):
+    with db.SessionLocal() as s:
+        s.add(db.TrialCode(code="RT-LOW", total_quota_micro_cny=50, daily_quota_micro_cny=0))
+        s.commit()
+    r = await client.post("/api/trial/redeem", json={"code": "RT-LOW", "device_id": "device-low-1"})
+    token = r.json()["trial_token"]
+
+    async def fake_call_provider(payload):
+        raise AssertionError("provider should not be called when estimated quota is insufficient")
+
+    monkeypatch.setattr(trial, "call_provider", fake_call_provider)
+    r = await client.post(
+        "/api/trial/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "ping"}], "max_tokens": 700},
+    )
+    assert r.status_code == 402
+    assert "额度不足" in r.text
 
 
 async def test_anchor_delete(client):

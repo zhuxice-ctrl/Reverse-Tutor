@@ -13,6 +13,9 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "cfg-provider" in html
     assert "cfg-api-type" in html
     assert "cfg-capability" in html
+    assert "cfg-trial-code" in html
+    assert "cfg-trial-redeem" in html
+    assert "DEFAULT_TRIAL_PROXY_BASE_URL" in html
     assert "applyLlmProviderPreset" in html
     assert "https://api.openai.com/v1" in html
     assert "https://api.deepseek.com" in html
@@ -43,6 +46,7 @@ def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models
     assert "deepseek-v4-pro" in provider_block
     assert "id:'minimax'" in provider_block
     assert "id:'minimax-anthropic'" in provider_block
+    assert "id:'trial'" in provider_block
     assert "max_completion_tokens" in html
     assert "providerTemperature" in html
     assert "appendOpenAiDelta" in html
@@ -100,6 +104,7 @@ def test_android_background_job_carries_api_type_and_capability():
     assert "api_type: cfg.api_type" in html
     assert "capability: cfg.capability" in html
     assert "provider: cfg.provider" in html
+    assert "if (cfg.provider === 'trial') return false" in html
     assert "max_completion_tokens" in html
     assert "supportsBackgroundChat" in html
 

@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.5-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.6-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -53,6 +53,13 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
+
+## v0.17.6 更新重点
+
+- 新增“体验额度”模式：用户可在设置页输入兑换码，兑换后无需填写自己的模型 API Key。
+- 体验请求通过服务器 `/api/trial` 中转，真实模型 Key 只保存在服务端，不写入 APK。
+- 兑换码默认绑定单设备，总额度 0.5 元，不限制单日使用；服务端会记录用量并在请求前做额度预检。
+- 新增体验码生成脚本和服务器部署说明，便于后续批量发放、排查消耗和控制风险。
 
 ## v0.17.5 更新重点
 
@@ -134,6 +141,25 @@ LLM_MODEL=deepseek-v4-flash
 
 如果模型不支持图片，发送图片或表情时不会让 DeepSeek 这类文本模型强行识图；多模态能力由你选择的模型预设决定。
 
+### 体验兑换码
+
+移动端也支持“体验额度”模式：用户输入兑换码后，App 会换取短期 `trial_token`，后续请求走你的服务器 `/api/trial/chat/completions` 中转，不会把真实模型 API Key 下发到 APK。
+
+服务端环境变量：
+```env
+TRIAL_LLM_BASE_URL=https://api.deepseek.com
+TRIAL_LLM_API_KEY=sk-your-server-side-key
+TRIAL_LLM_MODEL=deepseek-v4-flash
+TRIAL_MAX_OUTPUT_TOKENS=700
+```
+
+生成兑换码：
+```powershell
+py -3 scripts/generate_trial_codes.py --count 20 --prefix RT --total-yuan 0.5
+```
+
+默认每个兑换码绑定一台设备，总额度 0.5 元、不限制单日使用；如需临时加日限，可额外传 `--daily-yuan 0.1`。计费单价可通过 `TRIAL_PROMPT_PRICE_MICRO_CNY_PER_MILLION` 和 `TRIAL_COMPLETION_PRICE_MICRO_CNY_PER_MILLION` 调整。
+
 ## 移动端打包
 
 ```powershell
@@ -150,7 +176,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -172,11 +198,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 26,
-  "versionName": "0.17.5",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk",
+  "versionCode": 27,
+  "versionName": "0.17.6",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.5/Reverse-Tutor-v0.17.5.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.6/Reverse-Tutor-v0.17.6.apk"
   ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [
@@ -206,6 +232,9 @@ npm run build:apk
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/health` | 健康检查 |
+| POST | `/api/trial/redeem` | 兑换体验码并绑定设备 |
+| GET | `/api/trial/status` | 查看体验额度剩余 |
+| POST | `/api/trial/chat/completions` | OpenAI-compatible 体验 LLM 中转 |
 | POST | `/api/sessions` | 创建会话 |
 | GET | `/api/sessions` | 列出会话 |
 | GET | `/api/sessions/{id}` | 获取会话详情 |

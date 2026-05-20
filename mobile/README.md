@@ -53,6 +53,16 @@ Capacitor 官方文档管理 keystore。
 
 不要删除、替换或重新生成 `release.jks`；不要再用 Android Debug 签名发布对外 APK。旧 debug/test 包切到 v0.17.0 release 签名时需要卸载旧包，后续只要保持该签名即可覆盖升级。Android 桌面显示名从 v0.17.1 起回归 `反转家教`，仓库名、Release 标题和 APK 文件名仍保持 Reverse Tutor / `Reverse-Tutor-v{versionName}.apk`。
 
+## 体验兑换码
+
+设置页的“体验兑换码”会请求服务器 `/api/trial/redeem`，兑换成功后自动切到 `体验额度` 预设，并把 LLM Base URL 指向 `/api/trial`。真实 DeepSeek Key 只保存在服务器环境变量 `TRIAL_LLM_API_KEY` 中，不会写入 APK。
+
+生成兑换码示例：
+
+```powershell
+py -3 ..\scripts\generate_trial_codes.py --count 20 --prefix RT --total-yuan 0.5
+```
+
 ## 应用内检查更新
 
 移动端设置页里有「软件更新」：
@@ -73,11 +83,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 26,
-  "versionName": "0.17.5",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk",
+  "versionCode": 27,
+  "versionName": "0.17.6",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.5/Reverse-Tutor-v0.17.5.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.6/Reverse-Tutor-v0.17.6.apk"
   ],
   "publishedAt": "2026-05-14",
   "releaseNotes": [

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.17.6 - 2026-05-20
+
+- 新增“体验额度”LLM 预设：用户输入兑换码后自动切到服务器中转模式，无需填写自己的模型 API Key。
+- 新增服务端 `/api/trial/redeem`、`/api/trial/status`、`/api/trial/chat/completions`，真实模型 Key 只保存在服务器。
+- 兑换码默认绑定单设备，总额度 0.5 元，不限制单日使用；服务端记录用量并在请求前做额度预检。
+- 新增 `scripts/generate_trial_codes.py`，用于批量生成体验兑换码。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.6.apk`。
+
 ## v0.17.5 - 2026-05-20
 
 - 新增 MiniMax / OpenAI 与 MiniMax / Anthropic 两个 LLM 服务预设，默认模型为 `MiniMax-M2.7`。

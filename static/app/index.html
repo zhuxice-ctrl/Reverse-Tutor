@@ -900,6 +900,18 @@
             <span class="text-xs text-neutral-400">API Key</span>
             <input id="cfg-key" type="password" placeholder="若无则留空" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
           </label>
+          <div class="config-section rounded border border-neutral-800 bg-neutral-950/40 p-2 space-y-2">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs text-neutral-300">体验兑换码</div>
+                <div class="text-[11px] text-neutral-500 leading-relaxed">兑换后走服务器中转，不需要在本机填写模型 API Key。</div>
+              </div>
+              <button id="cfg-trial-redeem" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">兑换</button>
+            </div>
+            <input id="cfg-trial-code" type="text" placeholder="输入兑换码" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono uppercase">
+            <input id="cfg-trial-url" type="text" placeholder="体验服务地址" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-xs font-mono">
+            <div id="cfg-trial-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
+          </div>
           <label class="block">
             <span class="text-xs text-neutral-400">Model</span>
             <input id="cfg-model" type="text" placeholder="deepseek-v4-flash / deepseek-v4-pro ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
@@ -968,7 +980,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.5 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.6 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1200,14 +1212,16 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 26;
-const APP_VERSION_NAME = '0.17.5';
+const APP_VERSION_CODE = 27;
+const APP_VERSION_NAME = '0.17.6';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
 const LEGACY_UPDATE_FEED_URLS = [GITHUB_UPDATE_FEED_URL, GITHUB_LATEST_RELEASE_URL];
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
+const TRIAL_INSTALL_ID_KEY = 'rt-mobile-trial-install-id';
+const DEFAULT_TRIAL_PROXY_BASE_URL = 'https://dl.zeroxcore.tech';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
 const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
@@ -1220,6 +1234,7 @@ const PROACTIVE_MODES = {
 };
 const LLM_PROVIDERS = [
   { id:'custom', label:'手动填写', base_url:'', model:'', models:['deepseek-v4-flash','deepseek-v4-pro','gpt-4o-mini','qwen-plus','local-model'], api_type:'openai', capability:'text', requires_key:true },
+  { id:'trial', label:'体验额度', base_url:`${DEFAULT_TRIAL_PROXY_BASE_URL}/api/trial`, model:'deepseek-v4-flash', models:['deepseek-v4-flash'], api_type:'openai', capability:'text', requires_key:true },
   { id:'deepseek', label:'DeepSeek / OpenAI', base_url:'https://api.deepseek.com', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'openai', capability:'text' },
   { id:'deepseek-anthropic', label:'DeepSeek / Anthropic', base_url:'https://api.deepseek.com/anthropic', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'anthropic', capability:'text' },
   { id:'minimax', label:'MiniMax / OpenAI', base_url:'https://api.minimax.io/v1', model:'MiniMax-M2.7', models:['MiniMax-M2.7','MiniMax-M2.7-highspeed','MiniMax-M2.5','MiniMax-M2.5-highspeed','MiniMax-M2.1','MiniMax-M2.1-highspeed','MiniMax-M2'], api_type:'openai', capability:'text' },
@@ -1374,6 +1389,9 @@ function normalizeLlmConfig(c = {}) {
     base_url: String(c.base_url || '').trim(),
     api_key: String(c.api_key || '').trim(),
     model: String(c.model || '').trim(),
+    trial_api_base: String(c.trial_api_base || DEFAULT_TRIAL_PROXY_BASE_URL).trim(),
+    trial_code: String(c.trial_code || '').trim(),
+    trial_token_expires_at: String(c.trial_token_expires_at || '').trim(),
   };
 }
 
@@ -2095,7 +2113,17 @@ return { open, add, put, get, del, all, bySid, delBySid, kvGet, kvSet, exportAll
 <script>
 // ============== LLM 适配层（mock + OpenAI 兼容）==============
 const LLM = (() => {
-  let cfg = { provider: 'custom', api_type: 'openai', capability: 'text', base_url: '', api_key: '', model: '' };
+  let cfg = {
+    provider: 'custom',
+    api_type: 'openai',
+    capability: 'text',
+    base_url: '',
+    api_key: '',
+    model: '',
+    trial_api_base: DEFAULT_TRIAL_PROXY_BASE_URL,
+    trial_code: '',
+    trial_token_expires_at: '',
+  };
 
   const providerRequiresKey = () => {
     const preset = LLM_PROVIDERS.find(p => p.id === cfg.provider);
@@ -2110,6 +2138,9 @@ const LLM = (() => {
     if ('base_url' in c) next.base_url = String(c.base_url || '').trim();
     if ('api_key' in c) next.api_key = String(c.api_key || '').trim();
     if ('model' in c) next.model = String(c.model || '').trim();
+    if ('trial_api_base' in c) next.trial_api_base = normalizeTrialApiBase(c.trial_api_base);
+    if ('trial_code' in c) next.trial_code = String(c.trial_code || '').trim();
+    if ('trial_token_expires_at' in c) next.trial_token_expires_at = String(c.trial_token_expires_at || '').trim();
     cfg = next;
   };
   const get_config = () => ({ ...cfg, has_api_key: !!cfg.api_key, mode: has_real() ? 'live' : 'mock' });
@@ -3400,9 +3431,10 @@ ${openingTask}
     };
   }
 
-  function supportsBackgroundChat(cfg) {
-    return !cfg.api_type || ['openai', 'anthropic'].includes(cfg.api_type);
-  }
+function supportsBackgroundChat(cfg) {
+  if (cfg.provider === 'trial') return false;
+  return !cfg.api_type || ['openai', 'anthropic'].includes(cfg.api_type);
+}
 
   async function import_native_background_turns() {
     const jobs = await NativeBackgroundLlm.getCompletedTurns();
@@ -6550,7 +6582,7 @@ function renderConfigPickerUi() {
   const summary = $('#cfg-provider-summary');
   if (title) title.textContent = provider.label;
   if (summary) {
-    const keyState = provider.requires_key === false ? '免 Key' : '需 API Key';
+    const keyState = provider.id === 'trial' ? '需兑换码' : (provider.requires_key === false ? '免 Key' : '需 API Key');
     const apiLabel = (API_TYPE_OPTIONS.find(x => x.value === ($('#cfg-api-type').value || provider.api_type)) || {}).label || provider.api_type || '自定义';
     const capLabel = (CAPABILITY_OPTIONS.find(x => x.value === ($('#cfg-capability').value || provider.capability)) || {}).label || provider.capability || '文本';
     summary.textContent = `${apiLabel} · ${capLabel} · ${model || '手动模型'} · ${keyState}`;
@@ -6597,6 +6629,99 @@ function applyLlmProviderPreset(providerId) {
   renderConfigPickerUi();
 }
 
+function trialInstallId() {
+  let id = localStorage.getItem(TRIAL_INSTALL_ID_KEY) || '';
+  if (!id) {
+    id = 'rt-' + uuid() + '-' + uuid();
+    localStorage.setItem(TRIAL_INSTALL_ID_KEY, id);
+  }
+  return id;
+}
+
+function normalizeTrialApiBase(url) {
+  return String(url || DEFAULT_TRIAL_PROXY_BASE_URL).trim().replace(/\/+$/, '') || DEFAULT_TRIAL_PROXY_BASE_URL;
+}
+
+function trialChatBaseUrl(apiBase) {
+  return normalizeTrialApiBase(apiBase) + '/api/trial';
+}
+
+function renderTrialSettings(cfg=LLM.get_config()) {
+  const url = $('#cfg-trial-url');
+  const code = $('#cfg-trial-code');
+  const status = $('#cfg-trial-status');
+  if (url) url.value = cfg.trial_api_base || DEFAULT_TRIAL_PROXY_BASE_URL;
+  if (code) code.value = cfg.trial_code || '';
+  if (!status) return;
+  if (cfg.provider === 'trial' && cfg.has_api_key) {
+    const exp = cfg.trial_token_expires_at ? `；有效期至 ${cfg.trial_token_expires_at.replace('T', ' ').replace('Z', '')}` : '';
+    status.textContent = `体验额度已启用：${cfg.model || 'deepseek-v4-flash'}${exp}`;
+    status.className = 'text-[11px] text-emerald-400 leading-relaxed';
+  } else {
+    status.textContent = '兑换成功后会自动切换到“体验额度”预设。';
+    status.className = 'text-[11px] text-neutral-500 leading-relaxed';
+  }
+}
+
+async function redeemTrialCode() {
+  const btn = $('#cfg-trial-redeem');
+  const status = $('#cfg-trial-status');
+  const apiBase = normalizeTrialApiBase($('#cfg-trial-url')?.value);
+  const code = ($('#cfg-trial-code')?.value || '').trim().toUpperCase();
+  if (!code) {
+    toast('请先输入兑换码');
+    return;
+  }
+  const oldText = btn?.textContent || '';
+  if (btn) { btn.disabled = true; btn.textContent = '兑换中…'; }
+  if (status) {
+    status.textContent = '正在验证兑换码…';
+    status.className = 'text-[11px] text-neutral-400 leading-relaxed';
+  }
+  try {
+    const res = await fetch(apiBase + '/api/trial/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, device_id: trialInstallId() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    const cfg = await persistLlmConfig({
+      provider: 'trial',
+      api_type: 'openai',
+      capability: 'text',
+      base_url: trialChatBaseUrl(apiBase),
+      api_key: data.trial_token || '',
+      model: data.model || 'deepseek-v4-flash',
+      trial_api_base: apiBase,
+      trial_code: code,
+      trial_token_expires_at: data.token_expires_at || '',
+    });
+    $('#cfg-provider').value = 'trial';
+    $('#cfg-api-type').value = 'openai';
+    $('#cfg-capability').value = 'text';
+    $('#cfg-base').value = cfg.base_url || '';
+    $('#cfg-model').value = cfg.model || '';
+    $('#cfg-key').value = '';
+    renderConfigPickerUi();
+    renderTrialSettings(cfg);
+    if (status) {
+      status.textContent = data.daily_limit_enabled
+        ? `兑换成功：今日剩余约 ${data.daily_remaining_yuan ?? '?'} 元，总剩余约 ${data.total_remaining_yuan ?? '?'} 元。`
+        : `兑换成功：总剩余约 ${data.total_remaining_yuan ?? '?'} 元，不限制单日使用。`;
+      status.className = 'text-[11px] text-emerald-400 leading-relaxed';
+    }
+    refreshHeader();
+  } catch (e) {
+    if (status) {
+      status.textContent = `兑换失败：${e.message || e}`;
+      status.className = 'text-[11px] text-red-400 leading-relaxed';
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldText || '兑换'; }
+  }
+}
+
 async function renderSettings() {
   state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
   $('#sess-list').innerHTML = state.sessions.length ? state.sessions.map(s => `
@@ -6634,6 +6759,7 @@ async function renderSettings() {
   renderConfigPickerUi();
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  renderTrialSettings(cfg);
   $('#cfg-status').textContent = cfg.mode === 'live'
     ? `当前：live (${cfg.model})，${cfg.has_api_key ? 'API Key 已保存' : '当前预设无需 API Key'}`
     : (cfg.has_api_key ? '当前：mock（Base URL / Model 不完整，API Key 已保存）' : '当前：mock');
@@ -6681,13 +6807,18 @@ function renderProactiveSettings() {
 async function saveLlmConfig() {
   const existing = LLM.get_config();
   const keyInput = $('#cfg-key').value.trim();
+  const provider = $('#cfg-provider').value || 'custom';
+  const keepExistingKey = !keyInput && ((existing.provider === 'trial') === (provider === 'trial'));
   const c = {
-    provider: $('#cfg-provider').value || 'custom',
+    provider,
     api_type: $('#cfg-api-type').value || 'openai',
     capability: $('#cfg-capability').value || 'text',
     base_url: $('#cfg-base').value.trim(),
-    api_key: keyInput || existing.api_key || '',
+    api_key: keyInput || (keepExistingKey ? existing.api_key : '') || '',
     model: $('#cfg-model').value.trim(),
+    trial_api_base: normalizeTrialApiBase($('#cfg-trial-url')?.value || existing.trial_api_base),
+    trial_code: ($('#cfg-trial-code')?.value || existing.trial_code || '').trim().toUpperCase(),
+    trial_token_expires_at: existing.trial_token_expires_at || '',
   };
   const cfg = await persistLlmConfig(c);
   $('#cfg-key').value = '';
@@ -6721,7 +6852,7 @@ async function testLlm() {
   }
 }
 async function clearLlm() {
-  const empty = { provider:'custom', api_type:'openai', capability:'text', base_url:'', api_key:'', model:'' };
+  const empty = { provider:'custom', api_type:'openai', capability:'text', base_url:'', api_key:'', model:'', trial_api_base: DEFAULT_TRIAL_PROXY_BASE_URL, trial_code:'', trial_token_expires_at:'' };
   LLM.set_config(empty);
   localStorage.removeItem(LLM_CONFIG_KEY);
   await Promise.allSettled([
@@ -6733,6 +6864,7 @@ async function clearLlm() {
 $('#cfg-save').addEventListener('click', saveLlmConfig);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
+$('#cfg-trial-redeem').addEventListener('click', redeemTrialCode);
 $('#cfg-provider').addEventListener('change', e => applyLlmProviderPreset(e.target.value));
 $('#cfg-provider-trigger').addEventListener('click', () => {
   const current = $('#cfg-provider').value || 'custom';
@@ -6744,7 +6876,7 @@ $('#cfg-provider-trigger').addEventListener('click', () => {
       value: p.id,
       label: p.label,
       detail: `${p.base_url || '手动填写地址'} · ${p.model || '手动模型'}`,
-      badge: p.requires_key === false ? '免 Key' : 'API Key',
+      badge: p.id === 'trial' ? '兑换码' : (p.requires_key === false ? '免 Key' : 'API Key'),
     })),
     onPick: opt => applyLlmProviderPreset(opt.value),
   });
