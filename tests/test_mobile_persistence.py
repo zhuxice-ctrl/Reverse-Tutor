@@ -12,8 +12,21 @@ def test_mobile_llm_config_uses_native_preferences_for_long_term_storage():
     assert "nativePreferences()" in html
     assert "saveLlmConfigNative" in html
     assert "loadLlmConfigNative" in html
+    assert "saveLocalApiConfigNative" in html
+    assert "loadLocalApiConfigNative" in html
     assert "Preferences.set" in html
     assert "Preferences.get" in html
+
+
+def test_mobile_llm_keeps_local_api_snapshot_separate_from_trial_redeem():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "LLM_LOCAL_CONFIG_KEY" in html
+    assert "saveLocalApiConfigLocal(next)" in html
+    assert "DB.kvSet('llm_local_config', next)" in html
+    assert "restoreLocalApiConfig" in html
+    assert "selectLocalFirstLlmConfig(saved, localApi)" in html
+    assert "activeLocalApi = !isTrialProvider(cfg.provider)" in html
 
 
 def test_android_webview_uses_native_ime_input_connection():

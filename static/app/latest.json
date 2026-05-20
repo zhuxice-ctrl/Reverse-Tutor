@@ -1,19 +1,19 @@
 {
-  "versionCode": 27,
-  "versionName": "0.17.6",
+  "versionCode": 28,
+  "versionName": "0.17.7",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.7.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.6/Reverse-Tutor-v0.17.6.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.7/Reverse-Tutor-v0.17.7.apk"
   ],
-  "sha256": "f4d29abf23d44a4380e1415af434849c869c52d284b4371e50eb1628ec50becf",
-  "publishedAt": "2026-05-20",
+  "sha256": "e94786b49e618f2cdd9f04ebd46a7d7952fdd95dbfd4d5b2b5b9e857508aa5a4",
+  "publishedAt": "2026-05-21",
   "releaseNotes": [
-    "新增体验额度模式：输入兑换码即可走服务器中转使用 LLM，无需填写自己的模型 API Key。",
-    "真实模型 Key 只保存在服务器，APK 通过 /api/trial 中转并只保存短期 trial token，降低泄露风险。",
-    "兑换码默认绑定单设备，总额度 0.5 元，不限制单日使用；服务端记录用量并做额度预检。",
-    "新增体验码生成脚本和服务器部署文档，便于批量发放和排查消耗。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.6.apk，不使用 test/debug 后缀。"
+    "修复体验额度模式下发送消息失败的问题：服务端中转不支持流式输出时，前端会正确降级到非流式回复。",
+    "修复 streamObj.fullText is not a function 导致的红色失败气泡。",
+    "新增本地 API 优先的自动选路，兑换码不会覆盖用户自己的 API 配置。",
+    "设置页激活码入口移动到软件更新下方，只保留一个激活码输入框。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.7.apk，不使用 test/debug 后缀。"
   ]
 }

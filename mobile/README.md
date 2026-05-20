@@ -57,10 +57,12 @@ Capacitor 官方文档管理 keystore。
 
 设置页的“体验兑换码”会请求服务器 `/api/trial/redeem`，兑换成功后自动切到 `体验额度` 预设，并把 LLM Base URL 指向 `/api/trial`。真实 DeepSeek Key 只保存在服务器环境变量 `TRIAL_LLM_API_KEY` 中，不会写入 APK。
 
+渠道隔离规则：只有 `体验额度` provider 能使用 `/api/trial`；用户切换到其他 LLM 预设或手动填写后，App 会自动移除残留的 trial 地址。正常服务商配置会独立保存为本地 API 快照，发送前优先使用本地 API；兑换码成功后只作为备用体验渠道保存，不会覆盖用户自己的 API 配置。跨服务商切换不保留旧 Key，只有同一服务商的 OpenAI / Anthropic 协议切换会复用 Key，避免兑换码 token 和正常 API Key 串用。
+
 生成兑换码示例：
 
 ```powershell
-py -3 ..\scripts\generate_trial_codes.py --count 20 --prefix RT --total-yuan 0.5
+py -3 ..\scripts\generate_trial_codes.py --count 20 --prefix RT --total-yuan <每码总额度>
 ```
 
 ## 应用内检查更新
@@ -83,11 +85,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 27,
-  "versionName": "0.17.6",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk",
+  "versionCode": 28,
+  "versionName": "0.17.7",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.7.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.6/Reverse-Tutor-v0.17.6.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.7/Reverse-Tutor-v0.17.7.apk"
   ],
   "publishedAt": "2026-05-14",
   "releaseNotes": [

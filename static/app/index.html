@@ -900,18 +900,6 @@
             <span class="text-xs text-neutral-400">API Key</span>
             <input id="cfg-key" type="password" placeholder="若无则留空" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
           </label>
-          <div class="config-section rounded border border-neutral-800 bg-neutral-950/40 p-2 space-y-2">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <div class="text-xs text-neutral-300">体验兑换码</div>
-                <div class="text-[11px] text-neutral-500 leading-relaxed">兑换后走服务器中转，不需要在本机填写模型 API Key。</div>
-              </div>
-              <button id="cfg-trial-redeem" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">兑换</button>
-            </div>
-            <input id="cfg-trial-code" type="text" placeholder="输入兑换码" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono uppercase">
-            <input id="cfg-trial-url" type="text" placeholder="体验服务地址" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-xs font-mono">
-            <div id="cfg-trial-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
-          </div>
           <label class="block">
             <span class="text-xs text-neutral-400">Model</span>
             <input id="cfg-model" type="text" placeholder="deepseek-v4-flash / deepseek-v4-pro ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
@@ -950,6 +938,21 @@
       </div>
 
       <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">激活码</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs text-neutral-300">兑换体验额度</div>
+              <div class="text-[11px] text-neutral-500 leading-relaxed">兑换后走服务器中转，不需要在本机填写模型 API Key；已有本地 API 时会优先使用本地 API。</div>
+            </div>
+            <button id="cfg-trial-redeem" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">兑换</button>
+          </div>
+          <input id="cfg-trial-code" type="text" placeholder="输入激活码" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono uppercase">
+          <div id="cfg-trial-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
+        </div>
+      </div>
+
+      <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">数据</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
           <button id="data-export" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="share-2"></i><span>分享全部数据（QQ / 微信 / 其他应用）</span></button>
@@ -980,7 +983,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.6 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.7 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1212,14 +1215,15 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 27;
-const APP_VERSION_NAME = '0.17.6';
+const APP_VERSION_CODE = 28;
+const APP_VERSION_NAME = '0.17.7';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
 const LEGACY_UPDATE_FEED_URLS = [GITHUB_UPDATE_FEED_URL, GITHUB_LATEST_RELEASE_URL];
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
+const LLM_LOCAL_CONFIG_KEY = 'rt-mobile-llm-local-config';
 const TRIAL_INSTALL_ID_KEY = 'rt-mobile-trial-install-id';
 const DEFAULT_TRIAL_PROXY_BASE_URL = 'https://dl.zeroxcore.tech';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
@@ -1381,15 +1385,72 @@ function normalizeApiType(apiType) {
   return 'openai';
 }
 
+function isTrialProvider(provider) {
+  return String(provider || '').trim() === 'trial';
+}
+
+function isTrialBaseUrl(baseUrl) {
+  return String(baseUrl || '').trim().toLowerCase().includes('/api/trial');
+}
+
+function providerKeyScope(provider) {
+  const id = String(provider || 'custom').trim() || 'custom';
+  if (id === 'deepseek-anthropic') return 'deepseek';
+  if (id === 'minimax-anthropic') return 'minimax';
+  return id;
+}
+
+function providerRequiresKeyForConfig(c = {}) {
+  const provider = String(c.provider || 'custom').trim() || 'custom';
+  const preset = LLM_PROVIDERS.find(p => p.id === provider);
+  return preset ? preset.requires_key !== false : true;
+}
+
+function isRunnableLlmConfig(c = {}) {
+  const baseUrl = String(c.base_url || '').trim();
+  const model = String(c.model || '').trim();
+  const apiKey = String(c.api_key || '').trim();
+  return !!(baseUrl && model && (apiKey || !providerRequiresKeyForConfig(c)));
+}
+
+function isLocalApiConfig(c = {}) {
+  const provider = String(c.provider || 'custom').trim() || 'custom';
+  return !isTrialProvider(provider) && !isTrialBaseUrl(c.base_url) && isRunnableLlmConfig(c);
+}
+
+function selectLocalFirstLlmConfig(current = {}, localApi = null) {
+  const normalizedCurrent = normalizeLlmConfig(current);
+  const normalizedLocal = localApi ? normalizeLlmConfig(localApi) : null;
+  if (normalizedLocal && isLocalApiConfig(normalizedLocal)) return normalizedLocal;
+  return normalizedCurrent;
+}
+
 function normalizeLlmConfig(c = {}) {
+  const provider = String(c.provider || 'custom').trim() || 'custom';
+  const trialApiBase = normalizeTrialApiBase(c.trial_api_base || DEFAULT_TRIAL_PROXY_BASE_URL);
+  let apiType = normalizeApiType(c.api_type);
+  let capability = String(c.capability || 'text').trim() || 'text';
+  let baseUrl = String(c.base_url || '').trim();
+  let apiKey = String(c.api_key || '').trim();
+  let model = String(c.model || '').trim();
+  if (isTrialProvider(provider)) {
+    apiType = 'openai';
+    capability = 'text';
+    baseUrl = trialChatBaseUrl(trialApiBase);
+    model = model || 'deepseek-v4-flash';
+  } else if (isTrialBaseUrl(baseUrl)) {
+    const preset = LLM_PROVIDERS.find(p => p.id === provider && !isTrialProvider(p.id));
+    baseUrl = preset?.base_url || '';
+    apiKey = '';
+  }
   return {
-    provider: String(c.provider || 'custom').trim() || 'custom',
-    api_type: normalizeApiType(c.api_type),
-    capability: String(c.capability || 'text').trim() || 'text',
-    base_url: String(c.base_url || '').trim(),
-    api_key: String(c.api_key || '').trim(),
-    model: String(c.model || '').trim(),
-    trial_api_base: String(c.trial_api_base || DEFAULT_TRIAL_PROXY_BASE_URL).trim(),
+    provider,
+    api_type: apiType,
+    capability,
+    base_url: baseUrl,
+    api_key: apiKey,
+    model,
+    trial_api_base: trialApiBase,
     trial_code: String(c.trial_code || '').trim(),
     trial_token_expires_at: String(c.trial_token_expires_at || '').trim(),
   };
@@ -1407,6 +1468,24 @@ function loadLlmConfigLocal() {
 
 function saveLlmConfigLocal(c) {
   localStorage.setItem(LLM_CONFIG_KEY, JSON.stringify(normalizeLlmConfig(c)));
+}
+
+function loadLocalApiConfigLocal() {
+  try {
+    const raw = localStorage.getItem(LLM_LOCAL_CONFIG_KEY);
+    const cfg = raw ? normalizeLlmConfig(JSON.parse(raw)) : null;
+    return cfg && isLocalApiConfig(cfg) ? cfg : null;
+  } catch (err) {
+    console.warn('llm local api config parse failed', err);
+    return null;
+  }
+}
+
+function saveLocalApiConfigLocal(c) {
+  const cfg = normalizeLlmConfig(c);
+  if (!isLocalApiConfig(cfg)) return false;
+  localStorage.setItem(LLM_LOCAL_CONFIG_KEY, JSON.stringify(cfg));
+  return true;
 }
 
 function nativePreferences() {
@@ -1440,6 +1519,35 @@ async function saveLlmConfigNative(c) {
   }
 }
 
+async function loadLocalApiConfigNative() {
+  const Preferences = nativePreferences();
+  if (!Preferences) return null;
+  try {
+    const r = await Preferences.get({ key: LLM_LOCAL_CONFIG_KEY });
+    const cfg = r && r.value ? normalizeLlmConfig(JSON.parse(r.value)) : null;
+    return cfg && isLocalApiConfig(cfg) ? cfg : null;
+  } catch (err) {
+    console.warn('llm native local api config load failed', err);
+    return null;
+  }
+}
+
+async function saveLocalApiConfigNative(c) {
+  const Preferences = nativePreferences();
+  const cfg = normalizeLlmConfig(c);
+  if (!Preferences || !isLocalApiConfig(cfg)) return false;
+  try {
+    await Preferences.set({
+      key: LLM_LOCAL_CONFIG_KEY,
+      value: JSON.stringify(cfg),
+    });
+    return true;
+  } catch (err) {
+    console.warn('llm native local api config save failed', err);
+    return false;
+  }
+}
+
 async function clearLlmConfigNative() {
   const Preferences = nativePreferences();
   if (!Preferences) return false;
@@ -1452,28 +1560,64 @@ async function clearLlmConfigNative() {
   }
 }
 
+async function clearLocalApiConfigNative() {
+  const Preferences = nativePreferences();
+  if (!Preferences) return false;
+  try {
+    await Preferences.remove({ key: LLM_LOCAL_CONFIG_KEY });
+    return true;
+  } catch (err) {
+    console.warn('llm native local api config clear failed', err);
+    return false;
+  }
+}
+
 async function persistLlmConfig(c) {
   const next = normalizeLlmConfig(c);
-  LLM.set_config(next);
+  const localApi = isLocalApiConfig(next) ? next : await restoreLocalApiConfig();
+  const active = selectLocalFirstLlmConfig(next, localApi);
+  LLM.set_config(active);
   saveLlmConfigLocal(next);
-  await Promise.allSettled([
+  const writes = [
     saveLlmConfigNative(next),
     DB.kvSet('llm_config', next),
-  ]);
+  ];
+  if (isLocalApiConfig(next)) {
+    saveLocalApiConfigLocal(next);
+    writes.push(saveLocalApiConfigNative(next), DB.kvSet('llm_local_config', next));
+  }
+  await Promise.allSettled(writes);
   return LLM.get_config();
+}
+
+async function restoreLocalApiConfig() {
+  const nativeCfg = await loadLocalApiConfigNative();
+  const localCfg = loadLocalApiConfigLocal();
+  const dbCfg = await DB.kvGet('llm_local_config');
+  const cfg = nativeCfg || localCfg || dbCfg || null;
+  const next = cfg ? normalizeLlmConfig(cfg) : null;
+  if (!next || !isLocalApiConfig(next)) return null;
+  saveLocalApiConfigLocal(next);
+  await Promise.allSettled([
+    saveLocalApiConfigNative(next),
+    DB.kvSet('llm_local_config', next),
+  ]);
+  return next;
 }
 
 async function restoreLlmConfig() {
   const nativeCfg = await loadLlmConfigNative();
   const localCfg = loadLlmConfigLocal();
   const dbCfg = await DB.kvGet('llm_config');
-  const next = normalizeLlmConfig(nativeCfg || localCfg || dbCfg || {});
+  const saved = normalizeLlmConfig(nativeCfg || localCfg || dbCfg || {});
+  const localApi = await restoreLocalApiConfig();
+  const next = selectLocalFirstLlmConfig(saved, localApi);
   if (next.base_url || next.api_key || next.model) {
     LLM.set_config(next);
-    saveLlmConfigLocal(next);
+    saveLlmConfigLocal(saved);
     await Promise.allSettled([
-      saveLlmConfigNative(next),
-      DB.kvSet('llm_config', next),
+      saveLlmConfigNative(saved),
+      DB.kvSet('llm_config', saved),
     ]);
   }
   return LLM.get_config();
@@ -2141,7 +2285,7 @@ const LLM = (() => {
     if ('trial_api_base' in c) next.trial_api_base = normalizeTrialApiBase(c.trial_api_base);
     if ('trial_code' in c) next.trial_code = String(c.trial_code || '').trim();
     if ('trial_token_expires_at' in c) next.trial_token_expires_at = String(c.trial_token_expires_at || '').trim();
-    cfg = next;
+    cfg = normalizeLlmConfig(next);
   };
   const get_config = () => ({ ...cfg, has_api_key: !!cfg.api_key, mode: has_real() ? 'live' : 'mock' });
 
@@ -2715,6 +2859,33 @@ const LLM = (() => {
       : openai_text(system, messages, temperature, max_tokens, jsonMode);
   }
 
+  function normalizeStreamObject(streamLike) {
+    let resolved = null;
+    let accumulated = '';
+    const ready = Promise.resolve(streamLike).then(obj => {
+      resolved = obj || {};
+      return resolved;
+    });
+    return {
+      fullText: () => {
+        if (resolved && typeof resolved.fullText === 'function') return resolved.fullText();
+        return accumulated;
+      },
+      async *[Symbol.asyncIterator]() {
+        const obj = await ready;
+        if (!obj || typeof obj[Symbol.asyncIterator] !== 'function') {
+          throw new Error('LLM stream object missing async iterator');
+        }
+        for await (const chunk of obj) {
+          if (chunk && chunk.delta !== undefined) {
+            accumulated = chunk.accumulated || (accumulated + chunk.delta);
+          }
+          yield chunk;
+        }
+      }
+    };
+  }
+
   function chat_text_stream(system, messages, opts={}) {
     if (!has_real()) {
       const response = mock_response(messages);
@@ -2740,9 +2911,10 @@ const LLM = (() => {
     }
     const t = opts.temperature ?? 0.7;
     const mt = opts.max_tokens ?? 900;
-    return cfg.api_type === 'anthropic'
+    const streamLike = cfg.api_type === 'anthropic'
       ? anthropic_text_stream(system, messages, t, mt)
       : openai_text_stream(system, messages, t, mt);
+    return normalizeStreamObject(streamLike);
   }
 
   async function chat_json_eval_only(system, messages, opts={}) {
@@ -6624,8 +6796,9 @@ function applyLlmProviderPreset(providerId) {
   $('#cfg-provider').value = preset.id;
   $('#cfg-api-type').value = preset.api_type || 'openai';
   $('#cfg-capability').value = preset.capability || 'text';
-  if (preset.base_url) $('#cfg-base').value = preset.base_url;
-  if (preset.model) $('#cfg-model').value = preset.model;
+  $('#cfg-base').value = preset.base_url || '';
+  $('#cfg-model').value = preset.model || '';
+  if (!isTrialProvider(preset.id)) $('#cfg-key').value = '';
   renderConfigPickerUi();
 }
 
@@ -6686,7 +6859,7 @@ async function redeemTrialCode() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    const cfg = await persistLlmConfig({
+    const redeemedTrialConfig = normalizeLlmConfig({
       provider: 'trial',
       api_type: 'openai',
       capability: 'text',
@@ -6697,18 +6870,22 @@ async function redeemTrialCode() {
       trial_code: code,
       trial_token_expires_at: data.token_expires_at || '',
     });
-    $('#cfg-provider').value = 'trial';
-    $('#cfg-api-type').value = 'openai';
-    $('#cfg-capability').value = 'text';
+    const cfg = await persistLlmConfig(redeemedTrialConfig);
+    const activeLocalApi = !isTrialProvider(cfg.provider);
+    $('#cfg-provider').value = cfg.provider || 'trial';
+    $('#cfg-api-type').value = cfg.api_type || 'openai';
+    $('#cfg-capability').value = cfg.capability || 'text';
     $('#cfg-base').value = cfg.base_url || '';
     $('#cfg-model').value = cfg.model || '';
     $('#cfg-key').value = '';
     renderConfigPickerUi();
-    renderTrialSettings(cfg);
+    renderTrialSettings(activeLocalApi ? redeemedTrialConfig : cfg);
     if (status) {
-      status.textContent = data.daily_limit_enabled
-        ? `兑换成功：今日剩余约 ${data.daily_remaining_yuan ?? '?'} 元，总剩余约 ${data.total_remaining_yuan ?? '?'} 元。`
-        : `兑换成功：总剩余约 ${data.total_remaining_yuan ?? '?'} 元，不限制单日使用。`;
+      status.textContent = activeLocalApi
+        ? `兑换成功，体验额度已保存备用；当前优先使用本地 API：${cfg.model || cfg.provider}。`
+        : (data.daily_limit_enabled
+          ? `兑换成功：今日剩余约 ${data.daily_remaining_yuan ?? '?'} 元，总剩余约 ${data.total_remaining_yuan ?? '?'} 元。`
+          : `兑换成功：总剩余约 ${data.total_remaining_yuan ?? '?'} 元，不限制单日使用。`);
       status.className = 'text-[11px] text-emerald-400 leading-relaxed';
     }
     refreshHeader();
@@ -6808,25 +6985,43 @@ async function saveLlmConfig() {
   const existing = LLM.get_config();
   const keyInput = $('#cfg-key').value.trim();
   const provider = $('#cfg-provider').value || 'custom';
-  const keepExistingKey = !keyInput && ((existing.provider === 'trial') === (provider === 'trial'));
+  const trialApiBase = normalizeTrialApiBase($('#cfg-trial-url')?.value || existing.trial_api_base);
+  const selectedPreset = llmProviderById(provider);
+  const trialProvider = isTrialProvider(provider);
+  let baseUrl = $('#cfg-base').value.trim();
+  let model = $('#cfg-model').value.trim();
+  let guardedTrialRoute = false;
+  if (trialProvider) {
+    baseUrl = trialChatBaseUrl(trialApiBase);
+    model = model || selectedPreset.model || 'deepseek-v4-flash';
+  } else if (isTrialBaseUrl(baseUrl)) {
+    baseUrl = selectedPreset.id !== 'trial' ? (selectedPreset.base_url || '') : '';
+    guardedTrialRoute = true;
+  }
+  const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(provider);
+  const keepExistingKey = !keyInput && sameKeyScope;
   const c = {
     provider,
     api_type: $('#cfg-api-type').value || 'openai',
     capability: $('#cfg-capability').value || 'text',
-    base_url: $('#cfg-base').value.trim(),
+    base_url: baseUrl,
     api_key: keyInput || (keepExistingKey ? existing.api_key : '') || '',
-    model: $('#cfg-model').value.trim(),
-    trial_api_base: normalizeTrialApiBase($('#cfg-trial-url')?.value || existing.trial_api_base),
+    model,
+    trial_api_base: trialApiBase,
     trial_code: ($('#cfg-trial-code')?.value || existing.trial_code || '').trim().toUpperCase(),
-    trial_token_expires_at: existing.trial_token_expires_at || '',
+    trial_token_expires_at: trialProvider ? (existing.trial_token_expires_at || '') : '',
   };
   const cfg = await persistLlmConfig(c);
+  $('#cfg-base').value = cfg.base_url || '';
+  $('#cfg-model').value = cfg.model || '';
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   $('#cfg-status').textContent = cfg.mode==='live'
-    ? `已保存到本设备，已切到 live：${cfg.model}${cfg.has_api_key ? '' : '（无需 API Key）'}`
+    ? `已保存到本设备，已切到 live：${cfg.model}${cfg.has_api_key ? '' : '（无需 API Key）'}${guardedTrialRoute ? '（已移除体验中转地址）' : ''}`
     : (cfg.has_api_key ? '信息不完整，仍是 mock；API Key 已保留' : '信息不完整，仍是 mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  renderConfigPickerUi();
+  renderTrialSettings(cfg);
   refreshHeader();
 }
 async function testLlm() {
@@ -6855,9 +7050,12 @@ async function clearLlm() {
   const empty = { provider:'custom', api_type:'openai', capability:'text', base_url:'', api_key:'', model:'', trial_api_base: DEFAULT_TRIAL_PROXY_BASE_URL, trial_code:'', trial_token_expires_at:'' };
   LLM.set_config(empty);
   localStorage.removeItem(LLM_CONFIG_KEY);
+  localStorage.removeItem(LLM_LOCAL_CONFIG_KEY);
   await Promise.allSettled([
     clearLlmConfigNative(),
+    clearLocalApiConfigNative(),
     DB.kvSet('llm_config', empty),
+    DB.kvSet('llm_local_config', null),
   ]);
   renderSettings(); refreshHeader();
 }

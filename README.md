@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.6-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.7-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.7.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -54,11 +54,17 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
 
+## v0.17.7 更新重点
+
+- 修复体验额度模式下发送消息失败的问题：当服务端中转不支持流式输出时，前端会正确降级到非流式回复。
+- 修复 `streamObj.fullText is not a function` 导致的红色失败气泡，重发后不会再卡在同一错误。
+- 公开更新说明不展示具体体验额度，只保留“受控体验额度”的说明。
+
 ## v0.17.6 更新重点
 
 - 新增“体验额度”模式：用户可在设置页输入兑换码，兑换后无需填写自己的模型 API Key。
 - 体验请求通过服务器 `/api/trial` 中转，真实模型 Key 只保存在服务端，不写入 APK。
-- 兑换码默认绑定单设备，总额度 0.5 元，不限制单日使用；服务端会记录用量并在请求前做额度预检。
+- 兑换码默认绑定单设备，使用受控体验额度；服务端会记录用量并在请求前做额度预检。
 - 新增体验码生成脚本和服务器部署说明，便于后续批量发放、排查消耗和控制风险。
 
 ## v0.17.5 更新重点
@@ -145,6 +151,8 @@ LLM_MODEL=deepseek-v4-flash
 
 移动端也支持“体验额度”模式：用户输入兑换码后，App 会换取短期 `trial_token`，后续请求走你的服务器 `/api/trial/chat/completions` 中转，不会把真实模型 API Key 下发到 APK。
 
+渠道切换规则：`体验额度` 是独立 provider，只有该 provider 会保存并调用 `/api/trial`；切换到 DeepSeek、MiniMax、OpenAI 或手动填写后，App 会清除残留的 trial 调用地址，不会继续使用兑换码中转。正常服务商配置会额外保存为“本地 API 快照”，发送前优先使用这个本地 API；兑换码成功后只作为备用体验渠道保存，不会覆盖用户自己的 API 配置。只有同一服务商的 OpenAI / Anthropic 协议切换会保留已保存 Key，跨服务商切换需要重新填写 API Key，避免把兑换码 token 或其他服务商 Key 混用。
+
 服务端环境变量：
 ```env
 TRIAL_LLM_BASE_URL=https://api.deepseek.com
@@ -155,10 +163,10 @@ TRIAL_MAX_OUTPUT_TOKENS=700
 
 生成兑换码：
 ```powershell
-py -3 scripts/generate_trial_codes.py --count 20 --prefix RT --total-yuan 0.5
+py -3 scripts/generate_trial_codes.py --count 20 --prefix RT --total-yuan <每码总额度>
 ```
 
-默认每个兑换码绑定一台设备，总额度 0.5 元、不限制单日使用；如需临时加日限，可额外传 `--daily-yuan 0.1`。计费单价可通过 `TRIAL_PROMPT_PRICE_MICRO_CNY_PER_MILLION` 和 `TRIAL_COMPLETION_PRICE_MICRO_CNY_PER_MILLION` 调整。
+默认每个兑换码绑定一台设备、不限制单日使用；如需临时加日限，可额外传 `--daily-yuan`。计费单价可通过 `TRIAL_PROMPT_PRICE_MICRO_CNY_PER_MILLION` 和 `TRIAL_COMPLETION_PRICE_MICRO_CNY_PER_MILLION` 调整。
 
 ## 移动端打包
 
@@ -176,7 +184,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.7.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -198,11 +206,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 27,
-  "versionName": "0.17.6",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.6.apk",
+  "versionCode": 28,
+  "versionName": "0.17.7",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.7.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.6/Reverse-Tutor-v0.17.6.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.7/Reverse-Tutor-v0.17.7.apk"
   ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [

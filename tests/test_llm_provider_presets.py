@@ -126,6 +126,35 @@ def test_mobile_llm_ping_uses_plain_text_connectivity_probe():
     assert "btn.disabled = true" in html
 
 
+def test_mobile_live_stream_wrapper_handles_async_stream_setup():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function normalizeStreamObject" in html
+    assert "const ready = Promise.resolve(streamLike)" in html
+    assert "return normalizeStreamObject(streamLike)" in html
+    assert "LLM stream object missing async iterator" in html
+
+
+def test_mobile_trial_channel_is_isolated_from_normal_provider_config():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function isTrialProvider" in html
+    assert "function isTrialBaseUrl" in html
+    assert "function providerKeyScope" in html
+    assert "function selectLocalFirstLlmConfig" in html
+    assert "function isLocalApiConfig" in html
+    assert "LLM_LOCAL_CONFIG_KEY" in html
+    assert "baseUrl = trialChatBaseUrl(trialApiBase)" in html
+    assert "else if (isTrialBaseUrl(baseUrl))" in html
+    assert "apiKey = ''" in html
+    assert "$('#cfg-base').value = preset.base_url || ''" in html
+    assert "providerKeyScope(existing.provider) === providerKeyScope(provider)" in html
+    assert "guardedTrialRoute ? '（已移除体验中转地址）' : ''" in html
+    assert "const active = selectLocalFirstLlmConfig(next, localApi)" in html
+    assert "const next = selectLocalFirstLlmConfig(saved, localApi)" in html
+    assert "体验额度已保存备用；当前优先使用本地 API" in html
+
+
 def test_mobile_chat_turns_are_bound_and_rendered_safely():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
