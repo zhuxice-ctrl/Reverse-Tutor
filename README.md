@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.4-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.5-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -49,17 +49,17 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | 引用回复 | 长按消息可引用 AI 或自己的发言，让后续回复明确基于哪一句上下文。 |
 | 随笔、回档、删除 | 长按气泡可写随笔、从某条消息回档重生成，或永久删除单条消息及关联记忆。 |
 | 主动对话 | 在线模式下可按间隔主动发起提醒，离线模式保持静默，睡眠模式降低频率。 |
-| 多模型接入 | 移动端支持 OpenAI Chat API 与 Anthropic Messages API 两类协议，内置 DeepSeek、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio 等预设。 |
+| 多模型接入 | 移动端支持 OpenAI Chat API 与 Anthropic Messages API 两类协议，内置 DeepSeek、MiniMax、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio 等预设。 |
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
 
-## v0.17.4 更新重点
+## v0.17.5 更新重点
 
-- 对话逻辑新增关联性判断：用户主动偏离主线时先解决当前问题，再自然引回目标。
-- 资料检索增强模糊术语理解，支持 vibecoding / vibe coding 这类英文术语、拼写不完整和概念型提问。
-- 新增可折叠“思考模式（状态）”，展示理解问题、检索资料、组织回复、开始输出等公开进度。
-- 优化发送与引用交互：发送后键盘不再自动收起又弹起，引用消息时不会强制滚到底部。
+- 新增 MiniMax 预设：支持 MiniMax OpenAI-compatible 与官方推荐的 Anthropic-compatible 两种入口，默认模型为 `MiniMax-M2.7`。
+- 修复 MiniMax OpenAI 接口 payload：自动使用 `max_completion_tokens`，并把温度限制在 MiniMax 要求的 `(0, 1]` 范围内。
+- 优化 MiniMax 流式输出解析，兼容累计式 delta，减少逐字输出重复或异常的问题。
+- Android 后台 LLM 服务同步支持 MiniMax 协议差异，退到桌面后生成也能使用同一套配置。
 
 ## v0.17.1 更新重点
 
@@ -129,8 +129,8 @@ LLM_MODEL=deepseek-v4-flash
 
 | 接口类型 | 典型 URL | 适用模型 |
 |---|---|---|
-| OpenAI | `https://api.deepseek.com` | DeepSeek、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio |
-| Anthropic | `https://api.deepseek.com/anthropic` | 支持 Anthropic Messages API 的模型或兼容代理 |
+| OpenAI | `https://api.deepseek.com` / `https://api.minimax.io/v1` | DeepSeek、MiniMax、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio |
+| Anthropic | `https://api.deepseek.com/anthropic` / `https://api.minimax.io/anthropic` | 支持 Anthropic Messages API 的模型或兼容代理 |
 
 如果模型不支持图片，发送图片或表情时不会让 DeepSeek 这类文本模型强行识图；多模态能力由你选择的模型预设决定。
 
@@ -150,7 +150,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -172,11 +172,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 25,
-  "versionName": "0.17.4",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk",
+  "versionCode": 26,
+  "versionName": "0.17.5",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.4/Reverse-Tutor-v0.17.4.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.5/Reverse-Tutor-v0.17.5.apk"
   ],
   "publishedAt": "2026-05-19",
   "releaseNotes": [

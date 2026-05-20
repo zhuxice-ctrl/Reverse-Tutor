@@ -1,19 +1,19 @@
 {
-  "versionCode": 25,
-  "versionName": "0.17.4",
+  "versionCode": 26,
+  "versionName": "0.17.5",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.4.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.5.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.4/Reverse-Tutor-v0.17.4.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.5/Reverse-Tutor-v0.17.5.apk"
   ],
-  "sha256": "dfcc6874fa67b99c30539e33385c1815ed6f7fb72441b083091b04debc81fc31",
-  "publishedAt": "2026-05-19",
+  "sha256": "5852b36dd45b0a6049baf853df8db3fbf1b7693b9786abe6790285c03d8e6d60",
+  "publishedAt": "2026-05-20",
   "releaseNotes": [
-    "对话逻辑新增关联性判断：用户主动偏离主线时先解决当前问题，再自然引回目标。",
-    "资料检索增强模糊术语理解，支持 vibecoding / vibe coding 这类英文术语、拼写不完整和概念型提问。",
-    "新增可折叠“思考模式（状态）”，展示理解问题、检索资料、组织回复、开始输出等公开进度。",
-    "优化发送与引用交互：发送后键盘不再自动收起又弹起，引用消息时不会强制滚到底部。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.4.apk，不使用 test/debug 后缀。"
+    "新增 MiniMax / OpenAI 与 MiniMax / Anthropic 两个 LLM 服务预设，默认模型为 MiniMax-M2.7。",
+    "修复 MiniMax OpenAI-compatible payload 兼容问题：自动使用 max_completion_tokens，并修正温度范围到 (0, 1]。",
+    "流式输出解析兼容累计式 delta，减少 MiniMax SSE 输出重复或异常的问题。",
+    "Android 后台 LLM 服务同步识别 MiniMax，退到桌面后生成也能按正确协议请求。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.5.apk，不使用 test/debug 后缀。"
   ]
 }

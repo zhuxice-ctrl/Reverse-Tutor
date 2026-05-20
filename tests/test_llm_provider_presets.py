@@ -17,6 +17,9 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "https://api.openai.com/v1" in html
     assert "https://api.deepseek.com" in html
     assert "https://api.deepseek.com/anthropic" in html
+    assert "https://api.minimax.io/v1" in html
+    assert "https://api.minimax.io/anthropic" in html
+    assert "MiniMax-M2.7" in html
     assert "https://dashscope.aliyuncs.com/compatible-mode/v1" in html
     assert "https://api.moonshot.ai/v1" in html
     assert "https://api.groq.com/openai/v1" in html
@@ -38,6 +41,11 @@ def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models
     assert "https://api.deepseek.com/anthropic" in provider_block
     assert "deepseek-v4-flash" in provider_block
     assert "deepseek-v4-pro" in provider_block
+    assert "id:'minimax'" in provider_block
+    assert "id:'minimax-anthropic'" in provider_block
+    assert "max_completion_tokens" in html
+    assert "providerTemperature" in html
+    assert "appendOpenAiDelta" in html
     assert "deepseek-chat" not in provider_block
     assert "deepseek-reasoner" not in provider_block
 
@@ -91,6 +99,8 @@ def test_android_background_job_carries_api_type_and_capability():
 
     assert "api_type: cfg.api_type" in html
     assert "capability: cfg.capability" in html
+    assert "provider: cfg.provider" in html
+    assert "max_completion_tokens" in html
     assert "supportsBackgroundChat" in html
 
 

@@ -207,6 +207,25 @@ public class BackgroundLlmService extends Service {
         return "anthropic".equalsIgnoreCase(job.optString("api_type", ""));
     }
 
+    private boolean isMiniMax(JSONObject job) {
+        String provider = job.optString("provider", "").toLowerCase();
+        String baseUrl = job.optString("base_url", "").toLowerCase();
+        String model = job.optString("model", "").toLowerCase();
+        return provider.startsWith("minimax")
+            || baseUrl.contains("api.minimax.io")
+            || model.startsWith("minimax-");
+    }
+
+    private double providerTemperature(JSONObject job, double temperature) {
+        if (!isMiniMax(job)) {
+            return temperature;
+        }
+        if (temperature <= 0) {
+            return 0.01;
+        }
+        return Math.min(1.0, temperature);
+    }
+
     private JSONObject buildPayload(JSONObject job, boolean jsonMode) throws Exception {
         return buildPayload(job, jsonMode, job.optString("system", ""), job.optDouble("temperature", 0.85));
     }
@@ -214,8 +233,12 @@ public class BackgroundLlmService extends Service {
     private JSONObject buildPayload(JSONObject job, boolean jsonMode, String systemText, double temperature) throws Exception {
         JSONObject payload = new JSONObject();
         payload.put("model", job.optString("model", ""));
-        payload.put("temperature", temperature);
-        payload.put("max_tokens", job.optInt("max_tokens", 900));
+        payload.put("temperature", providerTemperature(job, temperature));
+        if (isMiniMax(job)) {
+            payload.put("max_completion_tokens", job.optInt("max_tokens", 900));
+        } else {
+            payload.put("max_tokens", job.optInt("max_tokens", 900));
+        }
 
         JSONArray messages = new JSONArray();
         JSONObject system = new JSONObject();
@@ -245,7 +268,7 @@ public class BackgroundLlmService extends Service {
     private JSONObject buildAnthropicPayload(JSONObject job, String systemText, double temperature) throws Exception {
         JSONObject payload = new JSONObject();
         payload.put("model", job.optString("model", ""));
-        payload.put("temperature", temperature);
+        payload.put("temperature", providerTemperature(job, temperature));
         payload.put("max_tokens", job.optInt("max_tokens", 900));
 
         StringBuilder system = new StringBuilder(systemText == null ? "" : systemText);

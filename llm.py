@@ -54,6 +54,16 @@ def get_config() -> dict[str, Any]:
     }
 
 
+def _is_minimax_config() -> bool:
+    return "api.minimax.io" in (LLM_BASE_URL or "").lower() or (LLM_MODEL or "").lower().startswith("minimax-")
+
+
+def _provider_temperature(temperature: float) -> float:
+    if not _is_minimax_config():
+        return temperature
+    return min(1.0, max(0.01, float(temperature)))
+
+
 async def ping() -> dict[str, Any]:
     """发送一个最小请求验证 LLM 联通性。"""
     if not _HAS_REAL:
@@ -181,9 +191,12 @@ def _build_openai_payload(
     payload = {
         "model": LLM_MODEL,
         "messages": [{"role": "system", "content": system}, *messages],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
+        "temperature": _provider_temperature(temperature),
     }
+    if _is_minimax_config():
+        payload["max_completion_tokens"] = max_tokens
+    else:
+        payload["max_tokens"] = max_tokens
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
     return payload

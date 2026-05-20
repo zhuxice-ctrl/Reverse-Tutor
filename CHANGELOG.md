@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.17.5 - 2026-05-20
+
+- 新增 MiniMax / OpenAI 与 MiniMax / Anthropic 两个 LLM 服务预设，默认模型为 `MiniMax-M2.7`。
+- 修复 MiniMax OpenAI-compatible payload 兼容问题：自动使用 `max_completion_tokens`，并修正温度范围到 `(0, 1]`。
+- 流式输出解析兼容累计式 delta，减少 MiniMax SSE 输出重复或异常的问题。
+- Android 后台 LLM 服务同步识别 MiniMax，退到桌面后生成也能按正确协议请求。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.5.apk`。
+
 ## v0.17.4 - 2026-05-19
 
 - 对话逻辑新增关联性判断：用户主动偏离主线时先解决当前问题，再自然引回目标。

@@ -40,6 +40,35 @@ def test_get_config_never_returns_api_key_plaintext():
     assert "SECRET" not in str(cfg)            # 明文不该泄漏
 
 
+def test_minimax_payload_uses_provider_specific_token_field_and_temperature_range():
+    llm.apply_config("https://api.minimax.io/v1", "sk-test", "MiniMax-M2.7")
+    payload = llm._build_openai_payload(
+        "sys",
+        [{"role": "user", "content": "hi"}],
+        0.0,
+        64,
+        json_mode=True,
+    )
+    assert payload["temperature"] == 0.01
+    assert payload["max_completion_tokens"] == 64
+    assert "max_tokens" not in payload
+    assert payload["response_format"] == {"type": "json_object"}
+
+
+def test_non_minimax_payload_keeps_openai_compatible_max_tokens():
+    llm.apply_config("https://api.example.com/v1", "sk-test", "gpt-compatible")
+    payload = llm._build_openai_payload(
+        "sys",
+        [{"role": "user", "content": "hi"}],
+        0.0,
+        64,
+        json_mode=False,
+    )
+    assert payload["temperature"] == 0.0
+    assert payload["max_tokens"] == 64
+    assert "max_completion_tokens" not in payload
+
+
 async def test_ping_returns_mock_when_no_credentials():
     r = await llm.ping()
     assert r["ok"] is False
