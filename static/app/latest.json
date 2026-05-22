@@ -1,20 +1,18 @@
 {
-  "versionCode": 29,
-  "versionName": "0.17.8",
+  "versionCode": 30,
+  "versionName": "0.17.9",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.8.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.9.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.8/Reverse-Tutor-v0.17.8.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.9/Reverse-Tutor-v0.17.9.apk"
   ],
-  "sha256": "a74efb7487d0d72de5e59325371f7fee46e8834ac424290427d2657b003aba81",
+  "sha256": "d38bf069101159f3f8ba566012caa70218417db8838cc3cf515c521eb511b9d7",
   "publishedAt": "2026-05-22",
   "releaseNotes": [
-    "新增 GLM / 智谱官方预设，默认 glm-5.1。",
-    "Kimi 预设拆分为 Moonshot CN / Global，国内默认使用 api.moonshot.cn。",
-    "修复 GLM 官方接口 messages 参数非法：自动合并 system 消息并补齐开场 user 消息。",
-    "国产 OpenAI 兼容模型默认不再强制发送 response_format。",
-    "支持 Base URL 填完整 /chat/completions endpoint，避免重复拼接路径。",
-    "保留体验额度与流式降级修复，正式 APK 命名为 Reverse-Tutor-v0.17.8.apk。"
+    "新增 LLM 配置档案：可保存多套 provider、Base URL、Model 和 API Key。",
+    "配置页支持一键切换常用模型档案，适合 GLM、Kimi、DeepSeek、Qwen、MiniMax 等多模型轮换使用。",
+    "配置档案保存在本设备，并与原有本地 API 优先逻辑兼容。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.9.apk。"
   ]
 }

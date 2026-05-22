@@ -85,16 +85,16 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 29,
-  "versionName": "0.17.8",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.8.apk",
+  "versionCode": 30,
+  "versionName": "0.17.9",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.9.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.8/Reverse-Tutor-v0.17.8.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.9/Reverse-Tutor-v0.17.9.apk"
   ],
-  "publishedAt": "2026-05-14",
+  "publishedAt": "2026-05-22",
   "releaseNotes": [
-    "新增检查更新功能",
-    "优化移动端会话抽屉"
+    "新增 LLM 配置档案",
+    "支持一键切换常用模型配置"
   ]
 }
 ```

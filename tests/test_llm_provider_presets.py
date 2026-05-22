@@ -15,6 +15,8 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "cfg-capability" in html
     assert "cfg-trial-code" in html
     assert "cfg-trial-redeem" in html
+    assert "cfg-profile-save" in html
+    assert "cfg-profile-list" in html
     assert "DEFAULT_TRIAL_PROXY_BASE_URL" in html
     assert "applyLlmProviderPreset" in html
     assert "https://api.openai.com/v1" in html
@@ -90,6 +92,22 @@ def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_sele
     assert "function renderModelPresetChips" in html
     assert "models:[" in html
     assert '<div class="grid grid-cols-2 gap-2">' not in llm_section
+
+
+def test_mobile_llm_config_profiles_can_be_saved_and_switched():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "LLM_CONFIG_PROFILES_KEY" in html
+    assert "rt-mobile-llm-config-profiles" in html
+    assert "function normalizeLlmProfile" in html
+    assert "function restoreLlmProfiles" in html
+    assert "function persistLlmProfiles" in html
+    assert "function saveCurrentLlmProfile" in html
+    assert "function switchLlmProfile" in html
+    assert "function deleteLlmProfile" in html
+    assert "collectLlmConfigFromForm" in html
+    assert "DB.kvSet('llm_config_profiles', next)" in html
+    assert "$('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile)" in html
 
 
 def test_mobile_llm_payload_sanitizes_multimodal_messages_by_capability():

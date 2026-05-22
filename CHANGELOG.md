@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.17.9 - 2026-05-22
+
+- 新增 LLM 配置档案：可保存多套 provider、接口类型、模型能力、Base URL、Model 和 API Key。
+- 配置页支持一键切换常用模型档案，减少 GLM、Kimi、DeepSeek、Qwen、MiniMax 等多模型轮换时的重复填写。
+- 配置档案沿用本机持久化，不上传用户 Key，并与体验额度、本地 API 优先逻辑兼容。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.9.apk`。
+
 ## v0.17.8 - 2026-05-22
 
 - 新增 GLM / 智谱官方预设，默认 `glm-5.1`，自动填入官方 OpenAI 兼容 Base URL。

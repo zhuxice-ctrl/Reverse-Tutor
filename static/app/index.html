@@ -538,6 +538,40 @@
     color: var(--text);
     font-weight: 700;
   }
+  .llm-profile-list {
+    display: grid;
+    gap: 7px;
+  }
+  .llm-profile-row {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: color-mix(in srgb, var(--panel-2) 52%, transparent);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
+  }
+  .llm-profile-row.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .llm-profile-row:active { background: var(--accent-soft); }
+  .llm-profile-main { min-width: 0; flex: 1; }
+  .llm-profile-title { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .llm-profile-sub { margin-top: 3px; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .llm-profile-delete {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .llm-profile-delete svg { width: 16px; height: 16px; }
+  .llm-profile-delete:active { color: #fca5a5; background: rgba(127,29,29,.28); }
   .choice-sheet-overlay {
     position: fixed;
     inset: 0;
@@ -905,6 +939,17 @@
             <input id="cfg-model" type="text" placeholder="deepseek-v4-flash / deepseek-v4-pro ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
             <div id="cfg-model-presets" class="model-chip-row"></div>
           </label>
+          <div class="config-section space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs text-neutral-300">配置档案</div>
+                <div class="text-[11px] text-neutral-500 leading-relaxed">保存常用模型配置，之后点一下即可切换。</div>
+              </div>
+              <button id="cfg-profile-save" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">保存为档案</button>
+            </div>
+            <input id="cfg-profile-name" type="text" placeholder="档案名，例如 GLM 主力 / Kimi 长文" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+            <div id="cfg-profile-list" class="llm-profile-list"></div>
+          </div>
           <div id="cfg-status" class="text-xs text-neutral-500"></div>
           <div class="flex gap-2">
             <button id="cfg-test" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">测试连接</button>
@@ -983,7 +1028,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.8 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.9 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1215,8 +1260,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 29;
-const APP_VERSION_NAME = '0.17.8';
+const APP_VERSION_CODE = 30;
+const APP_VERSION_NAME = '0.17.9';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -1224,6 +1269,7 @@ const LEGACY_UPDATE_FEED_URLS = [GITHUB_UPDATE_FEED_URL, GITHUB_LATEST_RELEASE_U
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const LLM_LOCAL_CONFIG_KEY = 'rt-mobile-llm-local-config';
+const LLM_CONFIG_PROFILES_KEY = 'rt-mobile-llm-config-profiles';
 const TRIAL_INSTALL_ID_KEY = 'rt-mobile-trial-install-id';
 const DEFAULT_TRIAL_PROXY_BASE_URL = 'https://dl.zeroxcore.tech';
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
@@ -1490,6 +1536,64 @@ function saveLocalApiConfigLocal(c) {
   return true;
 }
 
+function llmConfigLabel(c = {}) {
+  const cfg = normalizeLlmConfig(c);
+  const provider = llmProviderById(cfg.provider);
+  return [provider.label, cfg.model].filter(Boolean).join(' · ') || '未命名配置';
+}
+
+function llmProfileSignature(c = {}) {
+  const cfg = normalizeLlmConfig(c);
+  return [
+    cfg.provider,
+    cfg.api_type,
+    cfg.capability,
+    cfg.base_url,
+    cfg.model,
+  ].map(x => String(x || '').trim()).join('|');
+}
+
+function normalizeLlmProfile(profile = {}) {
+  const cfg = normalizeLlmConfig(profile.config || profile);
+  const id = String(profile.id || '').trim() || ('profile_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7));
+  const name = String(profile.name || '').trim() || llmConfigLabel(cfg);
+  return {
+    id,
+    name,
+    config: cfg,
+    created_at: Number(profile.created_at || Date.now()),
+    updated_at: Number(profile.updated_at || Date.now()),
+  };
+}
+
+function normalizeLlmProfiles(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const seen = new Set();
+  return list
+    .map(normalizeLlmProfile)
+    .filter(profile => {
+      const sig = profile.id || llmProfileSignature(profile.config);
+      if (seen.has(sig)) return false;
+      seen.add(sig);
+      return profile.config.base_url || profile.config.model || profile.config.api_key;
+    })
+    .slice(0, 16);
+}
+
+function loadLlmProfilesLocal() {
+  try {
+    const raw = localStorage.getItem(LLM_CONFIG_PROFILES_KEY);
+    return raw ? normalizeLlmProfiles(JSON.parse(raw)) : [];
+  } catch (err) {
+    console.warn('llm config profiles parse failed', err);
+    return [];
+  }
+}
+
+function saveLlmProfilesLocal(profiles) {
+  localStorage.setItem(LLM_CONFIG_PROFILES_KEY, JSON.stringify(normalizeLlmProfiles(profiles)));
+}
+
 function nativePreferences() {
   return window.Capacitor?.Plugins?.Preferences || null;
 }
@@ -1546,6 +1650,33 @@ async function saveLocalApiConfigNative(c) {
     return true;
   } catch (err) {
     console.warn('llm native local api config save failed', err);
+    return false;
+  }
+}
+
+async function loadLlmProfilesNative() {
+  const Preferences = nativePreferences();
+  if (!Preferences) return [];
+  try {
+    const r = await Preferences.get({ key: LLM_CONFIG_PROFILES_KEY });
+    return r && r.value ? normalizeLlmProfiles(JSON.parse(r.value)) : [];
+  } catch (err) {
+    console.warn('llm config profiles native load failed', err);
+    return [];
+  }
+}
+
+async function saveLlmProfilesNative(profiles) {
+  const Preferences = nativePreferences();
+  if (!Preferences) return false;
+  try {
+    await Preferences.set({
+      key: LLM_CONFIG_PROFILES_KEY,
+      value: JSON.stringify(normalizeLlmProfiles(profiles)),
+    });
+    return true;
+  } catch (err) {
+    console.warn('llm config profiles native save failed', err);
     return false;
   }
 }
@@ -1623,6 +1754,27 @@ async function restoreLlmConfig() {
     ]);
   }
   return LLM.get_config();
+}
+
+async function persistLlmProfiles(profiles) {
+  const next = normalizeLlmProfiles(profiles);
+  saveLlmProfilesLocal(next);
+  await Promise.allSettled([
+    saveLlmProfilesNative(next),
+    DB.kvSet('llm_config_profiles', next),
+  ]);
+  return next;
+}
+
+async function restoreLlmProfiles() {
+  const nativeProfiles = await loadLlmProfilesNative();
+  const localProfiles = loadLlmProfilesLocal();
+  const dbProfiles = await DB.kvGet('llm_config_profiles');
+  const profiles = normalizeLlmProfiles(
+    nativeProfiles.length ? nativeProfiles : (localProfiles.length ? localProfiles : dbProfiles)
+  );
+  if (profiles.length) await persistLlmProfiles(profiles);
+  return profiles;
 }
 
 function appVersionLabel() {
@@ -6840,6 +6992,38 @@ function renderConfigPickerUi() {
   renderVisionCapabilityHint();
 }
 
+async function renderLlmProfiles() {
+  const list = $('#cfg-profile-list');
+  if (!list) return;
+  const profiles = await restoreLlmProfiles();
+  const activeSig = llmProfileSignature(LLM.get_config());
+  if (!profiles.length) {
+    list.innerHTML = '<div class="text-[11px] text-neutral-500 leading-relaxed">还没有保存的配置档案。</div>';
+    return;
+  }
+  list.innerHTML = profiles.map(profile => {
+    const cfg = normalizeLlmConfig(profile.config);
+    const provider = llmProviderById(cfg.provider);
+    const active = llmProfileSignature(cfg) === activeSig;
+    const keyState = cfg.api_key ? 'Key 已保存' : (provider.requires_key === false ? '免 Key' : '未保存 Key');
+    return `
+      <div class="llm-profile-row ${active ? 'active' : ''}" data-profile-id="${esc(profile.id)}">
+        <button type="button" class="llm-profile-main" data-profile-switch="${esc(profile.id)}">
+          <div class="llm-profile-title truncate">${esc(profile.name)}</div>
+          <div class="llm-profile-sub">${esc(provider.label)} · ${esc(cfg.model || '未填模型')} · ${esc(keyState)}</div>
+        </button>
+        <button type="button" class="llm-profile-delete" data-profile-delete="${esc(profile.id)}" aria-label="删除配置档案"><i data-lucide="trash-2"></i></button>
+      </div>
+    `;
+  }).join('');
+  list.querySelectorAll('[data-profile-switch]').forEach(btn => btn.addEventListener('click', () => switchLlmProfile(btn.dataset.profileSwitch)));
+  list.querySelectorAll('[data-profile-delete]').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    deleteLlmProfile(btn.dataset.profileDelete);
+  }));
+  refreshIcons();
+}
+
 function applyApiTypeSelection(value) {
   const nextType = normalizeApiType(value);
   const providerId = $('#cfg-provider')?.value || 'custom';
@@ -7018,6 +7202,7 @@ async function renderSettings() {
   renderProactiveSettings();
   renderBackgroundNotificationSettings();
   renderUpdateSettings();
+  await renderLlmProfiles();
   refreshIcons();
 }
 
@@ -7053,8 +7238,7 @@ function renderProactiveSettings() {
   }
 }
 
-async function saveLlmConfig() {
-  const existing = LLM.get_config();
+function collectLlmConfigFromForm(existing = LLM.get_config()) {
   const keyInput = $('#cfg-key').value.trim();
   const provider = $('#cfg-provider').value || 'custom';
   const trialApiBase = normalizeTrialApiBase($('#cfg-trial-url')?.value || existing.trial_api_base);
@@ -7072,17 +7256,98 @@ async function saveLlmConfig() {
   }
   const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(provider);
   const keepExistingKey = !keyInput && sameKeyScope;
-  const c = {
-    provider,
-    api_type: $('#cfg-api-type').value || 'openai',
-    capability: $('#cfg-capability').value || 'text',
-    base_url: baseUrl,
-    api_key: keyInput || (keepExistingKey ? existing.api_key : '') || '',
-    model,
-    trial_api_base: trialApiBase,
-    trial_code: ($('#cfg-trial-code')?.value || existing.trial_code || '').trim().toUpperCase(),
-    trial_token_expires_at: trialProvider ? (existing.trial_token_expires_at || '') : '',
+  return {
+    config: {
+      provider,
+      api_type: $('#cfg-api-type').value || 'openai',
+      capability: $('#cfg-capability').value || 'text',
+      base_url: baseUrl,
+      api_key: keyInput || (keepExistingKey ? existing.api_key : '') || '',
+      model,
+      trial_api_base: trialApiBase,
+      trial_code: ($('#cfg-trial-code')?.value || existing.trial_code || '').trim().toUpperCase(),
+      trial_token_expires_at: trialProvider ? (existing.trial_token_expires_at || '') : '',
+    },
+    guardedTrialRoute,
   };
+}
+
+async function saveCurrentLlmProfile() {
+  const { config } = collectLlmConfigFromForm();
+  const cfg = normalizeLlmConfig(config);
+  if (!cfg.base_url || !cfg.model) {
+    toast('请先填写 Base URL 和 Model');
+    return;
+  }
+  if (providerRequiresKeyForConfig(cfg) && !cfg.api_key) {
+    toast('请先填写 API Key，或切换到免 Key 预设');
+    return;
+  }
+  const nameInput = $('#cfg-profile-name');
+  const name = (nameInput?.value || '').trim() || llmConfigLabel(cfg);
+  const profiles = await restoreLlmProfiles();
+  const sig = llmProfileSignature(cfg);
+  const index = profiles.findIndex(p => p.name === name || llmProfileSignature(p.config) === sig);
+  const now = Date.now();
+  const profile = normalizeLlmProfile({
+    id: index >= 0 ? profiles[index].id : '',
+    name,
+    config: cfg,
+    created_at: index >= 0 ? profiles[index].created_at : now,
+    updated_at: now,
+  });
+  if (index >= 0) profiles[index] = profile;
+  else profiles.unshift(profile);
+  await persistLlmProfiles(profiles);
+  const active = await persistLlmConfig(cfg);
+  if (nameInput) nameInput.value = '';
+  $('#cfg-key').value = '';
+  $('#cfg-key').placeholder = active.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  $('#cfg-status').textContent = `配置档案已保存并切换：${profile.name}`;
+  $('#cfg-status').className = 'text-xs text-emerald-400';
+  renderConfigPickerUi();
+  renderTrialSettings(active);
+  await renderLlmProfiles();
+  refreshHeader();
+}
+
+async function switchLlmProfile(profileId) {
+  const profiles = await restoreLlmProfiles();
+  const profile = profiles.find(p => p.id === profileId);
+  if (!profile) {
+    toast('配置档案不存在');
+    return;
+  }
+  const cfg = await persistLlmConfig(profile.config);
+  $('#cfg-provider').value = cfg.provider || 'custom';
+  $('#cfg-api-type').value = cfg.api_type || 'openai';
+  $('#cfg-capability').value = cfg.capability || 'text';
+  $('#cfg-base').value = cfg.base_url || '';
+  $('#cfg-model').value = cfg.model || '';
+  $('#cfg-key').value = '';
+  $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  $('#cfg-profile-name').value = profile.name;
+  $('#cfg-status').textContent = `已切换配置档案：${profile.name}`;
+  $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  renderConfigPickerUi();
+  renderTrialSettings(cfg);
+  await renderLlmProfiles();
+  refreshHeader();
+}
+
+async function deleteLlmProfile(profileId) {
+  const profiles = await restoreLlmProfiles();
+  const profile = profiles.find(p => p.id === profileId);
+  if (!profile) return;
+  if (!confirm(`删除配置档案“${profile.name}”？`)) return;
+  await persistLlmProfiles(profiles.filter(p => p.id !== profileId));
+  $('#cfg-status').textContent = `已删除配置档案：${profile.name}`;
+  $('#cfg-status').className = 'text-xs text-neutral-500';
+  await renderLlmProfiles();
+}
+
+async function saveLlmConfig() {
+  const { config: c, guardedTrialRoute } = collectLlmConfigFromForm();
   const cfg = await persistLlmConfig(c);
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
@@ -7094,6 +7359,7 @@ async function saveLlmConfig() {
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   renderConfigPickerUi();
   renderTrialSettings(cfg);
+  await renderLlmProfiles();
   refreshHeader();
 }
 async function testLlm() {
@@ -7132,6 +7398,7 @@ async function clearLlm() {
   renderSettings(); refreshHeader();
 }
 $('#cfg-save').addEventListener('click', saveLlmConfig);
+$('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
 $('#cfg-trial-redeem').addEventListener('click', redeemTrialCode);
