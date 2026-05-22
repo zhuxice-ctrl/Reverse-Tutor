@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.10-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.11-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.10.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.11.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -53,6 +53,12 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
+
+## v0.17.11 更新重点
+
+- 配置档案改为可折叠管理区，默认收起，减少设置页占用空间。
+- 配置档案会显示已保存数量和当前档案，展开后可保存、删除、一键切换多套模型配置。
+- 最多保留 16 套常用 LLM 配置，适合多模型用户长期切换使用。
 
 ## v0.17.10 更新重点
 
@@ -202,7 +208,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.10.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.11.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -224,11 +230,11 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 31,
-  "versionName": "0.17.10",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.10.apk",
+  "versionCode": 32,
+  "versionName": "0.17.11",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.11.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.10/Reverse-Tutor-v0.17.10.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.11/Reverse-Tutor-v0.17.11.apk"
   ],
   "publishedAt": "2026-05-22",
   "releaseNotes": [

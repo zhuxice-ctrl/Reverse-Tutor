@@ -542,6 +542,38 @@
     display: grid;
     gap: 7px;
   }
+  .llm-profile-panel {
+    border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-2) 36%, transparent);
+    overflow: hidden;
+  }
+  .llm-profile-toggle {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: left;
+  }
+  .llm-profile-toggle:active { background: var(--accent-soft); }
+  .llm-profile-count {
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius: 999px;
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+  .llm-profile-caret svg { width: 16px; height: 16px; transition: transform .18s ease; }
+  .llm-profile-panel.open .llm-profile-caret svg { transform: rotate(180deg); }
+  .llm-profile-body {
+    display: none;
+    border-top: 1px solid color-mix(in srgb, var(--line) 48%, transparent);
+    padding: 10px;
+  }
+  .llm-profile-panel.open .llm-profile-body { display: block; }
   .llm-profile-row {
     width: 100%;
     border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
@@ -950,16 +982,25 @@
             <input id="cfg-model" type="text" placeholder="deepseek-v4-flash / deepseek-v4-pro ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
             <div id="cfg-model-presets" class="model-chip-row"></div>
           </label>
-          <div class="config-section space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <div class="text-xs text-neutral-300">配置档案</div>
-                <div class="text-[11px] text-neutral-500 leading-relaxed">保存常用模型配置，之后点一下即可切换。</div>
+          <div id="cfg-profile-panel" class="config-section llm-profile-panel">
+            <button id="cfg-profile-toggle" type="button" class="llm-profile-toggle">
+              <span class="min-w-0">
+                <span class="block text-xs text-neutral-300">配置档案</span>
+                <span id="cfg-profile-summary" class="block text-[11px] text-neutral-500 leading-relaxed truncate">可保存多套模型配置，展开后一键切换。</span>
+              </span>
+              <span class="flex items-center gap-2 shrink-0">
+                <span id="cfg-profile-count" class="llm-profile-count">0 / 16</span>
+                <span class="llm-profile-caret"><i data-lucide="chevron-down"></i></span>
+              </span>
+            </button>
+            <div id="cfg-profile-body" class="llm-profile-body space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-[11px] text-neutral-500 leading-relaxed">保存后会出现在下方列表，可保存多套。</div>
+                <button id="cfg-profile-save" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">保存当前</button>
               </div>
-              <button id="cfg-profile-save" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">保存为档案</button>
+              <input id="cfg-profile-name" type="text" placeholder="档案名，例如 GLM 主力 / Kimi 长文" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+              <div id="cfg-profile-list" class="llm-profile-list"></div>
             </div>
-            <input id="cfg-profile-name" type="text" placeholder="档案名，例如 GLM 主力 / Kimi 长文" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
-            <div id="cfg-profile-list" class="llm-profile-list"></div>
           </div>
           <div id="cfg-status" class="text-xs text-neutral-500"></div>
           <div class="flex gap-2">
@@ -1039,7 +1080,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.10 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.11 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1289,8 +1330,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 31;
-const APP_VERSION_NAME = '0.17.10';
+const APP_VERSION_CODE = 32;
+const APP_VERSION_NAME = '0.17.11';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -1305,6 +1346,7 @@ const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
 const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
 const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
+const LLM_CONFIG_PROFILES_OPEN_KEY = 'rt-mobile-llm-config-profiles-open';
 const PROACTIVE_CONFIG_KEY = 'rt-mobile-proactive-config';
 const PROACTIVE_MODES = {
   online: { label: '在线', minIntervalMs: 30 * 60 * 1000, maxIntervalMs: 60 * 60 * 1000 },
@@ -1668,6 +1710,16 @@ function loadLlmProfilesLocal() {
 
 function saveLlmProfilesLocal(profiles) {
   localStorage.setItem(LLM_CONFIG_PROFILES_KEY, JSON.stringify(normalizeLlmProfiles(profiles)));
+}
+
+function llmProfilesOpen() {
+  return localStorage.getItem(LLM_CONFIG_PROFILES_OPEN_KEY) === '1';
+}
+
+function setLlmProfilesOpen(open) {
+  localStorage.setItem(LLM_CONFIG_PROFILES_OPEN_KEY, open ? '1' : '0');
+  const panel = $('#cfg-profile-panel');
+  if (panel) panel.classList.toggle('open', !!open);
 }
 
 function nativePreferences() {
@@ -7113,9 +7165,20 @@ function applyEndpointDetectionFromBaseUrl({ updateProvider=false } = {}) {
 
 async function renderLlmProfiles() {
   const list = $('#cfg-profile-list');
+  const panel = $('#cfg-profile-panel');
+  const count = $('#cfg-profile-count');
+  const summary = $('#cfg-profile-summary');
   if (!list) return;
   const profiles = await restoreLlmProfiles();
   const activeSig = llmProfileSignature(LLM.get_config());
+  if (panel) panel.classList.toggle('open', llmProfilesOpen());
+  if (count) count.textContent = `${profiles.length} / 16`;
+  const activeProfile = profiles.find(p => llmProfileSignature(p.config) === activeSig);
+  if (summary) {
+    summary.textContent = profiles.length
+      ? (activeProfile ? `当前：${activeProfile.name}` : `已保存 ${profiles.length} 套，展开后一键切换。`)
+      : '还没有档案，展开后可保存当前配置。';
+  }
   if (!profiles.length) {
     list.innerHTML = '<div class="text-[11px] text-neutral-500 leading-relaxed">还没有保存的配置档案。</div>';
     return;
@@ -7431,6 +7494,7 @@ async function saveCurrentLlmProfile() {
   if (index >= 0) profiles[index] = profile;
   else profiles.unshift(profile);
   await persistLlmProfiles(profiles);
+  setLlmProfilesOpen(true);
   const active = await persistLlmConfig(cfg);
   if (nameInput) nameInput.value = '';
   $('#cfg-key').value = '';
@@ -7475,6 +7539,7 @@ async function deleteLlmProfile(profileId) {
   await persistLlmProfiles(profiles.filter(p => p.id !== profileId));
   $('#cfg-status').textContent = `已删除配置档案：${profile.name}`;
   $('#cfg-status').className = 'text-xs text-neutral-500';
+  setLlmProfilesOpen(true);
   await renderLlmProfiles();
 }
 
@@ -7596,6 +7661,10 @@ async function clearLlm() {
   renderSettings(); refreshHeader();
 }
 $('#cfg-save').addEventListener('click', saveLlmConfig);
+$('#cfg-profile-toggle').addEventListener('click', () => {
+  setLlmProfilesOpen(!llmProfilesOpen());
+  renderLlmProfiles();
+});
 $('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);

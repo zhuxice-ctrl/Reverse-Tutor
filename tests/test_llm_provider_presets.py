@@ -16,6 +16,7 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "cfg-trial-code" in html
     assert "cfg-trial-redeem" in html
     assert "cfg-profile-save" in html
+    assert "cfg-profile-toggle" in html
     assert "cfg-profile-list" in html
     assert "DEFAULT_TRIAL_PROXY_BASE_URL" in html
     assert "applyLlmProviderPreset" in html
@@ -105,16 +106,22 @@ def test_mobile_llm_config_profiles_can_be_saved_and_switched():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert "LLM_CONFIG_PROFILES_KEY" in html
+    assert "LLM_CONFIG_PROFILES_OPEN_KEY" in html
     assert "rt-mobile-llm-config-profiles" in html
+    assert "rt-mobile-llm-config-profiles-open" in html
     assert "function normalizeLlmProfile" in html
     assert "function restoreLlmProfiles" in html
     assert "function persistLlmProfiles" in html
     assert "function saveCurrentLlmProfile" in html
     assert "function switchLlmProfile" in html
     assert "function deleteLlmProfile" in html
+    assert "function llmProfilesOpen" in html
+    assert "function setLlmProfilesOpen" in html
     assert "collectLlmConfigFromForm" in html
     assert "DB.kvSet('llm_config_profiles', next)" in html
+    assert "profiles.length} / 16" in html
     assert "$('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile)" in html
+    assert "$('#cfg-profile-toggle').addEventListener('click'" in html
 
 
 def test_mobile_llm_connection_failures_show_actionable_diagnostic_modal():

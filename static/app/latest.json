@@ -1,19 +1,18 @@
 {
-  "versionCode": 31,
-  "versionName": "0.17.10",
+  "versionCode": 32,
+  "versionName": "0.17.11",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.10.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.11.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.10/Reverse-Tutor-v0.17.10.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.11/Reverse-Tutor-v0.17.11.apk"
   ],
-  "sha256": "09af0279a9c95c3d268c92eac1547afddd6fec581e82c848b5240a9f70091bad",
+  "sha256": "adba924f31665a22c617124d18423d5ee23a469c5374f550359c8b6242bcd340",
   "publishedAt": "2026-05-22",
   "releaseNotes": [
-    "新增 GLM / Anthropic 预设，Base URL 使用 https://open.bigmodel.cn/api/anthropic。",
-    "Anthropic 协议支持完整 /v1/messages endpoint，避免重复拼接路径。",
-    "Base URL 会自动识别 OpenAI 格式或 Claude / Anthropic 格式，减少接口选错。",
-    "连接失败时弹出配置诊断，直接提示 URL、协议、Key、模型名等常见问题。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.10.apk。"
+    "配置档案改为可折叠管理区，默认收起，设置页更清爽。",
+    "配置档案显示已保存数量和当前档案，可展开后一键切换多套模型配置。",
+    "最多保留 16 套常用 LLM 配置，保存新档案后自动展开列表。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.11.apk。"
   ]
 }
