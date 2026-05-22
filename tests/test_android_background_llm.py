@@ -74,6 +74,12 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert "isTransientNetworkError" in service
     assert "SocketException" in service
     assert "SocketTimeoutException" in service
+    assert "buildOpenAiMessages" in service
+    assert 'msg.put("content", "开始吧")' in service
+    assert "isStrictOpenAiCompatible" in service
+    assert "open.bigmodel.cn" in service
+    assert "api.moonshot.cn" in service
+    assert "baseUrl.endsWith(\"/chat/completions\")" in service
     assert "buildAnthropicPayload" in service
     assert "contentFromAnthropicResponse" in service
     assert '"/v1/messages"' in service

@@ -18,12 +18,14 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "DEFAULT_TRIAL_PROXY_BASE_URL" in html
     assert "applyLlmProviderPreset" in html
     assert "https://api.openai.com/v1" in html
+    assert "https://open.bigmodel.cn/api/paas/v4" in html
     assert "https://api.deepseek.com" in html
     assert "https://api.deepseek.com/anthropic" in html
     assert "https://api.minimax.io/v1" in html
     assert "https://api.minimax.io/anthropic" in html
     assert "MiniMax-M2.7" in html
     assert "https://dashscope.aliyuncs.com/compatible-mode/v1" in html
+    assert "https://api.moonshot.cn/v1" in html
     assert "https://api.moonshot.ai/v1" in html
     assert "https://api.groq.com/openai/v1" in html
     assert "https://openrouter.ai/api/v1" in html
@@ -46,6 +48,9 @@ def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models
     assert "deepseek-v4-pro" in provider_block
     assert "id:'minimax'" in provider_block
     assert "id:'minimax-anthropic'" in provider_block
+    assert "id:'glm'" in provider_block
+    assert "id:'qwen'" in provider_block
+    assert "id:'kimi'" in provider_block
     assert "id:'trial'" in provider_block
     assert "max_completion_tokens" in html
     assert "providerTemperature" in html
@@ -96,6 +101,29 @@ def test_mobile_llm_payload_sanitizes_multimodal_messages_by_capability():
     assert "image_url" in html
     assert "anthropic_text" in html
     assert "extractAnthropicText" in html
+
+
+def test_mobile_openai_payload_merges_system_messages_for_strict_providers():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function normalizeOpenAiMessages" in html
+    assert "systemParts.push(text)" in html
+    assert "messages: normalizeOpenAiMessages(system, messages)" in html
+    assert "if (!out.length) normalized.push({ role:'user', content:'开始吧' })" in html
+
+
+def test_mobile_domestic_provider_profiles_disable_json_mode_and_handle_full_endpoint_urls():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function isStrictOpenAiCompatibleConfig" in html
+    assert "function shouldUseResponseFormat" in html
+    assert "opts.jsonMode && shouldUseResponseFormat()" in html
+    assert "function openAiChatCompletionsUrl" in html
+    assert "/\\/chat\\/completions$/i.test(baseUrl)" in html
+    assert "open.bigmodel.cn" in html
+    assert "api.moonshot.cn" in html
+    assert "dashscope.aliyuncs.com" in html
+    assert "json_mode:false" in html
 
 
 def test_android_background_job_carries_api_type_and_capability():

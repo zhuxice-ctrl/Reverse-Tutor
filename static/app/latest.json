@@ -1,19 +1,20 @@
 {
-  "versionCode": 28,
-  "versionName": "0.17.7",
+  "versionCode": 29,
+  "versionName": "0.17.8",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.7.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.8.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.7/Reverse-Tutor-v0.17.7.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.8/Reverse-Tutor-v0.17.8.apk"
   ],
-  "sha256": "e94786b49e618f2cdd9f04ebd46a7d7952fdd95dbfd4d5b2b5b9e857508aa5a4",
-  "publishedAt": "2026-05-21",
+  "sha256": "a74efb7487d0d72de5e59325371f7fee46e8834ac424290427d2657b003aba81",
+  "publishedAt": "2026-05-22",
   "releaseNotes": [
-    "修复体验额度模式下发送消息失败的问题：服务端中转不支持流式输出时，前端会正确降级到非流式回复。",
-    "修复 streamObj.fullText is not a function 导致的红色失败气泡。",
-    "新增本地 API 优先的自动选路，兑换码不会覆盖用户自己的 API 配置。",
-    "设置页激活码入口移动到软件更新下方，只保留一个激活码输入框。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.7.apk，不使用 test/debug 后缀。"
+    "新增 GLM / 智谱官方预设，默认 glm-5.1。",
+    "Kimi 预设拆分为 Moonshot CN / Global，国内默认使用 api.moonshot.cn。",
+    "修复 GLM 官方接口 messages 参数非法：自动合并 system 消息并补齐开场 user 消息。",
+    "国产 OpenAI 兼容模型默认不再强制发送 response_format。",
+    "支持 Base URL 填完整 /chat/completions endpoint，避免重复拼接路径。",
+    "保留体验额度与流式降级修复，正式 APK 命名为 Reverse-Tutor-v0.17.8.apk。"
   ]
 }

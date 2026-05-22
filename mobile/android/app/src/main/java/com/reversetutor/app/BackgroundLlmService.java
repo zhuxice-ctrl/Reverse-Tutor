@@ -216,6 +216,30 @@ public class BackgroundLlmService extends Service {
             || model.startsWith("minimax-");
     }
 
+    private boolean isStrictOpenAiCompatible(JSONObject job) {
+        String provider = job.optString("provider", "").toLowerCase();
+        String baseUrl = job.optString("base_url", "").toLowerCase();
+        String model = job.optString("model", "").toLowerCase();
+        return provider.equals("glm")
+            || provider.equals("deepseek")
+            || provider.startsWith("minimax")
+            || provider.equals("qwen")
+            || provider.equals("kimi")
+            || provider.equals("kimi-global")
+            || provider.equals("trial")
+            || baseUrl.contains("open.bigmodel.cn")
+            || baseUrl.contains("api.deepseek.com")
+            || baseUrl.contains("api.minimax.io")
+            || baseUrl.contains("dashscope.aliyuncs.com")
+            || baseUrl.contains("api.moonshot.cn")
+            || baseUrl.contains("api.moonshot.ai")
+            || model.startsWith("glm-")
+            || model.startsWith("qwen-")
+            || model.startsWith("moonshot-")
+            || model.startsWith("minimax-")
+            || model.startsWith("deepseek-");
+    }
+
     private double providerTemperature(JSONObject job, double temperature) {
         if (!isMiniMax(job)) {
             return temperature;
@@ -230,6 +254,86 @@ public class BackgroundLlmService extends Service {
         return buildPayload(job, jsonMode, job.optString("system", ""), job.optDouble("temperature", 0.85));
     }
 
+    private String contentText(Object content) {
+        if (content == null || JSONObject.NULL.equals(content)) {
+            return "";
+        }
+        if (content instanceof JSONArray) {
+            JSONArray arr = (JSONArray) content;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject part = arr.optJSONObject(i);
+                if (part == null) {
+                    continue;
+                }
+                String type = part.optString("type", "");
+                String text = "text".equals(type)
+                    ? part.optString("text", "")
+                    : ("image_url".equals(type) ? "[图片]" : part.optString("content", ""));
+                if (!text.isEmpty()) {
+                    if (sb.length() > 0) {
+                        sb.append("\n");
+                    }
+                    sb.append(text);
+                }
+            }
+            return sb.toString();
+        }
+        return String.valueOf(content);
+    }
+
+    private JSONArray buildOpenAiMessages(JSONObject job, String systemText) throws Exception {
+        StringBuilder systemParts = new StringBuilder(systemText == null ? "" : systemText.trim());
+        JSONArray messages = new JSONArray();
+        int nonSystemCount = 0;
+
+        JSONArray input = job.optJSONArray("messages");
+        if (input != null) {
+            for (int i = 0; i < input.length(); i++) {
+                JSONObject item = input.optJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                String role = item.optString("role", "user");
+                Object content = item.opt("content");
+                String text = contentText(content).trim();
+                if (text.isEmpty()) {
+                    continue;
+                }
+                if ("system".equals(role)) {
+                    if (systemParts.length() > 0) {
+                        systemParts.append("\n\n");
+                    }
+                    systemParts.append(text);
+                    continue;
+                }
+                JSONObject msg = new JSONObject();
+                msg.put("role", "assistant".equals(role) ? "assistant" : "user");
+                msg.put("content", content);
+                messages.put(msg);
+                nonSystemCount += 1;
+            }
+        }
+
+        JSONArray normalized = new JSONArray();
+        if (systemParts.length() > 0) {
+            JSONObject system = new JSONObject();
+            system.put("role", "system");
+            system.put("content", systemParts.toString());
+            normalized.put(system);
+        }
+        for (int i = 0; i < messages.length(); i++) {
+            normalized.put(messages.getJSONObject(i));
+        }
+        if (nonSystemCount == 0) {
+            JSONObject msg = new JSONObject();
+            msg.put("role", "user");
+            msg.put("content", "开始吧");
+            normalized.put(msg);
+        }
+        return normalized;
+    }
+
     private JSONObject buildPayload(JSONObject job, boolean jsonMode, String systemText, double temperature) throws Exception {
         JSONObject payload = new JSONObject();
         payload.put("model", job.optString("model", ""));
@@ -240,24 +344,9 @@ public class BackgroundLlmService extends Service {
             payload.put("max_tokens", job.optInt("max_tokens", 900));
         }
 
-        JSONArray messages = new JSONArray();
-        JSONObject system = new JSONObject();
-        system.put("role", "system");
-        system.put("content", systemText);
-        messages.put(system);
+        payload.put("messages", buildOpenAiMessages(job, systemText));
 
-        JSONArray input = job.optJSONArray("messages");
-        if (input != null) {
-            for (int i = 0; i < input.length(); i++) {
-                JSONObject item = input.optJSONObject(i);
-                if (item != null) {
-                    messages.put(item);
-                }
-            }
-        }
-        payload.put("messages", messages);
-
-        if (jsonMode) {
+        if (jsonMode && !isStrictOpenAiCompatible(job)) {
             JSONObject responseFormat = new JSONObject();
             responseFormat.put("type", "json_object");
             payload.put("response_format", responseFormat);
@@ -579,7 +668,7 @@ public class BackgroundLlmService extends Service {
 
     private HttpResult postOpenAiOnce(JSONObject job, JSONObject payload) throws Exception {
         String baseUrl = job.optString("base_url", "").replaceAll("/+$", "");
-        URL url = new URL(baseUrl + "/chat/completions");
+        URL url = new URL(baseUrl.endsWith("/chat/completions") ? baseUrl : baseUrl + "/chat/completions");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         try {
             conn.setConnectTimeout(20000);

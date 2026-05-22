@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.17.8 - 2026-05-22
+
+- 新增 GLM / 智谱官方预设，默认 `glm-5.1`，自动填入官方 OpenAI 兼容 Base URL。
+- Kimi 预设拆分为 Moonshot CN / Global，国内默认使用 `https://api.moonshot.cn/v1`。
+- 加固国产 OpenAI 兼容模型适配：GLM、Kimi、Qwen、DeepSeek、MiniMax、体验额度默认不再强制发送 `response_format`。
+- OpenAI 兼容请求会合并多段 system 消息，并在开场空消息时自动补 user 消息，修复 GLM `messages 参数非法`。
+- 支持用户把 Base URL 填成完整 `/chat/completions` endpoint，避免重复拼接路径。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.8.apk`。
+
 ## v0.17.7 - 2026-05-21
 
 - 修复体验额度模式下发送消息失败的问题：服务端中转不支持流式输出时，前端会正确降级到非流式回复。

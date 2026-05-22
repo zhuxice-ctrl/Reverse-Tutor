@@ -983,7 +983,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.7 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.8 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1215,8 +1215,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 28;
-const APP_VERSION_NAME = '0.17.7';
+const APP_VERSION_CODE = 29;
+const APP_VERSION_NAME = '0.17.8';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -1237,15 +1237,17 @@ const PROACTIVE_MODES = {
   sleep: { label: '睡眠', intervalMs: 6 * 60 * 60 * 1000 },
 };
 const LLM_PROVIDERS = [
-  { id:'custom', label:'手动填写', base_url:'', model:'', models:['deepseek-v4-flash','deepseek-v4-pro','gpt-4o-mini','qwen-plus','local-model'], api_type:'openai', capability:'text', requires_key:true },
-  { id:'trial', label:'体验额度', base_url:`${DEFAULT_TRIAL_PROXY_BASE_URL}/api/trial`, model:'deepseek-v4-flash', models:['deepseek-v4-flash'], api_type:'openai', capability:'text', requires_key:true },
-  { id:'deepseek', label:'DeepSeek / OpenAI', base_url:'https://api.deepseek.com', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'openai', capability:'text' },
+  { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
+  { id:'trial', label:'体验额度', base_url:`${DEFAULT_TRIAL_PROXY_BASE_URL}/api/trial`, model:'deepseek-v4-flash', models:['deepseek-v4-flash'], api_type:'openai', capability:'text', requires_key:true, json_mode:false },
+  { id:'glm', label:'GLM / 智谱官方', base_url:'https://open.bigmodel.cn/api/paas/v4', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'openai', capability:'text', json_mode:false },
+  { id:'deepseek', label:'DeepSeek / OpenAI', base_url:'https://api.deepseek.com', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'openai', capability:'text', json_mode:false },
   { id:'deepseek-anthropic', label:'DeepSeek / Anthropic', base_url:'https://api.deepseek.com/anthropic', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'anthropic', capability:'text' },
-  { id:'minimax', label:'MiniMax / OpenAI', base_url:'https://api.minimax.io/v1', model:'MiniMax-M2.7', models:['MiniMax-M2.7','MiniMax-M2.7-highspeed','MiniMax-M2.5','MiniMax-M2.5-highspeed','MiniMax-M2.1','MiniMax-M2.1-highspeed','MiniMax-M2'], api_type:'openai', capability:'text' },
+  { id:'minimax', label:'MiniMax / OpenAI', base_url:'https://api.minimax.io/v1', model:'MiniMax-M2.7', models:['MiniMax-M2.7','MiniMax-M2.7-highspeed','MiniMax-M2.5','MiniMax-M2.5-highspeed','MiniMax-M2.1','MiniMax-M2.1-highspeed','MiniMax-M2'], api_type:'openai', capability:'text', json_mode:false },
   { id:'minimax-anthropic', label:'MiniMax / Anthropic', base_url:'https://api.minimax.io/anthropic', model:'MiniMax-M2.7', models:['MiniMax-M2.7','MiniMax-M2.7-highspeed','MiniMax-M2.5','MiniMax-M2.5-highspeed','MiniMax-M2.1','MiniMax-M2.1-highspeed','MiniMax-M2'], api_type:'anthropic', capability:'text' },
   { id:'openai', label:'OpenAI', base_url:'https://api.openai.com/v1', model:'gpt-4o-mini', models:['gpt-4o-mini','gpt-4.1-mini','gpt-4o'], api_type:'openai', capability:'vision' },
-  { id:'qwen', label:'Qwen / DashScope', base_url:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus', models:['qwen-plus','qwen-turbo','qwen-vl-plus'], api_type:'openai', capability:'vision' },
-  { id:'kimi', label:'Kimi / Moonshot', base_url:'https://api.moonshot.ai/v1', model:'moonshot-v1-8k', models:['moonshot-v1-8k','moonshot-v1-32k','moonshot-v1-128k'], api_type:'openai', capability:'text' },
+  { id:'qwen', label:'Qwen / 阿里百炼', base_url:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-plus', models:['qwen-plus','qwen-turbo','qwen-vl-plus'], api_type:'openai', capability:'vision', json_mode:false },
+  { id:'kimi', label:'Kimi / Moonshot CN', base_url:'https://api.moonshot.cn/v1', model:'moonshot-v1-8k', models:['moonshot-v1-8k','moonshot-v1-32k','moonshot-v1-128k'], api_type:'openai', capability:'text', json_mode:false },
+  { id:'kimi-global', label:'Kimi / Moonshot Global', base_url:'https://api.moonshot.ai/v1', model:'moonshot-v1-8k', models:['moonshot-v1-8k','moonshot-v1-32k','moonshot-v1-128k'], api_type:'openai', capability:'text', json_mode:false },
   { id:'groq', label:'Groq', base_url:'https://api.groq.com/openai/v1', model:'llama-3.1-8b-instant', models:['llama-3.1-8b-instant','llama-3.3-70b-versatile'], api_type:'openai', capability:'text' },
   { id:'openrouter', label:'OpenRouter', base_url:'https://openrouter.ai/api/v1', model:'openai/gpt-4o-mini', models:['openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','google/gemini-flash-1.5'], api_type:'openai', capability:'vision' },
   { id:'ollama', label:'Ollama 本机', base_url:'http://localhost:11434/v1', model:'llama3.2', models:['llama3.2','qwen2.5','gemma2'], api_type:'openai', capability:'text', requires_key:false },
@@ -2448,23 +2450,93 @@ const LLM = (() => {
     return provider.startsWith('minimax') || baseUrl.includes('api.minimax.io') || model.startsWith('minimax-');
   }
 
+  function providerPreset(c=cfg) {
+    return LLM_PROVIDERS.find(p => p.id === c.provider) || null;
+  }
+
+  function isStrictOpenAiCompatibleConfig(c=cfg) {
+    const provider = String(c.provider || '').toLowerCase();
+    const baseUrl = String(c.base_url || '').toLowerCase();
+    const model = String(c.model || '').toLowerCase();
+    return ['glm','deepseek','minimax','qwen','kimi','kimi-global','trial'].some(id => provider === id || provider.startsWith(id + '-'))
+      || baseUrl.includes('open.bigmodel.cn')
+      || baseUrl.includes('api.deepseek.com')
+      || baseUrl.includes('api.minimax.io')
+      || baseUrl.includes('dashscope.aliyuncs.com')
+      || baseUrl.includes('api.moonshot.cn')
+      || baseUrl.includes('api.moonshot.ai')
+      || model.startsWith('glm-')
+      || model.startsWith('qwen-')
+      || model.startsWith('moonshot-')
+      || model.startsWith('minimax-')
+      || model.startsWith('deepseek-');
+  }
+
+  function shouldUseResponseFormat(c=cfg) {
+    const preset = providerPreset(c);
+    if (preset && preset.json_mode === false) return false;
+    if (isStrictOpenAiCompatibleConfig(c)) return false;
+    return true;
+  }
+
   function providerTemperature(temperature, c=cfg) {
     const value = Number.isFinite(Number(temperature)) ? Number(temperature) : 0.85;
     if (isMiniMaxConfig(c)) return Math.min(1, Math.max(0.01, value));
     return value;
   }
 
+  function messageContentText(content) {
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      return content.map(p => {
+        if (!p || typeof p !== 'object') return '';
+        if (p.type === 'text') return String(p.text || '');
+        if (p.type === 'image_url') return '[图片]';
+        return String(p.text || p.content || '');
+      }).filter(Boolean).join('\n');
+    }
+    return String(content || '');
+  }
+
+  function normalizeOpenAiMessages(system, messages) {
+    const systemParts = [String(system || '').trim()].filter(Boolean);
+    const out = [];
+    for (const m of sanitizeMessagesForCapability(messages)) {
+      const role = m.role === 'assistant' ? 'assistant' : (m.role === 'system' ? 'system' : 'user');
+      const content = m.content;
+      const text = messageContentText(content).trim();
+      if (!text) continue;
+      if (role === 'system') {
+        systemParts.push(text);
+      } else {
+        out.push({ role, content });
+      }
+    }
+    const normalized = [];
+    const systemText = systemParts.join('\n\n').trim();
+    if (systemText) normalized.push({ role:'system', content: systemText });
+    normalized.push(...out);
+    if (!out.length) normalized.push({ role:'user', content:'开始吧' });
+    return normalized;
+  }
+
   function buildOpenAiPayload(system, messages, temperature=0.7, max_tokens=900, opts={}) {
     const body = {
       model: cfg.model,
-      messages: [{ role:'system', content: system }, ...sanitizeMessagesForCapability(messages)],
+      messages: normalizeOpenAiMessages(system, messages),
       temperature: providerTemperature(temperature),
     };
     if (isMiniMaxConfig()) body.max_completion_tokens = max_tokens;
     else body.max_tokens = max_tokens;
     if (opts.stream) body.stream = true;
-    if (opts.jsonMode) body.response_format = { type: 'json_object' };
+    if (opts.jsonMode && shouldUseResponseFormat()) body.response_format = { type: 'json_object' };
     return body;
+  }
+
+  function openAiChatCompletionsUrl(c=cfg) {
+    const baseUrl = String(c.base_url || '').trim().replace(/\/+$/, '');
+    if (/\/chat\/completions$/i.test(baseUrl)) return baseUrl;
+    return baseUrl + '/chat/completions';
   }
 
   function openAiDeltaText(chunk) {
@@ -2515,7 +2587,7 @@ const LLM = (() => {
   }
 
   async function openai_text(system, messages, temperature=0.7, max_tokens=900, jsonMode=true) {
-    const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
+    const url = openAiChatCompletionsUrl();
     const body = buildOpenAiPayload(system, messages, temperature, max_tokens, { jsonMode });
     const headers = { 'Content-Type':'application/json' };
     if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
@@ -2558,7 +2630,7 @@ const LLM = (() => {
   }
 
   async function openai_text_stream(system, messages, temperature=0.7, max_tokens=900) {
-    const url = cfg.base_url.replace(/\/+$/, '') + '/chat/completions';
+    const url = openAiChatCompletionsUrl();
     const body = buildOpenAiPayload(system, messages, temperature, max_tokens, { stream: true });
     const headers = { 'Content-Type':'application/json' };
     if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
