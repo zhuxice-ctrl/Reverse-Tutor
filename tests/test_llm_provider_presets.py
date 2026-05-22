@@ -21,6 +21,7 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "applyLlmProviderPreset" in html
     assert "https://api.openai.com/v1" in html
     assert "https://open.bigmodel.cn/api/paas/v4" in html
+    assert "https://open.bigmodel.cn/api/anthropic" in html
     assert "https://api.deepseek.com" in html
     assert "https://api.deepseek.com/anthropic" in html
     assert "https://api.minimax.io/v1" in html
@@ -51,6 +52,7 @@ def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models
     assert "id:'minimax'" in provider_block
     assert "id:'minimax-anthropic'" in provider_block
     assert "id:'glm'" in provider_block
+    assert "id:'glm-anthropic'" in provider_block
     assert "id:'qwen'" in provider_block
     assert "id:'kimi'" in provider_block
     assert "id:'trial'" in provider_block
@@ -66,7 +68,12 @@ def test_mobile_llm_supports_anthropic_protocol_family():
 
     assert "function normalizeApiType" in html
     assert "function anthropic_text" in html
+    assert "function anthropicMessagesUrl" in html
+    assert "function detectedApiTypeFromBaseUrl" in html
+    assert "function applyEndpointDetectionFromBaseUrl" in html
     assert "/v1/messages" in html
+    assert "/\\/v1\\/messages$/i.test(baseUrl)" in html
+    assert "Claude / Anthropic 格式" in html
     assert "x-api-key" in html
     assert "anthropic-version" in html
     assert "cfg.api_type === 'anthropic'" in html
@@ -110,6 +117,19 @@ def test_mobile_llm_config_profiles_can_be_saved_and_switched():
     assert "$('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile)" in html
 
 
+def test_mobile_llm_connection_failures_show_actionable_diagnostic_modal():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "llm-diagnostic-modal" in html
+    assert "function llmErrorDiagnosis" in html
+    assert "function showLlmDiagnostic" in html
+    assert "OpenAI 格式" in html
+    assert "Claude / Anthropic 格式" in html
+    assert "showLlmDiagnostic(r.error || r.reason || '失败', LLM.get_config())" in html
+    assert "URL 路径可能不对" in html
+    assert "模型名可能不匹配当前服务商" in html
+
+
 def test_mobile_llm_payload_sanitizes_multimodal_messages_by_capability():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
@@ -138,6 +158,7 @@ def test_mobile_domestic_provider_profiles_disable_json_mode_and_handle_full_end
     assert "opts.jsonMode && shouldUseResponseFormat()" in html
     assert "function openAiChatCompletionsUrl" in html
     assert "/\\/chat\\/completions$/i.test(baseUrl)" in html
+    assert "finalEndpointForApiType" in html
     assert "open.bigmodel.cn" in html
     assert "api.moonshot.cn" in html
     assert "dashscope.aliyuncs.com" in html
@@ -194,7 +215,8 @@ def test_mobile_trial_channel_is_isolated_from_normal_provider_config():
     assert "else if (isTrialBaseUrl(baseUrl))" in html
     assert "apiKey = ''" in html
     assert "$('#cfg-base').value = preset.base_url || ''" in html
-    assert "providerKeyScope(existing.provider) === providerKeyScope(provider)" in html
+    assert "providerKeyScope(existing.provider) === providerKeyScope(resolvedProvider)" in html
+    assert "if (id === 'glm-anthropic') return 'glm'" in html
     assert "guardedTrialRoute ? '（已移除体验中转地址）' : ''" in html
     assert "const active = selectLocalFirstLlmConfig(next, localApi)" in html
     assert "const next = selectLocalFirstLlmConfig(saved, localApi)" in html

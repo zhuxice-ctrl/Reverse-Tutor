@@ -604,6 +604,16 @@
     text-align: left;
   }
   .choice-row.active { background: var(--accent-soft); }
+  .choice-row-badge {
+    font-size: 10px;
+    border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+    border-radius: 999px;
+    padding: 2px 7px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .choice-row-badge.protocol-openai { color: #93c5fd; border-color: rgba(37,99,235,.5); background: rgba(37,99,235,.12); }
+  .choice-row-badge.protocol-anthropic { color: #fbbf24; border-color: rgba(217,119,6,.55); background: rgba(217,119,6,.12); }
   .choice-row-dot {
     width: 10px;
     height: 10px;
@@ -929,6 +939,7 @@
           <label class="block config-section">
             <span class="text-xs text-neutral-400">Base URL</span>
             <input id="cfg-base" type="text" placeholder="http://localhost:11434/v1（ollama 示例）" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
+            <div id="cfg-url-hint" class="text-[11px] text-neutral-500 mt-1 leading-relaxed"></div>
           </label>
           <label class="block">
             <span class="text-xs text-neutral-400">API Key</span>
@@ -1028,7 +1039,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.9 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.10 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1088,6 +1099,24 @@
     <div id="update-modal-actions" class="flex gap-2">
       <button id="update-modal-skip" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">稍后再说</button>
       <button id="update-modal-go" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">后台下载</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============== LLM 配置诊断 modal ============== -->
+<div id="llm-diagnostic-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[85] p-4">
+  <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-4 space-y-3">
+    <div class="flex items-start gap-3">
+      <div class="message-popup-icon"><i data-lucide="wrench">修</i></div>
+      <div class="min-w-0 flex-1">
+        <div id="llm-diagnostic-title" class="text-base font-bold">LLM 配置可能有问题</div>
+        <div id="llm-diagnostic-summary" class="text-xs text-neutral-400 mt-1 leading-relaxed"></div>
+      </div>
+    </div>
+    <div id="llm-diagnostic-body" class="text-xs text-neutral-400 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap bg-neutral-950 border border-neutral-800 rounded p-2"></div>
+    <div class="flex gap-2">
+      <button id="llm-diagnostic-copy" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">复制错误</button>
+      <button id="llm-diagnostic-close" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">知道了</button>
     </div>
   </div>
 </div>
@@ -1260,8 +1289,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 30;
-const APP_VERSION_NAME = '0.17.9';
+const APP_VERSION_CODE = 31;
+const APP_VERSION_NAME = '0.17.10';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -1286,6 +1315,7 @@ const LLM_PROVIDERS = [
   { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
   { id:'trial', label:'体验额度', base_url:`${DEFAULT_TRIAL_PROXY_BASE_URL}/api/trial`, model:'deepseek-v4-flash', models:['deepseek-v4-flash'], api_type:'openai', capability:'text', requires_key:true, json_mode:false },
   { id:'glm', label:'GLM / 智谱官方', base_url:'https://open.bigmodel.cn/api/paas/v4', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'openai', capability:'text', json_mode:false },
+  { id:'glm-anthropic', label:'GLM / Anthropic', base_url:'https://open.bigmodel.cn/api/anthropic', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'anthropic', capability:'text', json_mode:false },
   { id:'deepseek', label:'DeepSeek / OpenAI', base_url:'https://api.deepseek.com', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'openai', capability:'text', json_mode:false },
   { id:'deepseek-anthropic', label:'DeepSeek / Anthropic', base_url:'https://api.deepseek.com/anthropic', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'anthropic', capability:'text' },
   { id:'minimax', label:'MiniMax / OpenAI', base_url:'https://api.minimax.io/v1', model:'MiniMax-M2.7', models:['MiniMax-M2.7','MiniMax-M2.7-highspeed','MiniMax-M2.5','MiniMax-M2.5-highspeed','MiniMax-M2.1','MiniMax-M2.1-highspeed','MiniMax-M2'], api_type:'openai', capability:'text', json_mode:false },
@@ -1303,6 +1333,10 @@ const API_TYPE_OPTIONS = [
   { value:'openai', label:'OpenAI', detail:'Chat API' },
   { value:'anthropic', label:'Anthropic', detail:'Messages API' },
 ];
+const API_TYPE_LABELS = {
+  openai: 'OpenAI 格式',
+  anthropic: 'Claude / Anthropic 格式',
+};
 const CAPABILITY_OPTIONS = [
   { value:'text', label:'文本', detail:'聊天' },
   { value:'vision', label:'图片', detail:'识图' },
@@ -1443,6 +1477,7 @@ function isTrialBaseUrl(baseUrl) {
 
 function providerKeyScope(provider) {
   const id = String(provider || 'custom').trim() || 'custom';
+  if (id === 'glm-anthropic') return 'glm';
   if (id === 'deepseek-anthropic') return 'deepseek';
   if (id === 'minimax-anthropic') return 'minimax';
   return id;
@@ -1452,6 +1487,47 @@ function providerRequiresKeyForConfig(c = {}) {
   const provider = String(c.provider || 'custom').trim() || 'custom';
   const preset = LLM_PROVIDERS.find(p => p.id === provider);
   return preset ? preset.requires_key !== false : true;
+}
+
+function detectedProviderFromBaseUrl(baseUrl) {
+  const url = String(baseUrl || '').trim().toLowerCase();
+  if (!url) return null;
+  if (url.includes('open.bigmodel.cn/api/anthropic')) return 'glm-anthropic';
+  if (url.includes('open.bigmodel.cn/api/paas/v4')) return 'glm';
+  if (url.includes('api.deepseek.com/anthropic')) return 'deepseek-anthropic';
+  if (url.includes('api.deepseek.com')) return 'deepseek';
+  if (url.includes('api.minimax.io/anthropic')) return 'minimax-anthropic';
+  if (url.includes('api.minimax.io')) return 'minimax';
+  if (url.includes('dashscope.aliyuncs.com/compatible-mode')) return 'qwen';
+  if (url.includes('api.moonshot.cn')) return 'kimi';
+  if (url.includes('api.moonshot.ai')) return 'kimi-global';
+  return null;
+}
+
+function detectedApiTypeFromBaseUrl(baseUrl) {
+  const url = String(baseUrl || '').trim().toLowerCase();
+  if (!url) return '';
+  if (/\/v1\/messages\/?$/i.test(url) || url.includes('/api/anthropic') || url.includes('/anthropic')) return 'anthropic';
+  if (/\/chat\/completions\/?$/i.test(url) || url.includes('/compatible-mode/v1') || url.includes('/api/paas/v4')) return 'openai';
+  if (detectedProviderFromBaseUrl(url)) return llmProviderById(detectedProviderFromBaseUrl(url)).api_type || 'openai';
+  return '';
+}
+
+function finalEndpointForApiType(baseUrl, apiType) {
+  const clean = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (!clean) return '';
+  if (apiType === 'anthropic') return /\/v1\/messages$/i.test(clean) ? clean : clean + '/v1/messages';
+  return /\/chat\/completions$/i.test(clean) ? clean : clean + '/chat/completions';
+}
+
+function endpointDetection(baseUrl) {
+  const providerId = detectedProviderFromBaseUrl(baseUrl);
+  const apiType = detectedApiTypeFromBaseUrl(baseUrl);
+  return {
+    providerId,
+    apiType,
+    finalUrl: apiType ? finalEndpointForApiType(baseUrl, apiType) : '',
+  };
 }
 
 function isRunnableLlmConfig(c = {}) {
@@ -2907,8 +2983,14 @@ const LLM = (() => {
     return chunks.join('\n');
   }
 
+  function anthropicMessagesUrl(c=cfg) {
+    const baseUrl = String(c.base_url || '').trim().replace(/\/+$/, '');
+    if (/\/v1\/messages$/i.test(baseUrl)) return baseUrl;
+    return baseUrl + '/v1/messages';
+  }
+
   async function anthropic_text(system, messages, temperature=0.7, max_tokens=900) {
-    const url = cfg.base_url.replace(/\/+$/, '') + '/v1/messages';
+    const url = anthropicMessagesUrl();
     const payload = anthropicPayload(system, messages);
     const body = {
       model: cfg.model,
@@ -2942,7 +3024,7 @@ const LLM = (() => {
   }
 
   async function anthropic_text_stream(system, messages, temperature=0.7, max_tokens=900) {
-    const url = cfg.base_url.replace(/\/+$/, '') + '/v1/messages';
+    const url = anthropicMessagesUrl();
     const payload = anthropicPayload(system, messages);
     const body = {
       model: cfg.model,
@@ -6874,7 +6956,7 @@ function openChoiceSheet({ title, subtitle='', options=[], value='', onPick }) {
         <span class="block text-sm font-semibold truncate">${esc(opt.label)}</span>
         <span class="block text-xs text-neutral-500 truncate">${esc(opt.detail || '')}</span>
       </span>
-      ${opt.badge ? `<span class="text-[10px] text-neutral-500 border border-neutral-700 rounded-full px-2 py-0.5">${esc(opt.badge)}</span>` : ''}
+      ${opt.badge ? `<span class="choice-row-badge ${esc(opt.badgeClass || '')}">${esc(opt.badge)}</span>` : ''}
     </button>
   `).join('');
   sheet.classList.remove('hidden');
@@ -6992,6 +7074,43 @@ function renderConfigPickerUi() {
   renderVisionCapabilityHint();
 }
 
+function canAutoSwitchProviderUrl(providerId) {
+  const preset = llmProviderById(providerId);
+  const currentBase = ($('#cfg-base')?.value || '').trim().replace(/\/+$/, '');
+  const presetBase = (preset.base_url || '').trim().replace(/\/+$/, '');
+  return !currentBase || !presetBase || currentBase === presetBase;
+}
+
+function applyEndpointDetectionFromBaseUrl({ updateProvider=false } = {}) {
+  const input = $('#cfg-base');
+  const hint = $('#cfg-url-hint');
+  if (!input) return null;
+  const detected = endpointDetection(input.value);
+  if (detected.apiType) {
+    $('#cfg-api-type').value = detected.apiType;
+    if (updateProvider && detected.providerId) {
+      $('#cfg-provider').value = detected.providerId;
+      const preset = llmProviderById(detected.providerId);
+      $('#cfg-capability').value = preset.capability || $('#cfg-capability').value || 'text';
+    }
+  }
+  if (hint) {
+    if (!input.value.trim()) {
+      hint.textContent = '输入 URL 后会自动识别 OpenAI 格式或 Claude / Anthropic 格式。';
+      hint.className = 'text-[11px] text-neutral-500 mt-1 leading-relaxed';
+    } else if (detected.apiType) {
+      const provider = detected.providerId ? ` · ${llmProviderById(detected.providerId).label}` : '';
+      hint.textContent = `已识别：${API_TYPE_LABELS[detected.apiType] || detected.apiType}${provider}；最终请求 ${detected.finalUrl}`;
+      hint.className = 'text-[11px] text-emerald-400 mt-1 leading-relaxed break-words';
+    } else {
+      hint.textContent = '未识别出协议格式；如果连接失败，请确认它是 OpenAI Chat 或 Claude / Anthropic Messages 兼容地址。';
+      hint.className = 'text-[11px] text-amber-400 mt-1 leading-relaxed';
+    }
+  }
+  renderConfigPickerUi();
+  return detected;
+}
+
 async function renderLlmProfiles() {
   const list = $('#cfg-profile-list');
   if (!list) return;
@@ -7027,19 +7146,27 @@ async function renderLlmProfiles() {
 function applyApiTypeSelection(value) {
   const nextType = normalizeApiType(value);
   const providerId = $('#cfg-provider')?.value || 'custom';
-  if (providerId === 'deepseek' && nextType === 'anthropic') {
+  if (providerId === 'glm' && nextType === 'anthropic' && canAutoSwitchProviderUrl(providerId)) {
+    applyLlmProviderPreset('glm-anthropic');
+    return;
+  }
+  if (providerId === 'glm-anthropic' && nextType === 'openai' && canAutoSwitchProviderUrl(providerId)) {
+    applyLlmProviderPreset('glm');
+    return;
+  }
+  if (providerId === 'deepseek' && nextType === 'anthropic' && canAutoSwitchProviderUrl(providerId)) {
     applyLlmProviderPreset('deepseek-anthropic');
     return;
   }
-  if (providerId === 'deepseek-anthropic' && nextType === 'openai') {
+  if (providerId === 'deepseek-anthropic' && nextType === 'openai' && canAutoSwitchProviderUrl(providerId)) {
     applyLlmProviderPreset('deepseek');
     return;
   }
-  if (providerId === 'minimax' && nextType === 'anthropic') {
+  if (providerId === 'minimax' && nextType === 'anthropic' && canAutoSwitchProviderUrl(providerId)) {
     applyLlmProviderPreset('minimax-anthropic');
     return;
   }
-  if (providerId === 'minimax-anthropic' && nextType === 'openai') {
+  if (providerId === 'minimax-anthropic' && nextType === 'openai' && canAutoSwitchProviderUrl(providerId)) {
     applyLlmProviderPreset('minimax');
     return;
   }
@@ -7190,6 +7317,7 @@ async function renderSettings() {
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
   renderConfigPickerUi();
+  applyEndpointDetectionFromBaseUrl({ updateProvider: true });
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   renderTrialSettings(cfg);
@@ -7241,9 +7369,13 @@ function renderProactiveSettings() {
 function collectLlmConfigFromForm(existing = LLM.get_config()) {
   const keyInput = $('#cfg-key').value.trim();
   const provider = $('#cfg-provider').value || 'custom';
+  const detected = endpointDetection($('#cfg-base').value);
+  if (detected.apiType) $('#cfg-api-type').value = detected.apiType;
+  if (detected.providerId) $('#cfg-provider').value = detected.providerId;
+  const resolvedProvider = $('#cfg-provider').value || provider;
   const trialApiBase = normalizeTrialApiBase($('#cfg-trial-url')?.value || existing.trial_api_base);
-  const selectedPreset = llmProviderById(provider);
-  const trialProvider = isTrialProvider(provider);
+  const selectedPreset = llmProviderById(resolvedProvider);
+  const trialProvider = isTrialProvider(resolvedProvider);
   let baseUrl = $('#cfg-base').value.trim();
   let model = $('#cfg-model').value.trim();
   let guardedTrialRoute = false;
@@ -7254,11 +7386,11 @@ function collectLlmConfigFromForm(existing = LLM.get_config()) {
     baseUrl = selectedPreset.id !== 'trial' ? (selectedPreset.base_url || '') : '';
     guardedTrialRoute = true;
   }
-  const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(provider);
+  const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(resolvedProvider);
   const keepExistingKey = !keyInput && sameKeyScope;
   return {
     config: {
-      provider,
+      provider: resolvedProvider,
       api_type: $('#cfg-api-type').value || 'openai',
       capability: $('#cfg-capability').value || 'text',
       base_url: baseUrl,
@@ -7359,8 +7491,73 @@ async function saveLlmConfig() {
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   renderConfigPickerUi();
   renderTrialSettings(cfg);
+  applyEndpointDetectionFromBaseUrl({ updateProvider: true });
   await renderLlmProfiles();
   refreshHeader();
+}
+
+function llmErrorDiagnosis(errorText, config = LLM.get_config()) {
+  const err = String(errorText || '');
+  const cfgNow = normalizeLlmConfig(config);
+  const detected = endpointDetection(cfgNow.base_url);
+  const tips = [];
+  if (detected.apiType && detected.apiType !== cfgNow.api_type) {
+    tips.push(`当前 URL 更像 ${API_TYPE_LABELS[detected.apiType]}，但配置选择的是 ${API_TYPE_LABELS[cfgNow.api_type] || cfgNow.api_type}。`);
+  }
+  if (cfgNow.api_type === 'openai' && /\/api\/anthropic|\/v1\/messages/i.test(cfgNow.base_url)) {
+    tips.push('你填的是 Claude / Anthropic 兼容地址，请把接口类型切到 Anthropic，或直接选择“GLM / Anthropic”预设。');
+  }
+  if (cfgNow.api_type === 'anthropic' && /\/chat\/completions|\/api\/paas\/v4/i.test(cfgNow.base_url)) {
+    tips.push('你填的是 OpenAI Chat 兼容地址，请把接口类型切到 OpenAI，或选择对应 OpenAI 预设。');
+  }
+  if (/401|403|unauthorized|invalid api key|authentication|permission/i.test(err)) {
+    tips.push('Key 可能无效、额度不足，或这个 Key 没开通当前模型。');
+  }
+  if (/404|not found/i.test(err)) {
+    tips.push('URL 路径可能不对：OpenAI 格式最终应到 /chat/completions，Anthropic 格式最终应到 /v1/messages。');
+  }
+  if (/model|not.*exist|not_found|不存在/i.test(err)) {
+    tips.push('模型名可能不匹配当前服务商，建议先从预设模型 chip 里选一个。');
+  }
+  if (/network|failed to fetch|cors|请求失败/i.test(err)) {
+    tips.push('手机网络、服务端跨域、代理地址或局域网地址可能不可达。');
+  }
+  if (!tips.length) {
+    tips.push('先确认：接口格式、Base URL、API Key、Model 四项是否来自同一个服务商。');
+  }
+  return {
+    summary: `${cfgNow.provider || 'custom'} · ${API_TYPE_LABELS[cfgNow.api_type] || cfgNow.api_type} · ${cfgNow.model || '未填模型'}`,
+    body: [
+      `当前 Base URL：${cfgNow.base_url || '未填写'}`,
+      detected.finalUrl ? `最终请求地址：${detected.finalUrl}` : '',
+      '',
+      '建议检查：',
+      ...tips.map(x => `- ${x}`),
+      '',
+      `原始错误：${err.slice(0, 800)}`,
+    ].filter(x => x !== '').join('\n'),
+  };
+}
+
+function showLlmDiagnostic(errorText, config = LLM.get_config()) {
+  const modal = $('#llm-diagnostic-modal');
+  if (!modal) {
+    toast('连接失败：' + String(errorText || '').slice(0, 80), 4000);
+    return;
+  }
+  const diagnosis = llmErrorDiagnosis(errorText, config);
+  $('#llm-diagnostic-summary').textContent = diagnosis.summary;
+  $('#llm-diagnostic-body').textContent = diagnosis.body;
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  refreshIcons();
+}
+
+function closeLlmDiagnostic() {
+  const modal = $('#llm-diagnostic-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.style.display = '';
 }
 async function testLlm() {
   const btn = $('#cfg-test');
@@ -7378,6 +7575,7 @@ async function testLlm() {
     } else {
       $('#cfg-status').textContent = `连接失败：${r.error || r.reason || '失败'}`;
       $('#cfg-status').className = 'text-xs text-red-400';
+      showLlmDiagnostic(r.error || r.reason || '失败', LLM.get_config());
     }
   } finally {
     btn.disabled = false;
@@ -7403,22 +7601,33 @@ $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
 $('#cfg-trial-redeem').addEventListener('click', redeemTrialCode);
 $('#cfg-provider').addEventListener('change', e => applyLlmProviderPreset(e.target.value));
+$('#cfg-base').addEventListener('input', () => applyEndpointDetectionFromBaseUrl({ updateProvider: true }));
+$('#cfg-base').addEventListener('change', () => applyEndpointDetectionFromBaseUrl({ updateProvider: true }));
 $('#cfg-provider-trigger').addEventListener('click', () => {
   const current = $('#cfg-provider').value || 'custom';
   openChoiceSheet({
     title: '选择 LLM 服务商',
-    subtitle: '会自动填入接口类型、Base URL 和常用模型；仍可手动改。',
+    subtitle: '先看接口格式：OpenAI 格式走 /chat/completions；Claude / Anthropic 格式走 /v1/messages。',
     value: current,
     options: LLM_PROVIDERS.map(p => ({
       value: p.id,
       label: p.label,
-      detail: `${p.base_url || '手动填写地址'} · ${p.model || '手动模型'}`,
-      badge: p.id === 'trial' ? '兑换码' : (p.requires_key === false ? '免 Key' : 'API Key'),
+      detail: `${API_TYPE_LABELS[p.api_type] || p.api_type || '自定义格式'} · ${p.base_url || '手动填写地址'} · ${p.model || '手动模型'}`,
+      badge: p.id === 'trial' ? '兑换码' : (p.requires_key === false ? '免 Key' : (API_TYPE_LABELS[p.api_type] || 'API Key')),
+      badgeClass: p.api_type === 'anthropic' ? 'protocol-anthropic' : 'protocol-openai',
     })),
     onPick: opt => applyLlmProviderPreset(opt.value),
   });
 });
 $('#cfg-model').addEventListener('input', () => { renderModelPresetChips(); renderVisionCapabilityHint(); });
+$('#llm-diagnostic-close').addEventListener('click', closeLlmDiagnostic);
+$('#llm-diagnostic-copy').addEventListener('click', async () => {
+  const text = $('#llm-diagnostic-body')?.textContent || '';
+  try { await navigator.clipboard?.writeText(text); toast('已复制错误信息'); } catch(e) { toast('复制失败'); }
+});
+$('#llm-diagnostic-modal').addEventListener('click', e => {
+  if (e.target.id === 'llm-diagnostic-modal') closeLlmDiagnostic();
+});
 $('#choice-sheet-close').addEventListener('click', closeChoiceSheet);
 $('#choice-sheet').addEventListener('click', e => {
   if (e.target.id === 'choice-sheet') closeChoiceSheet();

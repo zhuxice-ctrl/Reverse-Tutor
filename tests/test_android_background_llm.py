@@ -85,6 +85,7 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert '"/v1/messages"' in service
     assert '"x-api-key"' in service
     assert '"anthropic-version"' in service
+    assert "baseUrl.endsWith(\"/v1/messages\")" in service
     assert 'item.put("turn_id"' in service
     assert 'item.put("reply_to_message_id"' in service
     assert "START_REDELIVER_INTENT" in service

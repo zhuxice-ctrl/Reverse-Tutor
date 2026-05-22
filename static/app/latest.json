@@ -1,18 +1,19 @@
 {
-  "versionCode": 30,
-  "versionName": "0.17.9",
+  "versionCode": 31,
+  "versionName": "0.17.10",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.9.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.10.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.9/Reverse-Tutor-v0.17.9.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.10/Reverse-Tutor-v0.17.10.apk"
   ],
-  "sha256": "d38bf069101159f3f8ba566012caa70218417db8838cc3cf515c521eb511b9d7",
+  "sha256": "09af0279a9c95c3d268c92eac1547afddd6fec581e82c848b5240a9f70091bad",
   "publishedAt": "2026-05-22",
   "releaseNotes": [
-    "新增 LLM 配置档案：可保存多套 provider、Base URL、Model 和 API Key。",
-    "配置页支持一键切换常用模型档案，适合 GLM、Kimi、DeepSeek、Qwen、MiniMax 等多模型轮换使用。",
-    "配置档案保存在本设备，并与原有本地 API 优先逻辑兼容。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.9.apk。"
+    "新增 GLM / Anthropic 预设，Base URL 使用 https://open.bigmodel.cn/api/anthropic。",
+    "Anthropic 协议支持完整 /v1/messages endpoint，避免重复拼接路径。",
+    "Base URL 会自动识别 OpenAI 格式或 Claude / Anthropic 格式，减少接口选错。",
+    "连接失败时弹出配置诊断，直接提示 URL、协议、Key、模型名等常见问题。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.10.apk。"
   ]
 }

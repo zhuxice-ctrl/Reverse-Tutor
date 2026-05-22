@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.17.10 - 2026-05-22
+
+- 新增 GLM / Anthropic 预设，Base URL 使用 `https://open.bigmodel.cn/api/anthropic`。
+- Anthropic 协议支持用户直接填写完整 `/v1/messages` endpoint，避免重复拼接路径。
+- Base URL 会自动识别 OpenAI 格式或 Claude / Anthropic 格式，减少接口选错。
+- 连接失败时弹出配置诊断，提示 URL、协议、Key、模型名等常见问题。
+- Android 后台 LLM 服务同步修复 GLM Anthropic 路径拼接。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.10.apk`。
+
 ## v0.17.9 - 2026-05-22
 
 - 新增 LLM 配置档案：可保存多套 provider、接口类型、模型能力、Base URL、Model 和 API Key。

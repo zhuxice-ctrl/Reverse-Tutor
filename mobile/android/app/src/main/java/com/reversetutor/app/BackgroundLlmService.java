@@ -220,7 +220,7 @@ public class BackgroundLlmService extends Service {
         String provider = job.optString("provider", "").toLowerCase();
         String baseUrl = job.optString("base_url", "").toLowerCase();
         String model = job.optString("model", "").toLowerCase();
-        return provider.equals("glm")
+        return provider.startsWith("glm")
             || provider.equals("deepseek")
             || provider.startsWith("minimax")
             || provider.equals("qwen")
@@ -696,7 +696,7 @@ public class BackgroundLlmService extends Service {
 
     private HttpResult postAnthropicOnce(JSONObject job, JSONObject payload) throws Exception {
         String baseUrl = job.optString("base_url", "").replaceAll("/+$", "");
-        URL url = new URL(baseUrl + "/v1/messages");
+        URL url = new URL(baseUrl.endsWith("/v1/messages") ? baseUrl : baseUrl + "/v1/messages");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         try {
             conn.setConnectTimeout(20000);
