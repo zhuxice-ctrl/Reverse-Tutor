@@ -14,9 +14,20 @@
 <script>
   (function () {
     try {
-      const theme = localStorage.getItem('rt-mobile-theme') === 'warm' ? 'warm' : 'ink';
-      document.documentElement.classList.toggle('theme-warm', theme === 'warm');
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'warm' ? '#c9c0b3' : '#252927');
+      const metaColors = {
+        ink: '#252927',
+        warm: '#c9c0b3',
+        berry: '#241820',
+        midnight: '#171b24',
+        ember: '#251d19',
+        ocean: '#ddd7ea',
+      };
+      const saved = localStorage.getItem('rt-mobile-theme');
+      const theme = Object.prototype.hasOwnProperty.call(metaColors, saved) ? saved : 'ink';
+      Object.keys(metaColors).forEach(id => {
+        document.documentElement.classList.toggle(`theme-${id}`, id === theme && id !== 'ink');
+      });
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', metaColors[theme]);
     } catch (_) {}
   })();
 </script>
@@ -39,13 +50,29 @@
     --text: #ebe6dc;
     --text-soft: #d4ccbd;
     --muted: #aaa193;
-    --accent: #78a084;
-    --accent-hover: #86af93;
-    --accent-soft: #415f4b;
-    --warn: #d0ad70;
+    --accent: #829485;
+    --accent-hover: #93a095;
+    --accent-soft: #455348;
+    --warn: #bda570;
     --chat-bg: #333a34;
     --chat-line: rgba(231, 224, 213, .10);
     --chat-mark: rgba(120, 160, 132, .12);
+    --page-glow-1: rgba(130, 148, 133, .11);
+    --page-glow-2: rgba(189, 165, 112, .08);
+    --glass: rgba(48, 54, 49, .78);
+    --glass-2: rgba(57, 64, 57, .66);
+    --glass-line: rgba(235, 230, 220, .14);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(130,148,133,.15), transparent 32%), radial-gradient(circle at 86% 9%, rgba(189,165,112,.08), transparent 28%), linear-gradient(180deg, #313934 0%, #29312c 34%, #202720 67%, #161b16 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(130,148,133,.06), transparent 30%), linear-gradient(180deg, #373d38 0%, #343a35 54%, #313630 100%);
+    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(226,230,222,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(226,230,222,.014) 35px, transparent 36px);
+    --grain-overlay: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 .045'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    --grain-size: 160px 160px;
+    --texture-opacity: .64;
+    --surface-gradient: linear-gradient(180deg, rgba(54,68,58,.78), rgba(30,41,34,.84) 58%, rgba(17,25,20,.88));
+    --surface-soft-gradient: linear-gradient(180deg, rgba(69,76,67,.72), rgba(44,54,46,.70) 58%, rgba(30,40,34,.72));
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(130,148,133,.12), transparent 32%), linear-gradient(180deg, rgba(55,66,58,.74), rgba(39,48,42,.78) 58%, rgba(25,32,27,.82));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(130,148,133,.20), transparent 36%), linear-gradient(180deg, rgba(69,82,70,.82), rgba(48,61,51,.84) 58%, rgba(29,39,32,.86));
+    --avatar-gradient: linear-gradient(145deg, #b9a878, #7b6a52 58%, #565b63);
     --keyboard-bottom: 0px;
   }
   :root.theme-warm, body.theme-warm {
@@ -58,25 +85,184 @@
     --text: #28241f;
     --text-soft: #4f473e;
     --muted: #766d62;
-    --accent: #567663;
-    --accent-hover: #466755;
-    --accent-soft: #c9dacd;
-    --warn: #8a6a37;
+    --accent: #6c7569;
+    --accent-hover: #5f695f;
+    --accent-soft: #d6dbd1;
+    --warn: #7d6a42;
     --chat-bg: #e7dfd5;
     --chat-line: rgba(120, 103, 82, .16);
     --chat-mark: rgba(86, 118, 99, .10);
+    --page-glow-1: rgba(108, 117, 105, .11);
+    --page-glow-2: rgba(125, 106, 66, .08);
+    --glass: rgba(216, 208, 197, .78);
+    --glass-2: rgba(228, 221, 212, .66);
+    --glass-line: rgba(80, 67, 52, .18);
+    --page-gradient: radial-gradient(circle at 15% 0%, rgba(255,255,255,.28), transparent 30%), radial-gradient(circle at 88% 8%, rgba(125,106,66,.08), transparent 28%), linear-gradient(180deg, #f0eae2 0%, #e4dcd1 34%, #d7ccbd 68%, #c5b8a8 100%);
+    --chat-gradient: radial-gradient(circle at 15% 0%, rgba(255,255,255,.14), transparent 28%), linear-gradient(180deg, #f0e8de 0%, #ebe2d7 56%, #e7ded2 100%);
+    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(108,117,105,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(92,82,70,.016) 35px, transparent 36px);
+    --texture-opacity: .54;
+    --surface-gradient: linear-gradient(180deg, rgba(250,246,239,.82), rgba(221,211,198,.84) 58%, rgba(180,168,151,.86));
+    --surface-soft-gradient: linear-gradient(180deg, rgba(252,248,241,.78), rgba(226,216,203,.74) 56%, rgba(194,181,163,.76));
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(255,255,255,.24), transparent 34%), linear-gradient(180deg, rgba(248,244,237,.84), rgba(225,216,204,.84) 56%, rgba(199,187,170,.88));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(255,255,255,.30), transparent 38%), linear-gradient(180deg, rgba(240,241,235,.88), rgba(220,225,215,.86) 56%, rgba(195,202,190,.88));
+    --avatar-gradient: linear-gradient(145deg, #c7b98c, #9a7e59 58%, #707983);
+  }
+  :root.theme-berry, body.theme-berry {
+    color-scheme: dark;
+    --page: #241820;
+    --panel: #31222b;
+    --panel-2: #3d2a35;
+    --panel-3: #553747;
+    --line: #705164;
+    --text: #f5e8ee;
+    --text-soft: #dec9d4;
+    --muted: #b99dac;
+    --accent: #b88493;
+    --accent-hover: #c294a0;
+    --accent-soft: #543944;
+    --warn: #b9a06d;
+    --chat-bg: #2d1f28;
+    --chat-line: rgba(245, 232, 238, .10);
+    --chat-mark: rgba(216, 137, 159, .12);
+    --page-glow-1: rgba(184, 132, 147, .10);
+    --page-glow-2: rgba(185, 160, 109, .07);
+    --glass: rgba(49, 34, 43, .80);
+    --glass-2: rgba(61, 42, 53, .68);
+    --glass-line: rgba(245, 232, 238, .14);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(184,132,147,.14), transparent 32%), radial-gradient(circle at 88% 8%, rgba(185,160,109,.07), transparent 30%), linear-gradient(180deg, #342832 0%, #2b222a 42%, #21191f 72%, #171116 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(184,132,147,.06), transparent 30%), linear-gradient(180deg, #322830 0%, #2f252d 56%, #2b2228 100%);
+    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(245,232,238,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(245,232,238,.014) 35px, transparent 36px);
+    --texture-opacity: .62;
+    --surface-gradient: linear-gradient(180deg, rgba(72,44,58,.80), rgba(43,27,38,.84) 60%, rgba(24,15,22,.88));
+    --surface-soft-gradient: linear-gradient(180deg, rgba(82,52,66,.72), rgba(54,34,47,.72) 58%, rgba(39,24,34,.74));
+    --card-gradient: radial-gradient(circle at 9% 0%, rgba(184,132,147,.13), transparent 34%), linear-gradient(180deg, rgba(64,47,57,.78), rgba(45,34,42,.82) 60%, rgba(30,23,28,.84));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(184,132,147,.22), transparent 38%), linear-gradient(180deg, rgba(78,55,66,.86), rgba(53,39,48,.84) 60%, rgba(36,27,33,.86));
+    --avatar-gradient: linear-gradient(135deg, #c7a2ac, #a47786 52%, #b0a078);
+  }
+  :root.theme-midnight, body.theme-midnight {
+    color-scheme: dark;
+    --page: #171b24;
+    --panel: #222836;
+    --panel-2: #2c3546;
+    --panel-3: #394356;
+    --line: #586176;
+    --text: #edf0f6;
+    --text-soft: #ccd3df;
+    --muted: #99a3b4;
+    --accent: #8da5ad;
+    --accent-hover: #9aafb6;
+    --accent-soft: #354753;
+    --warn: #bda26f;
+    --chat-bg: #202736;
+    --chat-line: rgba(224, 232, 244, .10);
+    --chat-mark: rgba(143, 184, 201, .12);
+    --page-glow-1: rgba(141, 165, 173, .10);
+    --page-glow-2: rgba(189, 162, 111, .06);
+    --glass: rgba(34, 40, 54, .80);
+    --glass-2: rgba(44, 53, 70, .68);
+    --glass-line: rgba(237, 240, 246, .14);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(141,165,173,.14), transparent 32%), radial-gradient(circle at 88% 8%, rgba(189,162,111,.07), transparent 30%), linear-gradient(180deg, #2b3444 0%, #232c3a 40%, #1a202b 72%, #121722 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(141,165,173,.06), transparent 30%), linear-gradient(180deg, #273143 0%, #242d3c 56%, #212938 100%);
+    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(237,240,246,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(237,240,246,.014) 35px, transparent 36px);
+    --texture-opacity: .62;
+    --surface-gradient: linear-gradient(180deg, rgba(47,60,78,.80), rgba(28,37,53,.84) 60%, rgba(15,21,31,.88));
+    --surface-soft-gradient: linear-gradient(180deg, rgba(56,69,88,.72), rgba(34,45,63,.72) 58%, rgba(24,32,47,.74));
+    --card-gradient: radial-gradient(circle at 9% 0%, rgba(141,165,173,.13), transparent 34%), linear-gradient(180deg, rgba(46,58,75,.78), rgba(32,41,56,.82) 60%, rgba(21,28,39,.84));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(141,165,173,.22), transparent 38%), linear-gradient(180deg, rgba(57,73,91,.86), rgba(39,50,68,.84) 60%, rgba(25,35,49,.86));
+    --avatar-gradient: linear-gradient(135deg, #aebfc7, #718996 54%, #b5a078);
+  }
+  :root.theme-ember, body.theme-ember {
+    color-scheme: dark;
+    --page: #251d19;
+    --panel: #302821;
+    --panel-2: #3d3128;
+    --panel-3: #504236;
+    --line: #705f50;
+    --text: #f4ede5;
+    --text-soft: #dccdc0;
+    --muted: #b29f8e;
+    --accent: #b6896d;
+    --accent-hover: #c0987d;
+    --accent-soft: #553d33;
+    --warn: #bea36e;
+    --chat-bg: #312721;
+    --chat-line: rgba(244, 237, 229, .10);
+    --chat-mark: rgba(212, 147, 101, .12);
+    --page-glow-1: rgba(182, 137, 109, .09);
+    --page-glow-2: rgba(190, 163, 110, .06);
+    --glass: rgba(48, 40, 33, .80);
+    --glass-2: rgba(61, 49, 40, .68);
+    --glass-line: rgba(244, 237, 229, .14);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(182,137,109,.13), transparent 32%), radial-gradient(circle at 88% 8%, rgba(190,163,110,.07), transparent 30%), linear-gradient(180deg, #372d26 0%, #2d251f 42%, #211b17 72%, #17120f 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(182,137,109,.06), transparent 30%), linear-gradient(180deg, #352d27 0%, #312923 56%, #2e251f 100%);
+    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(244,237,229,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(244,237,229,.014) 35px, transparent 36px);
+    --texture-opacity: .62;
+    --surface-gradient: linear-gradient(180deg, rgba(70,52,39,.80), rgba(42,31,24,.84) 60%, rgba(24,17,13,.88));
+    --surface-soft-gradient: linear-gradient(180deg, rgba(75,57,43,.72), rgba(48,36,28,.72) 58%, rgba(34,25,20,.74));
+    --card-gradient: radial-gradient(circle at 9% 0%, rgba(182,137,109,.13), transparent 34%), linear-gradient(180deg, rgba(63,51,43,.78), rgba(44,36,30,.82) 60%, rgba(29,23,19,.84));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(182,137,109,.22), transparent 38%), linear-gradient(180deg, rgba(76,58,47,.86), rgba(53,41,33,.84) 60%, rgba(35,27,22,.86));
+    --avatar-gradient: linear-gradient(135deg, #c7aa8f, #9d7a64 54%, #b9a56f);
+  }
+  :root.theme-ocean, body.theme-ocean {
+    color-scheme: light;
+    --page: #ddd7ea;
+    --panel: #e9e3f1;
+    --panel-2: #f5f0fa;
+    --panel-3: #cec3df;
+    --line: #aa9abd;
+    --text: #261f2f;
+    --text-soft: #51445f;
+    --muted: #766985;
+    --accent: #827394;
+    --accent-hover: #746487;
+    --accent-soft: #ded9e8;
+    --warn: #806f4a;
+    --chat-bg: #f2eef7;
+    --chat-line: rgba(117, 86, 159, .14);
+    --chat-mark: rgba(117, 86, 159, .10);
+    --page-glow-1: rgba(130, 115, 148, .10);
+    --page-glow-2: rgba(128, 111, 74, .07);
+    --glass: rgba(233, 227, 241, .78);
+    --glass-2: rgba(245, 240, 250, .66);
+    --glass-line: rgba(84, 62, 111, .18);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(255,255,255,.30), transparent 30%), radial-gradient(circle at 88% 8%, rgba(130,115,148,.09), transparent 28%), linear-gradient(180deg, #f9f6fb 0%, #eee8f4 34%, #ddd4e8 68%, #c9bed6 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(255,255,255,.14), transparent 28%), linear-gradient(180deg, #faf7fc 0%, #f3eff7 56%, #eee8f3 100%);
+    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(130,115,148,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(84,72,99,.016) 35px, transparent 36px);
+    --texture-opacity: .54;
+    --surface-gradient: linear-gradient(180deg, rgba(253,249,255,.82), rgba(228,219,240,.84) 58%, rgba(187,174,207,.86));
+    --surface-soft-gradient: linear-gradient(180deg, rgba(253,249,255,.78), rgba(232,222,244,.74) 56%, rgba(201,189,220,.76));
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(255,255,255,.24), transparent 34%), linear-gradient(180deg, rgba(251,248,253,.84), rgba(229,222,239,.84) 56%, rgba(204,194,216,.88));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(255,255,255,.30), transparent 38%), linear-gradient(180deg, rgba(246,242,250,.88), rgba(225,217,237,.86) 56%, rgba(199,188,215,.88));
+    --avatar-gradient: linear-gradient(135deg, #beb2cc, #7f718f 54%, #a9956f);
   }
   html, body { height: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; overflow: hidden; }
   body {
     height: 100dvh;
     min-height: 100%;
-    background: var(--page);
+    background: var(--page-gradient);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image: var(--grain-overlay), var(--texture-overlay);
+    background-size: var(--grain-size), auto, auto;
+    opacity: var(--texture-opacity);
   }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .safe-top { padding-top: env(safe-area-inset-top); }
   #views { overflow: hidden; }
+  header, .bottom-nav, .chat-composer {
+    background: var(--surface-gradient) !important;
+    border-color: var(--glass-line) !important;
+    backdrop-filter: blur(22px) saturate(1.14);
+    -webkit-backdrop-filter: blur(22px) saturate(1.14);
+    box-shadow: 0 12px 34px rgba(0,0,0,.14);
+  }
   .bottom-nav { flex-shrink: 0; position: relative; z-index: 40; }
   .scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   textarea, input { font-size: 16px; }  /* 防 iOS 自动放大 */
@@ -100,6 +286,10 @@
     overflow-y: auto;
     height: 42px;
     min-height: 42px;
+    background: var(--surface-soft-gradient) !important;
+    border-color: var(--glass-line) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
   .message-failed-actions {
     margin-top: 7px;
@@ -153,7 +343,7 @@
     max-width: min(calc(100vw - 24px), 292px);
     border: 1px solid var(--line);
     border-radius: 14px;
-    background: color-mix(in srgb, var(--panel) 98%, transparent);
+    background: var(--surface-gradient);
     box-shadow: 0 16px 44px rgba(0,0,0,.34);
     backdrop-filter: blur(14px);
     display: grid;
@@ -173,7 +363,7 @@
     left: var(--popover-arrow-x, 50%);
     width: 10px;
     height: 10px;
-    background: color-mix(in srgb, var(--panel) 98%, transparent);
+    background: var(--surface-gradient);
     border-right: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
     transform: translateX(-50%) rotate(45deg);
@@ -275,7 +465,7 @@
     margin: 6px 0;
     padding: 8px 10px;
     border-radius: 7px;
-    background: color-mix(in srgb, var(--panel-2) 64%, transparent);
+    background: var(--surface-soft-gradient);
     text-align: center;
     white-space: nowrap;
   }
@@ -297,13 +487,184 @@
   .bar > div { background: linear-gradient(90deg, var(--warn), var(--accent)); height:100%; }
   #chat {
     background-color: var(--chat-bg);
-    background-image:
-      linear-gradient(115deg, transparent 0 17%, var(--chat-mark) 17% 17.5%, transparent 17.5% 39%, var(--chat-mark) 39% 39.4%, transparent 39.4%),
-      linear-gradient(0deg, transparent 0 31px, var(--chat-line) 32px, transparent 33px);
-    background-size: 240px 170px, 100% 32px;
+    background-image: var(--grain-overlay), var(--chat-gradient);
+    background-size: var(--grain-size), auto, auto;
     background-attachment: local;
   }
   #chat > * { position: relative; z-index: 1; }
+  .session-home {
+    background: var(--page-gradient);
+    background-image: var(--grain-overlay), var(--texture-overlay), var(--page-gradient);
+    background-size: var(--grain-size), auto, auto, auto, auto, auto;
+  }
+  .session-search {
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--surface-soft-gradient);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .session-search input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .session-search input::placeholder { color: var(--muted); }
+  .session-chip {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--panel-2) 45%, transparent);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .session-chip.active {
+    color: #f8f4ed;
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+  .session-card {
+    position: relative;
+    min-height: 76px;
+    border-radius: 18px;
+    border: 1px solid transparent;
+    background: var(--card-gradient);
+    background-image: var(--grain-overlay), var(--card-gradient);
+    background-size: var(--grain-size), auto, auto;
+    padding: 10px 10px 10px 72px;
+    backdrop-filter: blur(18px) saturate(1.12);
+    -webkit-backdrop-filter: blur(18px) saturate(1.12);
+    border-color: color-mix(in srgb, var(--accent) 22%, var(--glass-line));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.075), 0 12px 28px rgba(0,0,0,.12);
+    transition: transform .16s ease, background .16s ease, border-color .16s ease;
+  }
+  .session-card:active {
+    transform: scale(.992);
+    background: var(--card-active-gradient);
+    background-image: var(--grain-overlay), var(--card-active-gradient);
+    background-size: var(--grain-size), auto, auto;
+    border-color: var(--line);
+  }
+  .session-card.active {
+    border-color: color-mix(in srgb, var(--accent) 54%, var(--glass-line));
+    background: var(--card-active-gradient);
+    background-image: var(--grain-overlay), var(--card-active-gradient);
+    background-size: var(--grain-size), auto, auto;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+  .session-card.pinned {
+    border-color: color-mix(in srgb, var(--warn) 45%, var(--glass-line));
+  }
+  .session-avatar {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    width: 48px;
+    height: 48px;
+    border-radius: 17px;
+    display: grid;
+    place-items: center;
+    color: #f8f4ed;
+    background: var(--avatar-gradient);
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 12px 24px rgba(0,0,0,.16);
+  }
+  .session-avatar.tone-gold { background: linear-gradient(145deg, #c9b986, #967b55 58%, #626572); }
+  .session-avatar.tone-blue { background: linear-gradient(145deg, #9fb4c0, #637d8d 58%, #75685b); }
+  .session-avatar.tone-berry { background: linear-gradient(145deg, #bd98a3, #8b6472 58%, #635865); }
+  .session-avatar.tone-slate { background: linear-gradient(145deg, #b3bbb7, #79847f 58%, #5f646b); }
+  .session-avatar.tone-violet { background: linear-gradient(145deg, #aaa0bc, #796c8d 58%, #69606f); }
+  .session-avatar.tone-copper { background: linear-gradient(145deg, #bd9b83, #8d6a55 58%, #675f6a); }
+  .session-avatar.anchor {
+    color: var(--accent);
+    background: var(--surface-soft-gradient);
+  }
+  .session-name {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .session-preview {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .session-tag {
+    max-width: 118px;
+    border-radius: 999px;
+    padding: 3px 7px;
+    color: var(--text-soft);
+    background: var(--surface-soft-gradient);
+    font-size: 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .session-tag.live {
+    color: #f8f4ed;
+    background: var(--accent);
+    font-weight: 700;
+  }
+  .session-unread {
+    position: absolute;
+    right: 12px;
+    top: 32px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    color: #fff;
+    background: #dc5c52;
+    font-size: 10px;
+    line-height: 18px;
+    text-align: center;
+    font-weight: 800;
+  }
+  .chat-thread.hidden, .session-home.hidden { display: none !important; }
+  .learning-context-page.hidden { display: none !important; }
+  .learning-context-page {
+    background: var(--page-gradient);
+    background-image: var(--grain-overlay), var(--texture-overlay), var(--page-gradient);
+    background-size: var(--grain-size), auto, auto, auto, auto, auto;
+  }
+  .learning-context-header {
+    background: var(--surface-gradient);
+    border-bottom: 1px solid var(--glass-line);
+    backdrop-filter: blur(18px) saturate(1.12);
+    -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  }
+  .context-tabs .context-tab {
+    flex: 1 1 0;
+    min-height: 36px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: color-mix(in srgb, var(--panel-2) 45%, transparent);
+    font-size: 12px;
+  }
+  .context-tabs .context-tab.active {
+    color: #f8f4ed;
+    border-color: var(--accent);
+    background: var(--accent);
+    font-weight: 700;
+  }
+  .context-sheet-body { max-height: min(72vh, 620px); }
   .knowledge-graph {
     position: relative;
     height: clamp(320px, 58vh, 540px);
@@ -335,7 +696,7 @@
   .insight-kb-card {
     border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+    background: var(--card-gradient);
     padding: 8px;
     min-width: 0;
   }
@@ -373,7 +734,7 @@
     right: 0;
     z-index: 71;
     max-height: 78vh;
-    background: var(--panel);
+    background: var(--surface-gradient);
     border-top: 1px solid var(--line);
     border-radius: 18px 18px 0 0;
     box-shadow: 0 -14px 48px rgba(0,0,0,.22);
@@ -424,9 +785,17 @@
     outline-offset: 3px;
     border-radius: 16px;
   }
-  .bg-neutral-950, .bg-neutral-900 { background-color: var(--panel) !important; }
-  .bg-neutral-800 { background-color: var(--panel-3) !important; }
-  .bg-neutral-800\/95 { background-color: color-mix(in srgb, var(--panel-3) 95%, transparent) !important; }
+  .bg-neutral-950, .bg-neutral-900 {
+    background: var(--surface-gradient) !important;
+    backdrop-filter: blur(18px) saturate(1.12);
+    -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  }
+  .bg-neutral-800 {
+    background: var(--surface-soft-gradient) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .bg-neutral-800\/95 { background: var(--surface-soft-gradient) !important; }
   .bg-black\/80 { background-color: rgba(36,30,24,.56) !important; }
   .border-neutral-900, .border-neutral-800, .border-neutral-700 { border-color: var(--line) !important; }
   .text-neutral-200, .text-neutral-300 { color: var(--text) !important; }
@@ -438,7 +807,55 @@
   .border-emerald-800 { border-color: #789482 !important; }
   .text-emerald-400 { color: var(--accent) !important; }
   .text-amber-400 { color: var(--warn) !important; }
-  .theme-choice.active { background: var(--accent) !important; color: #f8f4ed !important; border-color: var(--accent) !important; }
+  .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .theme-choice {
+    min-height: 62px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card-gradient);
+    color: var(--text);
+    padding: 8px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 7px;
+    backdrop-filter: blur(18px) saturate(1.12);
+    -webkit-backdrop-filter: blur(18px) saturate(1.12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 10px 24px rgba(0,0,0,.08);
+    transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+  }
+  .theme-choice:active { transform: scale(.985); background: var(--card-active-gradient); }
+  .theme-choice.active {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+    background: var(--card-active-gradient) !important;
+  }
+  .theme-choice-title {
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .theme-choice-detail {
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .theme-choice.active .theme-choice-detail { color: var(--text-soft); }
+  .theme-swatches { display: flex; align-items: center; gap: 5px; }
+  .theme-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.28);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+  }
   .native-config-select {
     position: absolute !important;
     width: 1px !important;
@@ -615,7 +1032,7 @@
   .choice-sheet {
     width: 100%;
     max-height: 78vh;
-    background: var(--panel);
+    background: var(--surface-gradient);
     border-top: 1px solid var(--line);
     border-radius: 18px 18px 0 0;
     box-shadow: 0 -16px 48px rgba(0,0,0,.28);
@@ -804,6 +1221,7 @@
     <div id="header-title" class="text-sm font-semibold truncate">Reverse Tutor</div>
     <div id="header-sub" class="text-[10px] text-neutral-500 truncate"></div>
   </div>
+  <button id="learning-context-open" class="hidden text-xs px-3 py-1.5 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">脉络</button>
   <div id="header-mode" class="text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60">mock</div>
 </header>
 
@@ -828,21 +1246,35 @@
 
   <!-- 聊天 view -->
   <section data-view="chat" class="view flex-1 min-h-0 flex flex-col">
-    <div id="chat" class="flex-1 min-h-0 scroll-y px-3 py-3 space-y-2"></div>
-    <div id="chat-composer" class="chat-composer border-t border-neutral-800 bg-neutral-950 px-2 py-2 safe-bottom">
-      <div id="quote-preview" class="quote-preview hidden">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0 flex-1">
-            <div id="quote-preview-title" class="quote-preview-title">引用</div>
-            <div id="quote-preview-body" class="quote-preview-body"></div>
+    <div id="session-home" class="session-home flex-1 min-h-0 scroll-y px-3 py-3 space-y-3"></div>
+    <div id="chat-thread" class="chat-thread flex-1 min-h-0 flex flex-col hidden">
+      <div id="chat" class="flex-1 min-h-0 scroll-y px-3 py-3 space-y-2"></div>
+      <div id="chat-composer" class="chat-composer border-t border-neutral-800 bg-neutral-950 px-2 py-2 safe-bottom">
+        <div id="quote-preview" class="quote-preview hidden">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div id="quote-preview-title" class="quote-preview-title">引用</div>
+              <div id="quote-preview-body" class="quote-preview-body"></div>
+            </div>
+            <button id="quote-clear" class="icon-only" aria-label="取消引用"><i data-lucide="x"></i></button>
           </div>
-          <button id="quote-clear" class="icon-only" aria-label="取消引用"><i data-lucide="x"></i></button>
+        </div>
+        <div class="flex gap-2 items-end">
+          <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" style="overflow-y:auto;max-height:128px;"></textarea>
+          <button id="chat-send" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2 rounded-lg font-medium">发送</button>
         </div>
       </div>
-      <div class="flex gap-2 items-end">
-        <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" style="overflow-y:auto;max-height:128px;"></textarea>
-        <button id="chat-send" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2 rounded-lg font-medium">发送</button>
+    </div>
+      <div id="learning-context-page" class="learning-context-page flex-1 min-h-0 flex flex-col hidden">
+        <div class="learning-context-header px-3 py-3">
+        <div id="learning-context-subtitle" class="text-xs text-neutral-500 truncate">当前聊天窗口的图谱、锚点和随笔</div>
+        <div class="context-tabs flex gap-2 mt-3">
+          <button type="button" class="context-tab active" data-context-tab="graph">图谱</button>
+          <button type="button" class="context-tab" data-context-tab="anchors">锚点</button>
+          <button type="button" class="context-tab" data-context-tab="notes">随笔</button>
+        </div>
       </div>
+      <div id="learning-context-body" class="flex-1 min-h-0 scroll-y p-3"></div>
     </div>
   </section>
 
@@ -888,10 +1320,7 @@
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">外观</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
-          <div class="grid grid-cols-2 gap-2">
-            <button id="theme-ink" class="theme-choice text-xs px-3 py-2 rounded border border-neutral-700">柔和黑色</button>
-            <button id="theme-warm" class="theme-choice text-xs px-3 py-2 rounded border border-neutral-700">暖灰浅色</button>
-          </div>
+          <div id="theme-grid" class="theme-grid grid gap-2"></div>
           <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
             <span>AI 主动消息时弹出提示</span>
             <input id="popup-enabled" type="checkbox" class="accent-emerald-700">
@@ -1052,8 +1481,10 @@
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">数据</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
-          <button id="data-export" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="share-2"></i><span>分享全部数据（QQ / 微信 / 其他应用）</span></button>
-          <button id="data-save-file" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="folder-down"></i><span>保存到文件管理器（JSON）</span></button>
+          <button id="data-export-session" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="message-square-share"></i><span>分享当前聊天窗口（聊天 + 脉络）</span></button>
+          <button id="data-export-graph" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="network"></i><span>分享全局图谱快照（不含完整聊天原文）</span></button>
+          <button id="data-export" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="share-2"></i><span>分享全量备份（迁移 / 恢复用）</span></button>
+          <button id="data-save-file" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="folder-down"></i><span>保存全量备份到文件管理器（JSON）</span></button>
           <label class="block">
             <span class="w-full flex items-center gap-2 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left cursor-pointer"><i class="button-icon" data-lucide="upload"></i><span>导入数据（覆盖）</span></span>
             <input id="data-import" type="file" accept=".json,application/json" class="hidden">
@@ -1080,7 +1511,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.11 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.12 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1096,20 +1527,15 @@
 </div>
 
 <!-- ============== 底部 tab 栏 ============== -->
-<nav class="bottom-nav bg-neutral-950 border-t border-neutral-800 grid grid-cols-4 safe-bottom">
+<nav class="bottom-nav bg-neutral-950 border-t border-neutral-800 grid grid-cols-3 safe-bottom">
   <button data-tab="chat" class="tab-btn active flex flex-col items-center py-2.5 gap-1">
     <div class="tab-icon"><i data-lucide="message-circle">聊</i></div>
-    <div class="text-[10px]">聊天</div>
-    <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
-  </button>
-  <button data-tab="anchors" class="tab-btn flex flex-col items-center py-2.5 gap-1">
-    <div class="tab-icon"><i data-lucide="bookmark">锚</i></div>
-    <div class="text-[10px]">锚</div>
+    <div class="text-[10px]">会话</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
   <button data-tab="insights" class="tab-btn flex flex-col items-center py-2.5 gap-1">
     <div class="tab-icon"><i data-lucide="network">图</i></div>
-    <div class="text-[10px]">洞察</div>
+    <div class="text-[10px]">图谱</div>
     <div class="tab-dot w-1 h-1 rounded-full bg-transparent"></div>
   </button>
   <button data-tab="settings" class="tab-btn flex flex-col items-center py-2.5 gap-1">
@@ -1311,6 +1737,13 @@ const state = {
   sid: null,
   sessions: [],
   currentTab: 'chat',
+  chatScreen: 'list',
+  sessionSearch: '',
+  sessionSearchFocused: false,
+  sessionSearchComposing: false,
+  sessionSearchRenderTimer: null,
+  contextTab: 'graph',
+  contextEditingNoteId: null,
   graphSelected: '',
   graphEditingNode: null,
   essaySourceMessage: null,
@@ -1330,8 +1763,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 32;
-const APP_VERSION_NAME = '0.17.11';
+const APP_VERSION_CODE = 33;
+const APP_VERSION_NAME = '0.17.12';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -1348,6 +1781,16 @@ const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
 const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
 const LLM_CONFIG_PROFILES_OPEN_KEY = 'rt-mobile-llm-config-profiles-open';
 const PROACTIVE_CONFIG_KEY = 'rt-mobile-proactive-config';
+const SESSION_PINNED_KEY = 'rt-mobile-pinned-sessions';
+const THEME_OPTIONS = [
+  { id:'ink', label:'柔和黑色', detail:'默认低亮深色', metaColor:'#252927', swatches:['#252927','#303631','#78a084'] },
+  { id:'warm', label:'暖灰浅色', detail:'纸感浅色阅读', metaColor:'#c9c0b3', swatches:['#c9c0b3','#e4ddd4','#567663'] },
+  { id:'berry', label:'莓果暗色', detail:'柔和酒红背景', metaColor:'#241820', swatches:['#241820','#3d2a35','#d8899f'] },
+  { id:'midnight', label:'蓝灰夜色', detail:'冷静深色界面', metaColor:'#171b24', swatches:['#171b24','#2c3546','#8fb8c9'] },
+  { id:'ember', label:'琥珀暗色', detail:'暖调深色对话', metaColor:'#251d19', swatches:['#251d19','#3d3128','#d49365'] },
+  { id:'ocean', label:'紫藤浅色', detail:'柔和紫色阅读', metaColor:'#ddd7ea', swatches:['#ddd7ea','#f5f0fa','#75569f'] },
+];
+const THEME_META = Object.fromEntries(THEME_OPTIONS.map(theme => [theme.id, theme]));
 const PROACTIVE_MODES = {
   online: { label: '在线', minIntervalMs: 30 * 60 * 1000, maxIntervalMs: 60 * 60 * 1000 },
   offline: { label: '离线', disabled: true },
@@ -2273,16 +2716,40 @@ function notifyAssistantReply(title, text, ms=4200, opts={}) {
   }
 }
 
+function normalizeThemeId(theme) {
+  return THEME_META[theme] ? theme : 'ink';
+}
+
+function renderThemeChoices(activeTheme=normalizeThemeId(localStorage.getItem('rt-mobile-theme'))) {
+  const grid = $('#theme-grid');
+  if (!grid) return;
+  const current = normalizeThemeId(activeTheme);
+  grid.innerHTML = THEME_OPTIONS.map(theme => `
+    <button type="button" class="theme-choice ${theme.id === current ? 'active' : ''}" data-theme-choice="${esc(theme.id)}" aria-pressed="${theme.id === current ? 'true' : 'false'}">
+      <div>
+        <div class="theme-choice-title">${esc(theme.label)}</div>
+        <div class="theme-choice-detail">${esc(theme.detail)}</div>
+      </div>
+      <div class="theme-swatches" aria-hidden="true">
+        ${theme.swatches.map(color => `<span class="theme-swatch" style="background:${color}"></span>`).join('')}
+      </div>
+    </button>
+  `).join('');
+  grid.querySelectorAll('[data-theme-choice]').forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice));
+  });
+}
+
 function applyTheme(theme) {
-  const next = theme === 'warm' ? 'warm' : 'ink';
-  document.body.classList.toggle('theme-warm', next === 'warm');
+  const next = normalizeThemeId(theme);
+  THEME_OPTIONS.forEach(meta => {
+    const active = meta.id === next && meta.id !== 'ink';
+    document.documentElement.classList.toggle(`theme-${meta.id}`, active);
+    document.body.classList.toggle(`theme-${meta.id}`, active);
+  });
   localStorage.setItem('rt-mobile-theme', next);
-  $('#theme-ink')?.classList.toggle('active', next === 'ink');
-  $('#theme-warm')?.classList.toggle('active', next === 'warm');
-  document.querySelector('meta[name="theme-color"]')?.setAttribute(
-    'content',
-    next === 'warm' ? '#c9c0b3' : '#252927'
-  );
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_META[next].metaColor);
+  renderThemeChoices(next);
 }
 
 // 简单 UUID（12 字符）
@@ -4528,15 +4995,250 @@ function clearQuotedMessage() {
 }
 
 // --- Tab 切换 ---
+function pinnedSessionIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(SESSION_PINNED_KEY) || '[]');
+    return Array.isArray(ids) ? ids.map(String).filter(Boolean) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function setPinnedSessionIds(ids) {
+  localStorage.setItem(SESSION_PINNED_KEY, JSON.stringify(Array.from(new Set(ids.map(String).filter(Boolean)))));
+}
+
+function isSessionPinned(sid) {
+  return pinnedSessionIds().includes(String(sid || ''));
+}
+
+function togglePinnedSession(sid) {
+  const id = String(sid || '');
+  if (!id) return false;
+  const ids = pinnedSessionIds();
+  const pinned = ids.includes(id);
+  setPinnedSessionIds(pinned ? ids.filter(x => x !== id) : [id, ...ids]);
+  return !pinned;
+}
+
+function scheduleSessionHomeRender(delay=90) {
+  if (state.sessionSearchRenderTimer) clearTimeout(state.sessionSearchRenderTimer);
+  state.sessionSearchRenderTimer = setTimeout(() => {
+    state.sessionSearchRenderTimer = null;
+    renderSessionHome();
+  }, delay);
+}
+
+async function sessionListMeta(session) {
+  const [messages, anchors, mastery] = await Promise.all([
+    DB.bySid('messages', session.id),
+    DB.bySid('anchors', session.id),
+    DB.bySid('mastery', session.id),
+  ]);
+  const visible = sortById(messages).filter(m => m.role !== 'system');
+  const last = visible[visible.length - 1];
+  const notes = anchors.filter(a => a.kind === 'note').length;
+  const sources = anchors.filter(a => a.kind === 'source').length;
+  const searchText = [
+    session.title,
+    session.persona?.role,
+    session.persona?.goal,
+    session.persona?.personality,
+    ...visible.slice(-8).map(m => m.content),
+    ...anchors.map(a => [a.content, a.source_name, a.source_file_name, a.note_title, a.note_body].join(' ')),
+    ...mastery.map(m => m.kp),
+  ].join(' ').toLowerCase();
+  return {
+    last,
+    notes,
+    sources,
+    searchText,
+    messageCount: visible.length,
+    preview: last ? String(last.content || '').replace(/\s+/g, ' ').trim().slice(0, 84) : '还没有聊天记录，点开后开始这一节。',
+    time: last?.created_at || session.updated_at || session.created_at || 0,
+  };
+}
+
+function sessionInitials(session) {
+  const title = String(session?.title || 'RT').trim();
+  const letters = [...title].filter(ch => !/\s/.test(ch)).slice(0, 2).join('');
+  return letters || 'RT';
+}
+
+function sessionAvatarTone(session, index=0) {
+  const tones = ['gold', 'blue', 'berry', 'slate', 'violet', 'copper'];
+  return tones[Math.abs(Number(index) || 0) % tones.length];
+}
+
+function formatSessionTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return '昨天';
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+async function renderSessionHome() {
+  const home = $('#session-home');
+  if (!home) return;
+  state.sessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  if (!state.sessions.length) {
+    home.innerHTML = `
+      <div class="text-center px-6 py-16">
+        <div class="text-lg font-semibold mb-2">还没有会话</div>
+        <div class="text-xs text-neutral-500 leading-relaxed mb-5">每个会话都是一个独立聊天窗口，右上角“脉络”管理它自己的图谱、锚点和随笔。</div>
+        <button id="session-home-new-empty" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2.5 rounded-lg font-medium">新建会话</button>
+      </div>`;
+    $('#session-home-new-empty')?.addEventListener('click', openNew);
+    refreshIcons();
+    return;
+  }
+  const rows = await Promise.all(state.sessions.map(async s => ({ session:s, meta:await sessionListMeta(s) })));
+  const query = String(state.sessionSearch || '').trim().toLowerCase();
+  const filteredRows = query
+    ? rows.filter(({ meta }) => String(meta.searchText || '').includes(query))
+    : rows;
+  const pinnedIds = pinnedSessionIds();
+  const pinnedSet = new Set(pinnedIds);
+  const pinRank = new Map(pinnedIds.map((id, idx) => [id, idx]));
+  const pinnedRows = filteredRows
+    .filter(({ session:s }) => pinnedSet.has(String(s.id)))
+    .sort((a,b) => (pinRank.get(String(a.session.id)) ?? 9999) - (pinRank.get(String(b.session.id)) ?? 9999));
+  const recentRows = filteredRows.filter(({ session:s }) => !pinnedSet.has(String(s.id)));
+  const activeSid = state.sid;
+  const sessionCardHtml = ({ session:s, meta }, idx, pinned=false, visualIndex=idx) => {
+    const active = activeSid === s.id ? 'active' : '';
+    const live = pinned ? '<span class="session-tag live">置顶</span>' : (idx === 0 ? '<span class="session-tag live">最近</span>' : '');
+    const sourceTag = meta.sources ? `<span class="session-tag">资料 ${meta.sources}</span>` : '';
+    const noteTag = meta.notes ? `<span class="session-tag">随笔 ${meta.notes}</span>` : '';
+    return `
+      <article class="session-card ${active} ${pinned ? 'pinned' : ''}" data-session-open="${esc(s.id)}">
+        <div class="session-avatar tone-${esc(sessionAvatarTone(s, visualIndex))}">${esc(sessionInitials(s))}</div>
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="session-name flex-1 min-w-0 truncate">${esc(s.title || '未命名会话')}</div>
+          <div class="text-[10px] text-neutral-500 shrink-0">${esc(formatSessionTime(meta.time))}</div>
+        </div>
+        <div class="session-preview mt-1">${esc(meta.preview)}</div>
+        <div class="flex items-center gap-1.5 mt-2 min-w-0">
+          ${live}
+          <span class="session-tag">${esc(s.persona?.goal || '学习窗口')}</span>
+          ${sourceTag}
+          ${noteTag}
+        </div>
+        ${meta.messageCount ? `<div class="session-unread">${Math.min(meta.messageCount, 99)}</div>` : ''}
+      </article>`;
+  };
+  const pinnedCards = pinnedRows.map((row, idx) => sessionCardHtml(row, idx, true, idx)).join('');
+  const recentCards = recentRows.map((row, idx) => sessionCardHtml(row, idx, false, pinnedRows.length + idx)).join('');
+  const emptySearch = query && !filteredRows.length
+    ? '<div class="text-xs text-neutral-500 text-center py-10">没有找到匹配的会话</div>'
+    : '';
+  home.innerHTML = `
+    <label class="session-search">
+      <i data-lucide="search"></i>
+      <input id="session-search-input" value="${esc(state.sessionSearch || '')}" placeholder="搜索会话、知识点、导入资料">
+    </label>
+    ${pinnedCards ? `<div class="text-xs uppercase tracking-wider text-neutral-500 px-1">置顶</div><div class="space-y-2">${pinnedCards}</div>` : ''}
+    ${recentCards ? `<div class="text-xs uppercase tracking-wider text-neutral-500 px-1">最近会话</div><div class="space-y-2">${recentCards}</div>` : emptySearch}`;
+  const searchInput = $('#session-search-input');
+  searchInput?.addEventListener('input', e => {
+    state.sessionSearch = e.target.value;
+    state.sessionSearchFocused = true;
+    if (!state.sessionSearchComposing) scheduleSessionHomeRender();
+  });
+  searchInput?.addEventListener('focus', () => { state.sessionSearchFocused = true; });
+  searchInput?.addEventListener('compositionstart', () => { state.sessionSearchComposing = true; });
+  searchInput?.addEventListener('compositionend', e => {
+    state.sessionSearchComposing = false;
+    state.sessionSearch = e.target.value;
+    state.sessionSearchFocused = true;
+    scheduleSessionHomeRender(0);
+  });
+  requestAnimationFrame(() => {
+    const nextInput = $('#session-search-input');
+    if (nextInput && state.sessionSearchFocused) {
+      nextInput.focus();
+      nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
+    }
+  });
+  home.querySelectorAll('[data-session-open]').forEach(card => {
+    let timer = null;
+    let longPressed = false;
+    const sid = card.dataset.sessionOpen;
+    const clear = () => { if (timer) clearTimeout(timer); timer = null; };
+    const pin = async () => {
+      longPressed = true;
+      const pinned = togglePinnedSession(sid);
+      toast(pinned ? '已置顶会话' : '已取消置顶');
+      setTimeout(renderSessionHome, 30);
+    };
+    card.addEventListener('pointerdown', () => {
+      longPressed = false;
+      clear();
+      timer = setTimeout(pin, 620);
+    });
+    card.addEventListener('pointerup', clear);
+    card.addEventListener('pointercancel', clear);
+    card.addEventListener('pointerleave', clear);
+    card.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (longPressed) return;
+      clear();
+      pin();
+    });
+    card.addEventListener('click', e => {
+      if (longPressed) {
+        e.preventDefault();
+        return;
+      }
+      openSessionWindow(sid);
+    });
+  });
+  refreshIcons();
+}
+
+async function openSessionWindow(sid) {
+  if (!sid) return;
+  state.sid = sid;
+  state.chatScreen = 'thread';
+  state.contextEditingNoteId = null;
+  state.sessionSearchFocused = false;
+  await DB.kvSet('current_sid', state.sid);
+  switchTab('chat');
+  await refreshHeader();
+  await renderChat();
+}
+
+async function showSessionHome() {
+  state.chatScreen = 'list';
+  state.contextEditingNoteId = null;
+  state.sessionSearchFocused = false;
+  switchTab('chat');
+  await refreshHeader();
+  await renderChat();
+}
+
 function switchTab(name) {
   state.currentTab = name;
   $$('[data-view]').forEach(v => v.classList.toggle('hidden', v.dataset.view !== name));
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  refreshHeader();
+  if (name === 'chat') renderChat();
   if (name === 'insights') renderInsights();
   if (name === 'anchors') renderAnchors();
   if (name === 'settings') renderSettings();
 }
-$$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+$$('.tab-btn').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.tab === 'chat') {
+    showSessionHome();
+    return;
+  }
+  switchTab(b.dataset.tab);
+}));
 
 // --- Header ---
 async function refreshHeader() {
@@ -4545,6 +5247,42 @@ async function refreshHeader() {
   $('#header-mode').className = cfg.mode === 'live'
     ? 'text-[10px] text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-900/60'
     : 'text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60';
+  const contextBtn = $('#learning-context-open');
+  const drawerBtn = $('#drawer-open');
+  const inThread = state.currentTab === 'chat' && state.chatScreen === 'thread' && !!state.sid;
+  const inContext = state.currentTab === 'chat' && state.chatScreen === 'context' && !!state.sid;
+  const inSessionPage = inThread || inContext;
+  contextBtn?.classList.toggle('hidden', !inThread);
+  $('#header-mode')?.classList.toggle('hidden', inSessionPage);
+  if (drawerBtn) {
+    drawerBtn.innerHTML = inSessionPage ? '<i data-lucide="chevron-left">返回</i>' : '<i data-lucide="menu">菜单</i>';
+    drawerBtn.setAttribute('aria-label', inContext ? '返回聊天' : (inThread ? '返回会话列表' : '打开会话抽屉'));
+  }
+  if (inContext) {
+    const s = await DB.get('sessions', state.sid);
+    $('#header-title').textContent = '学习脉络';
+    $('#header-sub').textContent = s?.title || '当前聊天窗口';
+    refreshIcons();
+    return;
+  }
+  if (state.currentTab === 'chat' && state.chatScreen === 'list') {
+    $('#header-title').textContent = 'Reverse Tutor';
+    $('#header-sub').textContent = '会话列表';
+    refreshIcons();
+    return;
+  }
+  if (state.currentTab === 'insights') {
+    $('#header-title').textContent = '全局图谱';
+    $('#header-sub').textContent = '所有聊天窗口的只读知识网';
+    refreshIcons();
+    return;
+  }
+  if (state.currentTab === 'settings') {
+    $('#header-title').textContent = '设置';
+    $('#header-sub').textContent = '模型、主题、导出和更新';
+    refreshIcons();
+    return;
+  }
 
   if (state.sid) {
     const s = await DB.get('sessions', state.sid);
@@ -4554,8 +5292,9 @@ async function refreshHeader() {
     }
   } else {
     $('#header-title').textContent = 'Reverse Tutor';
-    $('#header-sub').textContent = '点 设置 创建你的第一个会话';
+    $('#header-sub').textContent = '点 会话 新建你的第一个窗口';
   }
+  refreshIcons();
 }
 
 // --- Streaming Bubble ---
@@ -4658,8 +5397,31 @@ function appendQueuedUserMessageBubble(message) {
 // --- Chat ---
 async function renderChat() {
   const chat = $('#chat');
+  const home = $('#session-home');
+  const thread = $('#chat-thread');
+  const contextPage = $('#learning-context-page');
+  const showingContext = state.chatScreen === 'context';
+  const showingThread = state.chatScreen === 'thread';
+  const showingList = !showingThread && !showingContext;
+  home?.classList.toggle('hidden', !showingList);
+  thread?.classList.toggle('hidden', !showingThread);
+  contextPage?.classList.toggle('hidden', !showingContext);
+  await refreshHeader();
+  if (showingList) {
+    await renderSessionHome();
+    return;
+  }
   if (!state.sid) {
+    state.chatScreen = 'list';
+    home?.classList.remove('hidden');
+    thread?.classList.add('hidden');
+    contextPage?.classList.add('hidden');
+    await renderSessionHome();
     chat.innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10 px-6">尚无会话<br><br>点右下角 <b>+ 新会话</b> 打开抽屉创建第一节。</div>';
+    return;
+  }
+  if (showingContext) {
+    await renderLearningContext();
     return;
   }
   const wasNearBottom = isChatNearBottom();
@@ -5001,6 +5763,7 @@ async function saveEssayNote() {
   closeEssayComposer();
   toast('已保存到图谱');
   if (state.currentTab === 'insights') renderInsights();
+  if (state.currentTab === 'chat' && state.chatScreen === 'context') await renderLearningContext();
 }
 
 function setChatSending(sending) {
@@ -6011,6 +6774,173 @@ $('#anchor-reprocess-file').addEventListener('change', async e => {
   e.target.value = '';
 });
 
+async function openLearningContext(tab=state.contextTab || 'graph') {
+  if (!state.sid) { toast('先打开一个聊天窗口'); return; }
+  state.contextTab = ['graph','anchors','notes'].includes(tab) ? tab : 'graph';
+  state.chatScreen = 'context';
+  const s = await DB.get('sessions', state.sid);
+  $('#learning-context-subtitle').textContent = s ? `${s.title} 的图谱、锚点和随笔` : '当前聊天窗口的图谱、锚点和随笔';
+  switchTab('chat');
+  await renderChat();
+}
+
+function closeLearningContext() {
+  state.chatScreen = 'thread';
+  state.contextEditingNoteId = null;
+  renderChat();
+}
+
+async function renderLearningContext() {
+  $$('.context-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.contextTab === state.contextTab));
+  if (state.contextTab === 'anchors') return renderContextAnchors();
+  if (state.contextTab === 'notes') return renderContextNotes();
+  return renderContextGraph();
+}
+
+async function renderContextGraph() {
+  const body = $('#learning-context-body');
+  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  const [msgs, masteries, anchors] = await Promise.all([
+    DB.bySid('messages', state.sid),
+    DB.bySid('mastery', state.sid),
+    DB.bySid('anchors', state.sid),
+  ]);
+  const ai = msgs.filter(m => m.role === 'assistant');
+  const sources = anchors.filter(a => a.kind === 'source').length;
+  const notes = anchors.filter(a => a.kind === 'note').length;
+  if (!masteries.length && !anchors.length) {
+    ForceGraph.destroy();
+    body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">当前窗口还没有图谱节点。聊天、锚点和随笔都会按正常逻辑沉淀到这里。</div>';
+    return;
+  }
+  body.innerHTML = `
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-1 mb-3">
+      <div class="flex justify-between"><span class="text-neutral-500">知识点</span><span>${masteries.length}</span></div>
+      <div class="flex justify-between"><span class="text-neutral-500">资料</span><span>${sources}</span></div>
+      <div class="flex justify-between"><span class="text-neutral-500">随笔</span><span>${notes}</span></div>
+    </div>
+    <div id="context-knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点回顾来源</div></div>`;
+  const { nodes, links } = buildGraphData(masteries, ai, anchors);
+  nodes.forEach(n => { n.sid = state.sid; });
+  ForceGraph.init($('#context-knowledge-graph'), node => {
+    if (node) { state.graphSelected = node.key; showGraphSheet(node); }
+    else { state.graphSelected = ''; hideGraphSheet(); }
+  });
+  ForceGraph.setData(nodes, links);
+  setTimeout(() => { const h = $('#context-knowledge-graph')?.querySelector('.graph-hint'); if(h) h.classList.add('fade'); }, 4000);
+}
+
+async function renderContextAnchors() {
+  const body = $('#learning-context-body');
+  const anchors = state.sid ? (await DB.bySid('anchors', state.sid)).sort((a,b)=>b.weight-a.weight) : [];
+  const rows = anchors.filter(a => a.kind !== 'note').map(a => `
+    <div class="flex items-start gap-2 bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
+      <span class="pill pill-${a.kind}">${esc(a.kind)}</span>
+      <div class="flex-1 min-w-0 text-neutral-300">
+        ${a.kind === 'source' ? sourceAnchorCardHtml(a) : `<div class="whitespace-pre-wrap break-words">${esc(a.content || '')}</div>`}
+      </div>
+      <button data-context-del-anchor="${a.id}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除"><i data-lucide="x"></i></button>
+    </div>`).join('');
+  body.innerHTML = `
+    <form id="context-anchor-form" class="space-y-2 mb-3">
+      <textarea id="context-anchor-input" rows="3" placeholder="补充当前窗口的学习目标、约束或资料主线..." class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+      <div class="flex gap-2">
+        <button class="flex-1 bg-emerald-700 active:bg-emerald-800 text-white text-sm py-2 rounded-lg font-medium">保存锚点</button>
+        <label class="flex-1 text-center text-sm py-2 rounded-lg border border-neutral-700 active:bg-neutral-800 cursor-pointer">
+          导入资料
+          <input id="context-anchor-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
+        </label>
+      </div>
+      <div id="context-anchor-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
+    </form>
+    <div class="space-y-2">${rows || '<div class="text-xs text-neutral-500 text-center py-8">还没有锚点。保存约束或导入资料后，会进入当前窗口图谱。</div>'}</div>`;
+  $('#context-anchor-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const v = $('#context-anchor-input').value.trim();
+    if (!v) return;
+    await addLocalAnchor('requirement', v, 1.5);
+    toast('已保存锚点');
+    await renderContextAnchors();
+    if (state.currentTab === 'insights') await renderInsights();
+  });
+  $('#context-anchor-file')?.addEventListener('change', async e => {
+    await importAnchorFiles(e.target.files, { statusEl: $('#context-anchor-status'), render: false });
+    e.target.value = '';
+    await renderContextAnchors();
+  });
+  $$('[data-context-del-anchor]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('删除这个锚点？')) return;
+    await DB.del('anchors', +btn.dataset.contextDelAnchor);
+    await renderContextAnchors();
+  }));
+  refreshIcons();
+}
+
+async function renderContextNotes() {
+  const body = $('#learning-context-body');
+  const anchors = state.sid ? (await DB.bySid('anchors', state.sid)).sort((a,b)=>(b.created_at||0)-(a.created_at||0)) : [];
+  const notes = anchors.filter(a => a.kind === 'note');
+  const rows = notes.map(n => {
+    const editing = String(state.contextEditingNoteId || '') === String(n.id);
+    if (editing) {
+      return `
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-2">
+          <input data-context-note-title="${n.id}" value="${esc(n.note_title || n.content || '聊天随笔')}" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm">
+          <textarea data-context-note-body="${n.id}" rows="5" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm resize-none">${esc(n.note_body || '')}</textarea>
+          <div class="flex gap-2">
+            <button type="button" data-context-save-note="${n.id}" class="flex-1 bg-emerald-700 active:bg-emerald-800 text-white text-sm py-2 rounded-lg font-medium">保存修改</button>
+            <button type="button" data-context-cancel-note="${n.id}" class="flex-1 border border-neutral-700 active:bg-neutral-800 text-sm py-2 rounded-lg">取消</button>
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
+        <div class="flex items-start justify-between gap-2">
+          <div class="font-semibold text-neutral-200 min-w-0 truncate">${esc(n.note_title || n.content || '聊天随笔')}</div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button data-context-edit-note="${n.id}" class="text-neutral-500 active:text-emerald-400 px-1 icon-only" aria-label="编辑"><i data-lucide="pencil"></i></button>
+            <button data-context-del-note="${n.id}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除"><i data-lucide="x"></i></button>
+          </div>
+        </div>
+        <div class="text-neutral-400 whitespace-pre-wrap break-words mt-2 leading-relaxed">${esc(n.note_body || '')}</div>
+        <div class="text-[10px] text-neutral-500 mt-2">${esc(n.note_source_role || '聊天随笔')}${n.note_kp ? ` · ${esc(n.note_kp)}` : ''}</div>
+      </div>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="space-y-2">${rows || '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">还没有随笔。长按聊天消息选择“随笔”后，记录会自动显示在这里，并同步进入当前窗口图谱。</div>'}</div>`;
+  $$('[data-context-edit-note]').forEach(btn => btn.addEventListener('click', async () => {
+    state.contextEditingNoteId = Number(btn.dataset.contextEditNote);
+    await renderContextNotes();
+  }));
+  $$('[data-context-cancel-note]').forEach(btn => btn.addEventListener('click', async () => {
+    state.contextEditingNoteId = null;
+    await renderContextNotes();
+  }));
+  $$('[data-context-save-note]').forEach(btn => btn.addEventListener('click', async () => {
+    const id = Number(btn.dataset.contextSaveNote);
+    const note = await DB.get('anchors', id);
+    if (!note) return;
+    const title = body.querySelector(`[data-context-note-title="${id}"]`)?.value.trim() || '聊天随笔';
+    const noteBody = body.querySelector(`[data-context-note-body="${id}"]`)?.value.trim() || '';
+    if (!noteBody) { toast('随笔内容不能为空'); return; }
+    note.content = title;
+    note.note_title = title;
+    note.note_body = noteBody;
+    note.updated_at = Date.now();
+    await DB.put('anchors', note);
+    state.contextEditingNoteId = null;
+    toast('已更新随笔');
+    await renderContextNotes();
+  }));
+  $$('[data-context-del-note]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('删除这条随笔？')) return;
+    await DB.del('anchors', +btn.dataset.contextDelNote);
+    if (String(state.contextEditingNoteId || '') === String(btn.dataset.contextDelNote)) state.contextEditingNoteId = null;
+    await renderContextNotes();
+  }));
+  refreshIcons();
+}
+
 // --- Insights: Source-grounded Force Graph ---
 function normalizeGraphTopic(s) {
   return String(s || '')
@@ -6625,6 +7555,12 @@ async function jumpToGraphNodeChat(node=state.graphEditingNode) {
   ].filter(Boolean);
   if (!ids.length) { toast('这个节点还没有关联聊天记录'); return; }
   hideGraphSheet();
+  const sourceSid = node?.sid || node?.sessionId || state.sid;
+  if (sourceSid && sourceSid !== state.sid) {
+    state.sid = sourceSid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  state.chatScreen = 'thread';
   switchTab('chat');
   await renderChat();
   requestAnimationFrame(() => {
@@ -6683,7 +7619,8 @@ async function showGraphSheet(node) {
   state.graphEditingNode = node;
 
   // Fetch all messages for this session, sorted chronologically
-  const allMsgs = state.sid ? (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id) : [];
+  const sourceSid = node.sid || node.sessionId || state.sid;
+  const allMsgs = sourceSid ? (await DB.bySid('messages', sourceSid)).sort((a,b)=>a.id-b.id) : [];
   const kpName = node.kp || node.meta?.action?.knowledge_point || '';
 
   // Collect chat pairs related to this knowledge point
@@ -6915,6 +7852,9 @@ async function showGraphSheet(node) {
   }
 
   body.innerHTML=html;
+  if (state.currentTab === 'insights') {
+    body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.remove());
+  }
   body.querySelector('[data-graph-jump-chat]')?.addEventListener('click', () => jumpToGraphNodeChat(node));
   body.querySelector('[data-graph-edit-node]')?.addEventListener('click', () => openGraphNodeEditor(node));
   body.scrollTop=0;
@@ -6937,49 +7877,67 @@ async function renderInsights() {
   const sumDiv = $('#insights-summary');
   const mastDiv = $('#insights-mastery');
   const actDiv = $('#insights-actions');
-  if (!state.sid) {
+  const sessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  if (!sessions.length) {
+    ForceGraph.destroy();
     sumDiv.innerHTML = '<div class="text-neutral-500">先创建会话</div>';
     mastDiv.innerHTML = ''; actDiv.innerHTML = '';
     return;
   }
-  const msgs = (await DB.bySid('messages', state.sid)).sort((a,b)=>a.id-b.id);
-  const masteries = (await DB.bySid('mastery', state.sid)).sort((a,b)=>b.level-a.level);
-  const anchors = await DB.bySid('anchors', state.sid);
-  const sourceAnchors = anchors.filter(a => a.kind === 'source');
-  const sourceTopics = extractSourceTopics(sourceAnchors, 8);
-  const unlockedSourceTopics = sourceTopics.filter(t => masteries.some(m => normalizeGraphTopic(m.kp) === normalizeGraphTopic(t.label))).length;
-  const ai = msgs.filter(m => m.role==='assistant');
-  const avg = masteries.length ? masteries.reduce((s,m)=>s+m.level,0)/masteries.length : 0;
-  const strongest = masteries[0], weakest = masteries[masteries.length-1];
-  const recent = ai.slice(-12);
+  const allNodes = [], allLinks = [], allAi = [], allMasteries = [], allAnchors = [];
+  for (const session of sessions) {
+    const sid = session.id;
+    const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
+    const masteries = (await DB.bySid('mastery', sid)).sort((a,b)=>b.level-a.level);
+    const anchors = await DB.bySid('anchors', sid);
+    const ai = msgs.filter(m => m.role === 'assistant');
+    allAi.push(...ai.map(m => ({ ...m, sid, sessionTitle: session.title })));
+    allMasteries.push(...masteries.map(m => ({ ...m, sid, sessionTitle: session.title })));
+    allAnchors.push(...anchors.map(a => ({ ...a, sid, sessionTitle: session.title })));
+    if (!masteries.length && !anchors.length) continue;
+    const { nodes, links } = buildGraphData(masteries, ai, anchors);
+    nodes.forEach(n => {
+      n.sid = sid;
+      n.sessionTitle = session.title;
+      n.key = `${sid}::${n.key}`;
+    });
+    allNodes.push(...nodes);
+    allLinks.push(...links);
+  }
+  const sourceAnchors = allAnchors.filter(a => a.kind === 'source');
+  const noteAnchors = allAnchors.filter(a => a.kind === 'note');
+  const avg = allMasteries.length ? allMasteries.reduce((s,m)=>s+m.level,0)/allMasteries.length : 0;
+  const sortedMasteries = [...allMasteries].sort((a,b)=>b.level-a.level);
+  const strongest = sortedMasteries[0], weakest = sortedMasteries[sortedMasteries.length-1];
+  const recent = allAi.slice(-18);
   const actCount = {};
   for (const m of recent) { const t = (m.meta||{}).action?.type; if (t) actCount[t]=(actCount[t]||0)+1; }
   const total = recent.length || 1;
   sumDiv.innerHTML = `
-    <div class="flex justify-between"><span class="text-neutral-500">学生提问轮数</span><span>${ai.length}</span></div>
+    <div class="flex justify-between"><span class="text-neutral-500">聊天窗口</span><span>${sessions.length}</span></div>
+    <div class="flex justify-between"><span class="text-neutral-500">全局知识节点</span><span>${allNodes.length}</span></div>
     <div class="flex justify-between"><span class="text-neutral-500">平均掌握度</span><span>${avg.toFixed(2)}</span></div>
-    ${strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最熟</span><span class="text-emerald-400 truncate">${esc(strongest.kp)} · ${strongest.level.toFixed(2)}</span></div>`:''}
-    ${weakest && weakest!==strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最弱</span><span class="text-amber-400 truncate">${esc(weakest.kp)} · ${weakest.level.toFixed(2)}</span></div>`:''}
+    ${strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最熟</span><span class="text-emerald-400 truncate">${esc(strongest.kp)} · ${esc(strongest.sessionTitle || '')}</span></div>`:''}
+    ${weakest && weakest!==strongest ? `<div class="flex justify-between gap-2"><span class="text-neutral-500">最弱</span><span class="text-amber-400 truncate">${esc(weakest.kp)} · ${esc(weakest.sessionTitle || '')}</span></div>`:''}
     <div class="insight-kb-strip pt-2">
-      <div class="insight-kb-card"><div class="num">${sourceAnchors.length}</div><div class="cap">基础资料</div></div>
-      <div class="insight-kb-card"><div class="num">${sourceTopics.length}</div><div class="cap">暗节点</div></div>
-      <div class="insight-kb-card"><div class="num">${unlockedSourceTopics}</div><div class="cap">已点亮</div></div>
+      <div class="insight-kb-card"><div class="num">${sourceAnchors.length}</div><div class="cap">资料</div></div>
+      <div class="insight-kb-card"><div class="num">${noteAnchors.length}</div><div class="cap">随笔</div></div>
+      <div class="insight-kb-card"><div class="num">${allLinks.length}</div><div class="cap">关系</div></div>
     </div>
   `;
-  if (!masteries.length && !sourceAnchors.length) {
+  if (!allNodes.length) {
     ForceGraph.destroy();
-    mastDiv.innerHTML = '<div class="text-xs text-neutral-500">尚无解锁知识点。开始对话后，学生 AI 提到的知识点会出现在这里。</div>';
+    mastDiv.innerHTML = '<div class="text-xs text-neutral-500">尚无全局图谱节点。开始对话、导入资料或保存随笔后会出现在这里。</div>';
   } else {
-    const { nodes, links } = buildGraphData(masteries, ai, anchors);
     if (!mastDiv.querySelector('.knowledge-graph')) {
-      mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点查看详情</div></div>';
+      mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">全局只读 · 点击节点回顾来源聊天</div></div>';
     }
     const container = $('#knowledge-graph');
     ForceGraph.init(container, node => {
       if (node) { state.graphSelected = node.key; showGraphSheet(node); }
       else { state.graphSelected = ''; hideGraphSheet(); }
     });
-    ForceGraph.setData(nodes, links);
+    ForceGraph.setData(allNodes, allLinks);
     setTimeout(() => { const h = container.querySelector('.graph-hint'); if(h) h.classList.add('fade'); }, 4000);
   }
   actDiv.innerHTML = Object.entries(actCount).map(([k,v]) =>
@@ -7357,10 +8315,7 @@ async function renderSettings() {
     </div>
   `).join('') : '<div class="text-xs text-neutral-500 text-center py-3">尚无会话</div>';
   $$('#sess-list [data-open]').forEach(b => b.addEventListener('click', async () => {
-    state.sid = b.dataset.open;
-    await DB.kvSet('current_sid', state.sid);
-    await refreshHeader(); renderSettings();
-    switchTab('chat'); renderChat();
+    await openSessionWindow(b.dataset.open);
   }));
   $$('#sess-list [data-del-sess]').forEach(b => b.addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -7741,8 +8696,6 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', restoreRuntimeConfigOnResume);
 setInterval(() => importNativeBackgroundTurns({ silent: true }), 5000);
 setInterval(() => maybeRunProactiveTurn({ reason: 'online_tick' }), 60000);
-$('#theme-ink').addEventListener('click', () => applyTheme('ink'));
-$('#theme-warm').addEventListener('click', () => applyTheme('warm'));
 $('#popup-enabled').addEventListener('change', e => setPopupEnabled(e.target.checked));
 $('#background-notification-settings')?.addEventListener('click', async () => {
   const btn = $('#background-notification-settings');
@@ -7800,12 +8753,19 @@ $('#update-modal').addEventListener('click', e => {
 $('#message-popup-close').addEventListener('click', () => $('#message-popup').classList.add('hidden'));
 $('#message-popup').addEventListener('click', e => {
   if (e.target.id === 'message-popup-close') return;
+  state.chatScreen = 'thread';
   switchTab('chat');
   $('#message-popup').classList.add('hidden');
 });
 $('#essay-note-close').addEventListener('click', closeEssayComposer);
 $('#essay-note-sheet').addEventListener('click', e => { if (e.target.id === 'essay-note-sheet') closeEssayComposer(); });
 $('#essay-note-save').addEventListener('click', saveEssayNote);
+$('#learning-context-open').addEventListener('click', () => openLearningContext());
+$('#learning-context-close')?.addEventListener('click', closeLearningContext);
+$$('[data-context-tab]').forEach(btn => btn.addEventListener('click', async () => {
+  state.contextTab = btn.dataset.contextTab;
+  await renderLearningContext();
+}));
 $('#graph-editor-close').addEventListener('click', closeGraphNodeEditor);
 $('#graph-source-node-editor').addEventListener('click', e => { if (e.target.id === 'graph-source-node-editor') closeGraphNodeEditor(); });
 $('#graph-editor-save').addEventListener('click', saveGraphNodeEdit);
@@ -7826,12 +8786,8 @@ async function renderSessionDrawer() {
       + '</div>';
   }).join('') : '<div class="text-xs text-neutral-500 text-center py-8">暂无会话，先新建一个</div>';
   list.querySelectorAll('[data-drawer-open]').forEach(b => b.addEventListener('click', async () => {
-    state.sid = b.dataset.drawerOpen;
-    await DB.kvSet('current_sid', state.sid);
     closeDrawer();
-    switchTab('chat');
-    await refreshHeader();
-    await renderChat();
+    await openSessionWindow(b.dataset.drawerOpen);
   }));
   list.querySelectorAll('[data-drawer-del]').forEach(b => b.addEventListener('click', async e => {
     e.stopPropagation();
@@ -7858,7 +8814,17 @@ function closeDrawer() {
   document.body.classList.remove('drawer-open');
 }
 
-$('#drawer-open').addEventListener('click', openDrawer);
+$('#drawer-open').addEventListener('click', () => {
+  if (state.currentTab === 'chat' && state.chatScreen === 'context') {
+    closeLearningContext();
+    return;
+  }
+  if (state.currentTab === 'chat' && state.chatScreen === 'thread') {
+    showSessionHome();
+    return;
+  }
+  openDrawer();
+});
 $('#drawer-close').addEventListener('click', closeDrawer);
 $('#session-drawer').addEventListener('click', closeDrawer);
 $('#drawer-new').addEventListener('click', () => {
@@ -7881,16 +8847,130 @@ document.addEventListener('touchend', e => {
   swipeStart = null;
 }, { passive: true });
 
+function exportDateStamp() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function exportSlug(text, fallback='session') {
+  const raw = String(text || fallback).trim() || fallback;
+  return raw
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .slice(0, 48) || fallback;
+}
+
+function sortById(rows) {
+  return [...(rows || [])].sort((a,b) => Number(a.id || 0) - Number(b.id || 0));
+}
+
+function graphNodeExport(node, { includeContent=false } = {}) {
+  if (!node) return null;
+  const out = {
+    key: node.key || '',
+    type: node.nodeType || '',
+    title: node.label || node.kp || '',
+    kp: node.kp || '',
+    level: node.level ?? null,
+    source_id: node.sourceId ?? null,
+    source_name: node.sourceName || '',
+    source_type: node.sourceType || '',
+    message_id: node.messageId ?? null,
+    chat_message_ids: node.chatMessageIds || [],
+    memory_node_id: node.memoryNodeId || '',
+    memory_status: node.memoryStatus || '',
+  };
+  const text = node.preview || node.content || node.sourceText || '';
+  if (includeContent) out.content = String(node.content || node.sourceText || text || '');
+  else if (text) out.preview = String(text).replace(/\s+/g, ' ').trim().slice(0, 280);
+  return out;
+}
+
+function graphLinkExport(link) {
+  return {
+    source: link?.a?.key || '',
+    target: link?.b?.key || '',
+    kind: link?.kind || 'memory',
+    weight: link?.weight || 1,
+  };
+}
+
+function buildSessionGraphSnapshot(session, messages, anchors, mastery, opts={}) {
+  const ai = (messages || []).filter(m => m.role === 'assistant');
+  const { nodes, links } = buildGraphData(mastery || [], ai, anchors || []);
+  return {
+    sid: session?.id || '',
+    title: session?.title || '',
+    node_count: nodes.length,
+    link_count: links.length,
+    nodes: nodes.map(n => graphNodeExport(n, opts)).filter(Boolean),
+    links: links.map(graphLinkExport).filter(l => l.source && l.target),
+  };
+}
+
+async function buildSessionExportPayload() {
+  if (!state.sid) throw new Error('先打开一个聊天窗口');
+  const session = await DB.get('sessions', state.sid);
+  if (!session) throw new Error('当前聊天窗口不存在');
+  const messages = sortById(await DB.bySid('messages', state.sid));
+  const anchors = sortById(await DB.bySid('anchors', state.sid));
+  const mastery = sortById(await DB.bySid('mastery', state.sid));
+  const payload = {
+    version: 1,
+    type: 'session_export',
+    exported_at: new Date().toISOString(),
+    session,
+    messages,
+    anchors,
+    mastery,
+    graph: buildSessionGraphSnapshot(session, messages, anchors, mastery, { includeContent: false }),
+  };
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const fileName = `reverse-tutor-session-${exportSlug(session.title, state.sid)}-${exportDateStamp()}.json`;
+  return { jsonStr, fileName, title: '反转家教当前聊天窗口' };
+}
+
+async function buildGlobalGraphExportPayload() {
+  const sessions = sortById(await DB.all('sessions'));
+  const allMessages = await DB.all('messages');
+  const allAnchors = await DB.all('anchors');
+  const allMastery = await DB.all('mastery');
+  const graphs = sessions.map(session => {
+    const sid = session.id;
+    const messages = sortById(allMessages.filter(m => m.sid === sid));
+    const anchors = sortById(allAnchors.filter(a => a.sid === sid));
+    const mastery = sortById(allMastery.filter(m => m.sid === sid));
+    return buildSessionGraphSnapshot(session, messages, anchors, mastery, { includeContent: false });
+  });
+  const payload = {
+    version: 1,
+    type: 'global_graph_snapshot',
+    exported_at: new Date().toISOString(),
+    note: '全局图谱是所有聊天窗口学习脉络的只读汇总；默认不包含完整聊天原文。',
+    sessions: sessions.map(s => ({
+      id: s.id,
+      title: s.title,
+      role: s.persona?.role || '',
+      goal: s.persona?.goal || '',
+      created_at: s.created_at || null,
+      updated_at: s.updated_at || null,
+    })),
+    graphs,
+  };
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const fileName = `reverse-tutor-global-graph-${exportDateStamp()}.json`;
+  return { jsonStr, fileName, title: '反转家教全局图谱快照' };
+}
+
 async function buildDataExportPayload() {
   const payload = await DB.exportAll();
   const jsonStr = JSON.stringify(payload, null, 2);
-  const fileName = `reverse-tutor-backup-${new Date().toISOString().slice(0,10)}.json`;
-  return { jsonStr, fileName };
+  const fileName = `reverse-tutor-backup-${exportDateStamp()}.json`;
+  return { jsonStr, fileName, title: '反转家教数据备份' };
 }
 
-$('#data-export').addEventListener('click', async () => {
+async function shareExportPayload(buildPayload) {
   try {
-    const { jsonStr, fileName } = await buildDataExportPayload();
+    const { jsonStr, fileName, title } = await buildPayload();
 
     const nativeShare = await NativeBackgroundLlm.shareJsonFile(fileName, jsonStr);
     if (nativeShare.shared) {
@@ -7906,7 +8986,7 @@ $('#data-export').addEventListener('click', async () => {
 
     // Android WebView: 优先用系统分享（保存到文件 / 发送到其他应用）
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: '反转家教数据备份' });
+      await navigator.share({ files: [file], title: title || '反转家教导出' });
       toast('已导出');
       return;
     }
@@ -7921,7 +9001,11 @@ $('#data-export').addEventListener('click', async () => {
     if (err.name === 'AbortError') return; // 用户取消分享
     toast('导出失败: ' + (err.message || err), 3000);
   }
-});
+}
+
+$('#data-export-session').addEventListener('click', () => shareExportPayload(buildSessionExportPayload));
+$('#data-export-graph').addEventListener('click', () => shareExportPayload(buildGlobalGraphExportPayload));
+$('#data-export').addEventListener('click', () => shareExportPayload(buildDataExportPayload));
 
 $('#data-save-file').addEventListener('click', async () => {
   try {
@@ -8007,6 +9091,7 @@ $('#new-create').addEventListener('click', async () => {
     reqs: $('#new-reqs').value.split('\n').map(r=>r.trim()).filter(Boolean),
   });
   state.sid = s.id;
+  state.chatScreen = 'thread';
   await DB.kvSet('current_sid', s.id);
   if (pendingSourceFiles.length) {
     await importAnchorFiles(pendingSourceFiles, { statusEl: $('#new-source-status'), render: false });

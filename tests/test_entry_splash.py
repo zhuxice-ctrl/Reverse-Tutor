@@ -36,5 +36,8 @@ def test_android_launch_theme_uses_plain_background_before_web_splash():
 def test_mobile_web_applies_saved_theme_before_first_paint():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "document.documentElement.classList.toggle('theme-warm'" in html
+    assert "localStorage.getItem('rt-mobile-theme')" in html
+    assert "theme-${id}" in html
     assert ":root.theme-warm" in html
+    assert ":root.theme-berry" in html
+    assert ":root.theme-midnight" in html

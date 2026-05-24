@@ -1,18 +1,19 @@
 {
-  "versionCode": 32,
-  "versionName": "0.17.11",
+  "versionCode": 33,
+  "versionName": "0.17.12",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.11.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.12.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.11/Reverse-Tutor-v0.17.11.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.12/Reverse-Tutor-v0.17.12.apk"
   ],
-  "sha256": "adba924f31665a22c617124d18423d5ee23a469c5374f550359c8b6242bcd340",
-  "publishedAt": "2026-05-22",
+  "sha256": "3ff17ee6fee687a92b64c6c2c2dec519d87c9f03ba3a80c9f35e846cd629437b",
+  "publishedAt": "2026-05-25",
   "releaseNotes": [
-    "配置档案改为可折叠管理区，默认收起，设置页更清爽。",
-    "配置档案显示已保存数量和当前档案，可展开后一键切换多套模型配置。",
-    "最多保留 16 套常用 LLM 配置，保存新档案后自动展开列表。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.11.apk。"
+    "会话页改为微信式聊天窗口列表，顶部搜索更明确，长按会话可置顶。",
+    "聊天窗口右上角新增“脉络”入口，图谱、锚点、随笔分成三页管理，随笔会从聊天记录自动汇总。",
+    "六套主题整体降低饱和度，加入更克制的玻璃质感和细颗粒背景，减少廉价感。",
+    "聊天正文背景单独变浅，避免底部输入区附近过暗。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.12.apk。"
   ]
 }

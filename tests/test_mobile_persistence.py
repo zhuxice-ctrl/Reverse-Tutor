@@ -323,7 +323,30 @@ def test_mobile_header_without_session_does_not_reference_graph_node_state():
     refresh_header = html.split("async function refreshHeader()", 1)[1].split("// --- Chat ---", 1)[0]
 
     assert "node.nodeType" not in refresh_header
-    assert "点 设置 创建你的第一个会话" in refresh_header
+    assert "点 会话 新建你的第一个窗口" in refresh_header
+    assert "会话列表" in refresh_header
+
+
+def test_mobile_ui_uses_session_list_and_learning_context():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert 'id="session-home"' in html
+    assert 'id="chat-thread"' in html
+    assert 'id="learning-context-page"' in html
+    assert 'id="learning-context-open"' in html
+    assert 'id="learning-context-sheet"' not in html
+    assert 'data-context-tab="graph"' in html
+    assert 'data-context-tab="anchors"' in html
+    assert 'data-context-tab="notes"' in html
+    assert 'id="context-note-form"' not in html
+    assert "data-context-edit-note" in html
+    assert 'data-tab="anchors"' not in html
+    assert "openSessionWindow" in html
+    assert "renderSessionHome" in html
+    assert 'id="session-search-input"' in html
+    assert "SESSION_PINNED_KEY" in html
+    assert "togglePinnedSession" in html
+    assert "compositionstart" in html
 
 
 def test_mobile_chat_input_preserves_caret_and_handles_keyboard_layout():
