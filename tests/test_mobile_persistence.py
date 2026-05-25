@@ -347,6 +347,27 @@ def test_mobile_ui_uses_session_list_and_learning_context():
     assert "SESSION_PINNED_KEY" in html
     assert "togglePinnedSession" in html
     assert "compositionstart" in html
+    assert "sessionAvatarHtml" in html
+    assert "fileToAvatarDataUrl" in html
+    assert "avatar_image" in html
+    assert "avatar_hidden" in html
+    assert "data-avatar-sess" in html
+    assert "data-avatar-hide" in html
+
+
+def test_mobile_side_back_uses_in_app_navigation_history():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function navigateBackInApp" in html
+    assert "function initAppHistory" in html
+    assert "function syncAppHistory" in html
+    assert "window.addEventListener('popstate'" in html
+    assert "history.pushState" in html
+    assert "history.replaceState" in html
+    assert "window.__rtHandleNativeBack" in html
+    assert "navigateBackInApp({ source: 'edge-swipe' })" in html
+    assert "swipeStart.x < 18 && dx > 110" in html
+    assert "appHistorySuppress" in html
 
 
 def test_mobile_chat_input_preserves_caret_and_handles_keyboard_layout():

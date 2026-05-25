@@ -566,6 +566,9 @@
   .session-card.pinned {
     border-color: color-mix(in srgb, var(--warn) 45%, var(--glass-line));
   }
+  .session-card.avatar-hidden {
+    padding-left: 12px;
+  }
   .session-avatar {
     position: absolute;
     left: 12px;
@@ -590,6 +593,17 @@
   .session-avatar.anchor {
     color: var(--accent);
     background: var(--surface-soft-gradient);
+  }
+  .session-avatar.custom {
+    overflow: hidden;
+    color: transparent;
+    background: var(--surface-soft-gradient);
+  }
+  .session-avatar.custom img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
   }
   .session-name {
     color: var(--text);
@@ -1511,7 +1525,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.12 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.13 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1752,6 +1766,8 @@ const state = {
   messageQueue: [],
   isGenerating: false,
 };
+let appHistoryReady = false;
+let appHistorySuppress = false;
 
 function refreshIcons() {
   if (!window.lucide) return;
@@ -1763,8 +1779,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 33;
-const APP_VERSION_NAME = '0.17.12';
+const APP_VERSION_CODE = 34;
+const APP_VERSION_NAME = '0.17.13';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -4846,6 +4862,8 @@ function supportsBackgroundChat(cfg) {
       id: sid,
       title: title || `${role} · ${goal}`,
       persona: { role, goal, deadline, personality: personality || '好奇、有点贪玩、容易丧气但能被鼓励' },
+      avatar_image: '',
+      avatar_hidden: false,
       created_at: Date.now(), updated_at: Date.now(),
     };
     await DB.put('sessions', session);
@@ -5070,6 +5088,77 @@ function sessionAvatarTone(session, index=0) {
   return tones[Math.abs(Number(index) || 0) % tones.length];
 }
 
+function sessionAvatarHtml(session, index=0) {
+  if (session?.avatar_hidden) return '';
+  const image = String(session?.avatar_image || '').trim();
+  if (image) {
+    return `<div class="session-avatar custom"><img src="${esc(image)}" alt=""></div>`;
+  }
+  return `<div class="session-avatar tone-${esc(sessionAvatarTone(session, index))}">${esc(sessionInitials(session))}</div>`;
+}
+
+function fileToAvatarDataUrl(file, size=160) {
+  return new Promise((resolve, reject) => {
+    if (!file || !String(file.type || '').startsWith('image/')) {
+      reject(new Error('请选择图片文件'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error('头像读取失败'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const srcSize = Math.min(img.width || size, img.height || size);
+        const sx = Math.max(0, ((img.width || size) - srcSize) / 2);
+        const sy = Math.max(0, ((img.height || size) - srcSize) / 2);
+        ctx.fillStyle = '#f4f1ea';
+        ctx.fillRect(0, 0, size, size);
+        ctx.drawImage(img, sx, sy, srcSize, srcSize, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.84));
+      };
+      img.onerror = () => reject(new Error('头像解析失败'));
+      img.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function updateSessionAvatar(sid, patch) {
+  const session = await DB.get('sessions', sid);
+  if (!session) return;
+  Object.assign(session, patch, { updated_at: Date.now() });
+  await DB.put('sessions', session);
+  if (state.sid === sid) await refreshHeader();
+  await renderSessionHome();
+  if (state.currentTab === 'settings') await renderSettings();
+}
+
+function chooseSessionAvatar(sid) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.className = 'hidden';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      await updateSessionAvatar(sid, { avatar_image: dataUrl, avatar_hidden: false });
+      toast('头像已更新');
+    } catch (err) {
+      toast(err?.message || '头像更新失败');
+    } finally {
+      input.remove();
+    }
+  }, { once: true });
+  document.body.appendChild(input);
+  input.click();
+}
+
 function formatSessionTime(ts) {
   if (!ts) return '';
   const d = new Date(ts);
@@ -5112,12 +5201,13 @@ async function renderSessionHome() {
   const activeSid = state.sid;
   const sessionCardHtml = ({ session:s, meta }, idx, pinned=false, visualIndex=idx) => {
     const active = activeSid === s.id ? 'active' : '';
+    const avatarHidden = s.avatar_hidden ? 'avatar-hidden' : '';
     const live = pinned ? '<span class="session-tag live">置顶</span>' : (idx === 0 ? '<span class="session-tag live">最近</span>' : '');
     const sourceTag = meta.sources ? `<span class="session-tag">资料 ${meta.sources}</span>` : '';
     const noteTag = meta.notes ? `<span class="session-tag">随笔 ${meta.notes}</span>` : '';
     return `
-      <article class="session-card ${active} ${pinned ? 'pinned' : ''}" data-session-open="${esc(s.id)}">
-        <div class="session-avatar tone-${esc(sessionAvatarTone(s, visualIndex))}">${esc(sessionInitials(s))}</div>
+      <article class="session-card ${active} ${pinned ? 'pinned' : ''} ${avatarHidden}" data-session-open="${esc(s.id)}">
+        ${sessionAvatarHtml(s, visualIndex)}
         <div class="flex items-center gap-2 min-w-0">
           <div class="session-name flex-1 min-w-0 truncate">${esc(s.title || '未命名会话')}</div>
           <div class="text-[10px] text-neutral-500 shrink-0">${esc(formatSessionTime(meta.time))}</div>
@@ -5231,6 +5321,7 @@ function switchTab(name) {
   if (name === 'insights') renderInsights();
   if (name === 'anchors') renderAnchors();
   if (name === 'settings') renderSettings();
+  syncAppHistory();
 }
 $$('.tab-btn').forEach(b => b.addEventListener('click', () => {
   if (b.dataset.tab === 'chat') {
@@ -6787,6 +6878,7 @@ async function openLearningContext(tab=state.contextTab || 'graph') {
 function closeLearningContext() {
   state.chatScreen = 'thread';
   state.contextEditingNoteId = null;
+  syncAppHistory();
   renderChat();
 }
 
@@ -8306,12 +8398,22 @@ async function redeemTrialCode() {
 async function renderSettings() {
   state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
   $('#sess-list').innerHTML = state.sessions.length ? state.sessions.map(s => `
-    <div class="flex items-center bg-neutral-900 border border-neutral-800 rounded-lg p-2 gap-2">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-2 space-y-2">
+      <div class="flex items-center gap-2">
       <button data-open="${s.id}" class="flex-1 text-left min-w-0">
         <div class="text-sm truncate ${state.sid===s.id?'text-emerald-400':''}">${esc(s.title)}</div>
-        <div class="text-[10px] text-neutral-500 truncate">${esc(s.persona.role)} · ${esc(s.persona.goal)}</div>
+        <div class="text-[10px] text-neutral-500 truncate">${esc(s.persona?.role || '')} · ${esc(s.persona?.goal || '')}</div>
       </button>
       <button data-del-sess="${s.id}" class="text-neutral-500 active:text-red-400 px-2 icon-only" aria-label="删除会话"><i data-lucide="x"></i></button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-[11px] text-neutral-400">
+        <button type="button" data-avatar-sess="${s.id}" class="px-2 py-1 rounded border border-neutral-700 active:bg-neutral-800 inline-flex items-center gap-1"><i class="button-icon" data-lucide="image-plus"></i><span>头像</span></button>
+        ${s.avatar_image ? `<button type="button" data-avatar-clear="${s.id}" class="px-2 py-1 rounded border border-neutral-700 active:bg-neutral-800">清除头像</button>` : ''}
+        <label class="inline-flex items-center gap-1 px-2 py-1 rounded border border-neutral-800">
+          <input data-avatar-hide="${s.id}" type="checkbox" ${s.avatar_hidden ? 'checked' : ''} class="accent-emerald-700">
+          <span>隐藏头像</span>
+        </label>
+      </div>
     </div>
   `).join('') : '<div class="text-xs text-neutral-500 text-center py-3">尚无会话</div>';
   $$('#sess-list [data-open]').forEach(b => b.addEventListener('click', async () => {
@@ -8324,6 +8426,20 @@ async function renderSettings() {
     await ENGINE.delete_session(sid);
     if (state.sid === sid) { state.sid = null; await DB.kvSet('current_sid', null); }
     await refreshHeader(); renderSettings(); renderChat();
+  }));
+  $$('#sess-list [data-avatar-sess]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    chooseSessionAvatar(b.dataset.avatarSess);
+  }));
+  $$('#sess-list [data-avatar-clear]').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    await updateSessionAvatar(b.dataset.avatarClear, { avatar_image: '' });
+    toast('头像已清除');
+  }));
+  $$('#sess-list [data-avatar-hide]').forEach(input => input.addEventListener('change', async e => {
+    e.stopPropagation();
+    await updateSessionAvatar(input.dataset.avatarHide, { avatar_hidden: input.checked });
+    toast(input.checked ? '已隐藏会话头像' : '已显示会话头像');
   }));
 
   // LLM cfg
@@ -8764,6 +8880,7 @@ $('#learning-context-open').addEventListener('click', () => openLearningContext(
 $('#learning-context-close')?.addEventListener('click', closeLearningContext);
 $$('[data-context-tab]').forEach(btn => btn.addEventListener('click', async () => {
   state.contextTab = btn.dataset.contextTab;
+  syncAppHistory();
   await renderLearningContext();
 }));
 $('#graph-editor-close').addEventListener('click', closeGraphNodeEditor);
@@ -8814,13 +8931,94 @@ function closeDrawer() {
   document.body.classList.remove('drawer-open');
 }
 
-$('#drawer-open').addEventListener('click', () => {
+function appRouteKey() {
+  return [state.currentTab || 'chat', state.chatScreen || 'list', state.sid || '', state.contextTab || 'graph'].join(':');
+}
+
+function pushAppHistoryState({ replace=false, force=false } = {}) {
+  if (!window.history || typeof history.pushState !== 'function') return;
+  const key = appRouteKey();
+  const nextState = { rt: true, rtRoute: key };
+  try {
+    if (replace) {
+      history.replaceState(nextState, '', location.href);
+    } else if (force || history.state?.rtRoute !== key) {
+      history.pushState(nextState, '', location.href);
+    }
+  } catch (err) {
+    console.warn('app history sync failed', err);
+  }
+}
+
+function syncAppHistory(opts={}) {
+  if (!appHistoryReady || appHistorySuppress) return;
+  pushAppHistoryState(opts);
+}
+
+function initAppHistory() {
+  if (!window.history || typeof history.pushState !== 'function') return;
+  try {
+    history.replaceState({ rt: true, rtGuard: true }, '', location.href);
+    appHistoryReady = true;
+    pushAppHistoryState({ force: true });
+  } catch (err) {
+    console.warn('app history init failed', err);
+  }
+}
+
+function isOpenByHiddenClass(selector) {
+  const el = $(selector);
+  return !!el && !el.classList.contains('hidden');
+}
+
+function closeTopLayerForBack() {
+  const pop = $('#message-action-popover');
+  if (pop && !pop.classList.contains('hidden')) { closeMessageActionPopover(); return true; }
+  if (isOpenByHiddenClass('#new-modal')) { closeNew(); return true; }
+  if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
+  if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
+  if (isOpenByHiddenClass('#graph-source-node-editor')) { closeGraphNodeEditor(); return true; }
+  if ($('#graph-sheet')?.classList.contains('show') || $('#graph-sheet-overlay')?.classList.contains('show')) {
+    hideGraphSheet();
+    return true;
+  }
+  if (isOpenByHiddenClass('#message-popup')) { $('#message-popup').classList.add('hidden'); return true; }
+  if (document.body.classList.contains('drawer-open')) { closeDrawer(); return true; }
+  return false;
+}
+
+function navigateBackInApp(opts={}) {
+  if (closeTopLayerForBack()) return true;
   if (state.currentTab === 'chat' && state.chatScreen === 'context') {
     closeLearningContext();
-    return;
+    return true;
   }
   if (state.currentTab === 'chat' && state.chatScreen === 'thread') {
     showSessionHome();
+    return true;
+  }
+  if (state.currentTab !== 'chat') {
+    showSessionHome();
+    return true;
+  }
+  return false;
+}
+window.__rtHandleNativeBack = () => navigateBackInApp({ source: 'native' });
+
+window.addEventListener('popstate', e => {
+  if (!appHistoryReady) return;
+  const poppedToRoute = !!e.state?.rtRoute;
+  appHistorySuppress = true;
+  const handled = navigateBackInApp({ source: 'history' });
+  setTimeout(() => {
+    appHistorySuppress = false;
+    pushAppHistoryState(poppedToRoute && handled ? { replace: true } : { force: true });
+  }, 0);
+});
+
+$('#drawer-open').addEventListener('click', () => {
+  if (state.currentTab === 'chat' && state.chatScreen !== 'list') {
+    navigateBackInApp({ source: 'header' });
     return;
   }
   openDrawer();
@@ -8842,7 +9040,10 @@ document.addEventListener('touchend', e => {
   const t = e.changedTouches[0];
   const dx = t.clientX - swipeStart.x;
   const dy = Math.abs(t.clientY - swipeStart.y);
-  if (dy < 45 && swipeStart.x < 18 && dx > 110) openDrawer();
+  if (dy < 45 && swipeStart.x < 18 && dx > 110) {
+    const navigated = navigateBackInApp({ source: 'edge-swipe' });
+    if (!navigated && state.currentTab === 'chat' && state.chatScreen === 'list') openDrawer();
+  }
   if (dy < 45 && swipeStart.drawer && dx < -110) closeDrawer();
   swipeStart = null;
 }, { passive: true });
@@ -9175,6 +9376,7 @@ refreshIcons();
   }
   await refreshHeader();
   await renderChat();
+  initAppHistory();
   refreshIcons();
   syncKeyboardLayout();
   setTimeout(finishEntrySplash, 260);
