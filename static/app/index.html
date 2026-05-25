@@ -1286,6 +1286,7 @@
           <button type="button" class="context-tab active" data-context-tab="graph">图谱</button>
           <button type="button" class="context-tab" data-context-tab="anchors">锚点</button>
           <button type="button" class="context-tab" data-context-tab="notes">随笔</button>
+          <button type="button" class="context-tab" data-context-tab="settings">设置</button>
         </div>
       </div>
       <div id="learning-context-body" class="flex-1 min-h-0 scroll-y p-3"></div>
@@ -1525,7 +1526,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.13 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.14 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1700,6 +1701,12 @@
   <button data-message-action="delete"><i data-lucide="trash-2"></i><span>删除</span></button>
 </div>
 
+<div id="session-card-popover" class="message-action-popover hidden">
+  <button data-session-action="pin"><i data-lucide="pin"></i><span>置顶</span></button>
+  <button data-session-action="avatar"><i data-lucide="image-plus"></i><span>头像</span></button>
+  <button data-session-action="avatar-clear"><i data-lucide="trash-2"></i><span>清除头像</span></button>
+</div>
+
 <div id="essay-note-sheet" class="choice-sheet-overlay hidden">
   <div class="choice-sheet safe-bottom">
     <div class="graph-sheet-handle"></div>
@@ -1779,8 +1786,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 34;
-const APP_VERSION_NAME = '0.17.13';
+const APP_VERSION_CODE = 35;
+const APP_VERSION_NAME = '0.17.14';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -4864,6 +4871,7 @@ function supportsBackgroundChat(cfg) {
       persona: { role, goal, deadline, personality: personality || '好奇、有点贪玩、容易丧气但能被鼓励' },
       avatar_image: '',
       avatar_hidden: false,
+      last_read_at: Date.now(),
       created_at: Date.now(), updated_at: Date.now(),
     };
     await DB.put('sessions', session);
@@ -5055,6 +5063,8 @@ async function sessionListMeta(session) {
   ]);
   const visible = sortById(messages).filter(m => m.role !== 'system');
   const last = visible[visible.length - 1];
+  const lastReadAt = session.last_read_at || session.created_at || 0;
+  const unreadCount = visible.filter(m => m.role === 'assistant' && (m.created_at || 0) > lastReadAt).length;
   const notes = anchors.filter(a => a.kind === 'note').length;
   const sources = anchors.filter(a => a.kind === 'source').length;
   const searchText = [
@@ -5071,7 +5081,7 @@ async function sessionListMeta(session) {
     notes,
     sources,
     searchText,
-    messageCount: visible.length,
+    unreadCount,
     preview: last ? String(last.content || '').replace(/\s+/g, ' ').trim().slice(0, 84) : '还没有聊天记录，点开后开始这一节。',
     time: last?.created_at || session.updated_at || session.created_at || 0,
   };
@@ -5125,6 +5135,14 @@ function fileToAvatarDataUrl(file, size=160) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+async function markSessionRead(sid) {
+  if (!sid) return;
+  const session = await DB.get('sessions', sid);
+  if (!session) return;
+  session.last_read_at = Date.now();
+  await DB.put('sessions', session);
 }
 
 async function updateSessionAvatar(sid, patch) {
@@ -5219,7 +5237,7 @@ async function renderSessionHome() {
           ${sourceTag}
           ${noteTag}
         </div>
-        ${meta.messageCount ? `<div class="session-unread">${Math.min(meta.messageCount, 99)}</div>` : ''}
+        ${meta.unreadCount ? `<div class="session-unread">${Math.min(meta.unreadCount, 99)}</div>` : ''}
       </article>`;
   };
   const pinnedCards = pinnedRows.map((row, idx) => sessionCardHtml(row, idx, true, idx)).join('');
@@ -5260,16 +5278,28 @@ async function renderSessionHome() {
     let longPressed = false;
     const sid = card.dataset.sessionOpen;
     const clear = () => { if (timer) clearTimeout(timer); timer = null; };
-    const pin = async () => {
+    const showMenu = () => {
       longPressed = true;
-      const pinned = togglePinnedSession(sid);
-      toast(pinned ? '已置顶会话' : '已取消置顶');
-      setTimeout(renderSessionHome, 30);
+      const pop = $('#session-card-popover');
+      if (!pop) return;
+      pop.dataset.sessionId = sid;
+      const rect = card.getBoundingClientRect();
+      let top = rect.bottom + 4;
+      let left = Math.max(12, rect.left + rect.width / 2);
+      const pw = pop.offsetWidth || 180;
+      const ph = pop.offsetHeight || 40;
+      if (top + ph > window.innerHeight - 12) top = rect.top - ph - 4;
+      if (left + pw / 2 > window.innerWidth - 12) left = window.innerWidth - 12 - pw / 2;
+      if (left - pw / 2 < 12) left = 12 + pw / 2;
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+      pop.dataset.side = (rect.bottom + ph > window.innerHeight - 12) ? 'above' : 'below';
+      pop.classList.remove('hidden');
     };
     card.addEventListener('pointerdown', () => {
       longPressed = false;
       clear();
-      timer = setTimeout(pin, 620);
+      timer = setTimeout(showMenu, 620);
     });
     card.addEventListener('pointerup', clear);
     card.addEventListener('pointercancel', clear);
@@ -5278,7 +5308,7 @@ async function renderSessionHome() {
       e.preventDefault();
       if (longPressed) return;
       clear();
-      pin();
+      showMenu();
     });
     card.addEventListener('click', e => {
       if (longPressed) {
@@ -5293,17 +5323,20 @@ async function renderSessionHome() {
 
 async function openSessionWindow(sid) {
   if (!sid) return;
+  if (state.sid && state.sid !== sid) await markSessionRead(state.sid);
   state.sid = sid;
   state.chatScreen = 'thread';
   state.contextEditingNoteId = null;
   state.sessionSearchFocused = false;
   await DB.kvSet('current_sid', state.sid);
+  await markSessionRead(sid);
   switchTab('chat');
   await refreshHeader();
   await renderChat();
 }
 
 async function showSessionHome() {
+  if (state.sid) await markSessionRead(state.sid);
   state.chatScreen = 'list';
   state.contextEditingNoteId = null;
   state.sessionSearchFocused = false;
@@ -5328,6 +5361,7 @@ $$('.tab-btn').forEach(b => b.addEventListener('click', () => {
     showSessionHome();
     return;
   }
+  if (state.sid && state.chatScreen === 'thread') markSessionRead(state.sid);
   switchTab(b.dataset.tab);
 }));
 
@@ -5900,6 +5934,7 @@ async function submitChatText(txt, opts={}) {
       },
       onTurnComplete({ reply, action, evaluation, bubbles }) {
         finalizeStreamingBubble();
+        if (state.sid) markSessionRead(state.sid);
       },
       onError(err) {
         removeStreamingBubble();
@@ -6867,7 +6902,8 @@ $('#anchor-reprocess-file').addEventListener('change', async e => {
 
 async function openLearningContext(tab=state.contextTab || 'graph') {
   if (!state.sid) { toast('先打开一个聊天窗口'); return; }
-  state.contextTab = ['graph','anchors','notes'].includes(tab) ? tab : 'graph';
+  state.contextTab = ['graph','anchors','notes','settings'].includes(tab) ? tab : 'graph';
+  await markSessionRead(state.sid);
   state.chatScreen = 'context';
   const s = await DB.get('sessions', state.sid);
   $('#learning-context-subtitle').textContent = s ? `${s.title} 的图谱、锚点和随笔` : '当前聊天窗口的图谱、锚点和随笔';
@@ -6876,6 +6912,7 @@ async function openLearningContext(tab=state.contextTab || 'graph') {
 }
 
 function closeLearningContext() {
+  if (state.sid) markSessionRead(state.sid);
   state.chatScreen = 'thread';
   state.contextEditingNoteId = null;
   syncAppHistory();
@@ -6886,6 +6923,7 @@ async function renderLearningContext() {
   $$('.context-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.contextTab === state.contextTab));
   if (state.contextTab === 'anchors') return renderContextAnchors();
   if (state.contextTab === 'notes') return renderContextNotes();
+  if (state.contextTab === 'settings') return renderContextSettings();
   return renderContextGraph();
 }
 
@@ -7030,6 +7068,58 @@ async function renderContextNotes() {
     if (String(state.contextEditingNoteId || '') === String(btn.dataset.contextDelNote)) state.contextEditingNoteId = null;
     await renderContextNotes();
   }));
+  refreshIcons();
+}
+
+async function renderContextSettings() {
+  const body = $('#learning-context-body');
+  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  const s = await DB.get('sessions', state.sid);
+  if (!s) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">会话不存在</div>'; return; }
+  body.innerHTML = `
+    <div class="space-y-4">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话头像</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-4 space-y-4">
+          <div class="flex items-center gap-4">
+            ${sessionAvatarHtml(s, 0)}
+            <div class="min-w-0">
+              <div class="text-sm text-neutral-200 truncate">${esc(s.title || '未命名会话')}</div>
+              <div class="text-[10px] text-neutral-500 mt-1">${esc(s.persona?.goal || s.persona?.role || '')}</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="ctx-avatar-choose" class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 inline-flex items-center gap-1.5"><i class="button-icon" data-lucide="image-plus"></i><span>选择头像</span></button>
+            ${s.avatar_image ? `<button type="button" id="ctx-avatar-clear" class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 inline-flex items-center gap-1.5"><i class="button-icon" data-lucide="trash-2"></i><span>清除头像</span></button>` : ''}
+            <label class="inline-flex items-center gap-1.5 text-xs text-neutral-400 px-3 py-1.5 rounded border border-neutral-800">
+              <input id="ctx-avatar-hide" type="checkbox" ${s.avatar_hidden ? 'checked' : ''} class="accent-emerald-700">
+              <span>隐藏头像</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话信息</div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2 text-xs">
+          <div class="flex justify-between"><span class="text-neutral-500">标题</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.title || '未命名会话')}</span></div>
+          <div class="flex justify-between"><span class="text-neutral-500">角色</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.role || '')}</span></div>
+          <div class="flex justify-between"><span class="text-neutral-500">目标</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.goal || '')}</span></div>
+          <div class="flex justify-between"><span class="text-neutral-500">截止时间</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.deadline || '未设定')}</span></div>
+          <div class="flex justify-between"><span class="text-neutral-500">性格</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.personality || '未设定')}</span></div>
+          <div class="flex justify-between"><span class="text-neutral-500">创建时间</span><span class="text-neutral-300">${esc(new Date(s.created_at).toLocaleDateString('zh-CN'))}</span></div>
+        </div>
+      </div>
+    </div>`;
+  $('#ctx-avatar-choose')?.addEventListener('click', () => chooseSessionAvatar(state.sid));
+  $('#ctx-avatar-clear')?.addEventListener('click', async () => {
+    await updateSessionAvatar(state.sid, { avatar_image: '' });
+    toast('头像已清除');
+    await renderContextSettings();
+  });
+  $('#ctx-avatar-hide')?.addEventListener('change', async e => {
+    await updateSessionAvatar(state.sid, { avatar_hidden: e.target.checked });
+    toast(e.target.checked ? '已隐藏会话头像' : '已显示会话头像');
+  });
   refreshIcons();
 }
 
@@ -8778,11 +8868,34 @@ $('#message-action-popover').addEventListener('click', e => {
   e.stopPropagation();
   handleMessageAction(btn.dataset.messageAction);
 });
+$('#session-card-popover').addEventListener('click', e => {
+  const btn = e.target.closest('[data-session-action]');
+  if (!btn) return;
+  e.stopPropagation();
+  const sid = $('#session-card-popover')?.dataset?.sessionId;
+  if (!sid) return;
+  if (btn.dataset.sessionAction === 'pin') {
+    const pinned = togglePinnedSession(sid);
+    toast(pinned ? '已置顶会话' : '已取消置顶');
+    setTimeout(renderSessionHome, 30);
+  } else if (btn.dataset.sessionAction === 'avatar') {
+    chooseSessionAvatar(sid);
+  } else if (btn.dataset.sessionAction === 'avatar-clear') {
+    updateSessionAvatar(sid, { avatar_image: '' }).then(() => toast('头像已清除'));
+  }
+  $('#session-card-popover').classList.add('hidden');
+});
 document.addEventListener('pointerdown', e => {
   const pop = $('#message-action-popover');
   if (!pop || pop.classList.contains('hidden')) return;
   if (pop.contains(e.target)) return;
   closeMessageActionPopover();
+}, true);
+document.addEventListener('pointerdown', e => {
+  const pop = $('#session-card-popover');
+  if (!pop || pop.classList.contains('hidden')) return;
+  if (pop.contains(e.target)) return;
+  pop.classList.add('hidden');
 }, true);
 document.addEventListener('click', e => {
   const pop = $('#message-action-popover');
@@ -8974,6 +9087,8 @@ function isOpenByHiddenClass(selector) {
 function closeTopLayerForBack() {
   const pop = $('#message-action-popover');
   if (pop && !pop.classList.contains('hidden')) { closeMessageActionPopover(); return true; }
+  const sPop = $('#session-card-popover');
+  if (sPop && !sPop.classList.contains('hidden')) { sPop.classList.add('hidden'); return true; }
   if (isOpenByHiddenClass('#new-modal')) { closeNew(); return true; }
   if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
   if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
@@ -9359,6 +9474,19 @@ refreshIcons();
   setPopupEnabled(popupEnabled());
   renderUpdateSettings();
   await DB.open();
+  // 迁移：为已有会话补充 last_read_at
+  {
+    const allSessions = await DB.all('sessions');
+    let migrated = 0;
+    for (const s of allSessions) {
+      if (!s.last_read_at) {
+        s.last_read_at = s.updated_at || s.created_at || Date.now();
+        await DB.put('sessions', s);
+        migrated++;
+      }
+    }
+    if (migrated) console.log(`[migration] set last_read_at for ${migrated} sessions`);
+  }
   // 恢复 LLM 配置
   await restoreLlmConfig();
   await importNativeBackgroundTurns({ silent: true });

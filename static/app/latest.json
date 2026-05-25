@@ -1,18 +1,19 @@
 {
-  "versionCode": 34,
-  "versionName": "0.17.13",
+  "versionCode": 35,
+  "versionName": "0.17.14",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.13.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.14.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.13/Reverse-Tutor-v0.17.13.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.14/Reverse-Tutor-v0.17.14.apk"
   ],
-  "sha256": "fd0cc1fa095da3aad1069a4bc37cd4bbfe60fab6aa7b4e6d735f4731356154e9",
+  "sha256": "a2daafbfe180684857046c77f111752f854832f99b2947a915cb0daf684b145f",
   "publishedAt": "2026-05-25",
   "releaseNotes": [
-    "会话列表支持自定义头像：每个聊天窗口可上传头像、清除头像。",
-    "支持手动隐藏会话头像，关闭后列表改为纯文字布局，排版更清爽。",
-    "手机侧边返回和系统返回接入应用内返回链：先关闭弹窗，再回聊天、回会话列表，不再直接退到桌面。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.13.apk。"
+    "Android 原生返回键和侧边手势返回委托给 Web 层返回链处理，不再直接退出到桌面。",
+    "会话列表长按弹出操作菜单，支持置顶、设置头像、清除头像。",
+    "脉络页新增设置子页，可独立管理当前窗口头像（上传、清除、隐藏）。",
+    "未读红点改为真实计数：仅统计离开后新增的 AI 回复，进入会话即标为已读。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.14.apk。"
   ]
 }
