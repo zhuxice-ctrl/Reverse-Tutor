@@ -14,6 +14,62 @@ def test_default_mock_mode():
     assert llm.has_real_llm() is False
 
 
+def test_free_default_config_replaces_mock_when_enabled(monkeypatch):
+    monkeypatch.setattr(llm, "FREE_LLM_BASE_URL", "https://open.bigmodel.cn/api/anthropic")
+    monkeypatch.setattr(llm, "FREE_LLM_API_KEY", "free-key")
+    monkeypatch.setattr(llm, "FREE_LLM_MODEL", "GLM-4.7-Flash")
+    monkeypatch.setattr(llm, "FREE_LLM_API_TYPE", "anthropic")
+    llm.apply_config("", "", "")
+
+    cfg = llm.get_config()
+
+    assert cfg["mode"] == "free"
+    assert cfg["source"] == "free"
+    assert cfg["api_type"] == "anthropic"
+    assert cfg["model"] == "GLM-4.7-Flash"
+    assert cfg["has_api_key"] is True
+    assert "free-key" not in str(cfg)
+    assert llm.has_real_llm() is True
+
+
+async def test_chat_json_uses_free_anthropic_when_user_config_empty(monkeypatch):
+    calls = []
+
+    async def fake_anthropic_chat(system, messages, temperature, max_tokens):
+        calls.append((system, messages, temperature, max_tokens, llm.get_config()))
+        return '{"ok": true}'
+
+    monkeypatch.setattr(llm, "FREE_LLM_BASE_URL", "https://open.bigmodel.cn/api/anthropic")
+    monkeypatch.setattr(llm, "FREE_LLM_API_KEY", "free-key")
+    monkeypatch.setattr(llm, "FREE_LLM_MODEL", "GLM-4.7-Flash")
+    monkeypatch.setattr(llm, "FREE_LLM_API_TYPE", "anthropic")
+    monkeypatch.setattr(llm, "_anthropic_chat", fake_anthropic_chat)
+    llm.apply_config("", "", "")
+
+    out = await llm.chat_json("sys", [{"role": "user", "content": "hi"}])
+
+    assert out == {"ok": True}
+    assert len(calls) == 1
+    assert calls[0][4]["mode"] == "free"
+
+
+async def test_free_default_failure_falls_back_to_mock(monkeypatch):
+    async def fake_anthropic_chat(system, messages, temperature, max_tokens):
+        raise llm.LLMError("free provider unavailable")
+
+    monkeypatch.setattr(llm, "FREE_LLM_BASE_URL", "https://open.bigmodel.cn/api/anthropic")
+    monkeypatch.setattr(llm, "FREE_LLM_API_KEY", "free-key")
+    monkeypatch.setattr(llm, "FREE_LLM_MODEL", "GLM-4.7-Flash")
+    monkeypatch.setattr(llm, "FREE_LLM_API_TYPE", "anthropic")
+    monkeypatch.setattr(llm, "_anthropic_chat", fake_anthropic_chat)
+    llm.apply_config("", "", "")
+
+    out = await llm.chat_json("sys", [{"role": "user", "content": "hi"}])
+
+    assert "evaluation" in out and "action" in out and "reply" in out
+    assert out["action"]["note"] == "mock"
+
+
 def test_apply_config_partial_stays_mock():
     """三项缺一不可。"""
     llm.apply_config("https://api.x.com/v1", "sk-x", "")
@@ -38,6 +94,29 @@ def test_get_config_never_returns_api_key_plaintext():
     cfg = llm.get_config()
     assert "api_key" not in cfg                # 字段名都不该出现
     assert "SECRET" not in str(cfg)            # 明文不该泄漏
+
+
+def test_anthropic_payload_merges_system_messages_and_uses_model():
+    payload = llm._build_anthropic_payload(
+        "root system",
+        [
+            {"role": "system", "content": "turn instruction"},
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"},
+        ],
+        0.2,
+        128,
+        {"model": "GLM-4.7-Flash"},
+    )
+
+    assert payload["model"] == "GLM-4.7-Flash"
+    assert payload["system"] == "root system\n\nturn instruction"
+    assert payload["messages"] == [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "hi"},
+    ]
+    assert payload["temperature"] == 0.2
+    assert payload["max_tokens"] == 128
 
 
 def test_minimax_payload_uses_provider_specific_token_field_and_temperature_range():

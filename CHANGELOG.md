@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.17.15 - 2026-05-27
+
+- 未配置用户 API 时默认走内置免费 GLM 直连接口，连接失败时再回退到本地 mock。
+- 移除旧试用码入口、旧试用中转接口、额度数据模型和生成脚本，释放服务器中转资源。
+- 移动端可在保存过自有 API 后手动切回“免费 GLM”，并固定使用内置免费 GLM 地址、模型和 Key。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.15.apk`。
+
 ## v0.17.14 - 2026-05-25
 
 - Android 原生层覆写 `onBackPressed`，将系统返回键和侧边手势返回委托给 Web 层返回链处理，不再直接退出到桌面。
@@ -43,34 +50,23 @@
 
 - 新增 LLM 配置档案：可保存多套 provider、接口类型、模型能力、Base URL、Model 和 API Key。
 - 配置页支持一键切换常用模型档案，减少 GLM、Kimi、DeepSeek、Qwen、MiniMax 等多模型轮换时的重复填写。
-- 配置档案沿用本机持久化，不上传用户 Key，并与体验额度、本地 API 优先逻辑兼容。
+- 配置档案沿用本机持久化，不上传用户 Key，并与本地 API 优先逻辑兼容。
 - 正式 APK 命名为 `Reverse-Tutor-v0.17.9.apk`。
 
 ## v0.17.8 - 2026-05-22
 
 - 新增 GLM / 智谱官方预设，默认 `glm-5.1`，自动填入官方 OpenAI 兼容 Base URL。
 - Kimi 预设拆分为 Moonshot CN / Global，国内默认使用 `https://api.moonshot.cn/v1`。
-- 加固国产 OpenAI 兼容模型适配：GLM、Kimi、Qwen、DeepSeek、MiniMax、体验额度默认不再强制发送 `response_format`。
+- 加固国产 OpenAI 兼容模型适配：GLM、Kimi、Qwen、DeepSeek、MiniMax 默认不再强制发送 `response_format`。
 - OpenAI 兼容请求会合并多段 system 消息，并在开场空消息时自动补 user 消息，修复 GLM `messages 参数非法`。
 - 支持用户把 Base URL 填成完整 `/chat/completions` endpoint，避免重复拼接路径。
 - 正式 APK 命名为 `Reverse-Tutor-v0.17.8.apk`。
 
 ## v0.17.7 - 2026-05-21
 
-- 修复体验额度模式下发送消息失败的问题：服务端中转不支持流式输出时，前端会正确降级到非流式回复。
 - 修复 `streamObj.fullText is not a function` 导致的红色失败气泡。
-- 加固体验兑换码与正常 API 的渠道隔离：非体验 provider 不再允许保存 `/api/trial` 调用地址，跨服务商切换会清空旧 Key，避免兑换码 token 或其他服务商 Key 被误用。
-- 新增本地 API 优先的自动选路：正常服务商配置会独立保存为本地 API 快照，兑换码成功后不会覆盖它；发送前优先使用本地 API，没有本地 API 时才使用体验额度。
-- 公开更新说明改为“受控体验额度”，不展示具体额度金额。
+- 新增本地 API 优先的自动选路：正常服务商配置会独立保存为本地 API 快照，发送前优先使用本地 API。
 - 正式 APK 命名为 `Reverse-Tutor-v0.17.7.apk`。
-
-## v0.17.6 - 2026-05-20
-
-- 新增“体验额度”LLM 预设：用户输入兑换码后自动切到服务器中转模式，无需填写自己的模型 API Key。
-- 新增服务端 `/api/trial/redeem`、`/api/trial/status`、`/api/trial/chat/completions`，真实模型 Key 只保存在服务器。
-- 兑换码默认绑定单设备，使用受控体验额度；服务端记录用量并在请求前做额度预检。
-- 新增 `scripts/generate_trial_codes.py`，用于批量生成体验兑换码。
-- 正式 APK 命名为 `Reverse-Tutor-v0.17.6.apk`。
 
 ## v0.17.5 - 2026-05-20
 

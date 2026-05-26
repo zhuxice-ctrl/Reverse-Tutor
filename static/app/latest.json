@@ -1,19 +1,18 @@
 {
-  "versionCode": 35,
-  "versionName": "0.17.14",
+  "versionCode": 36,
+  "versionName": "0.17.15",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.14.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.15.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.14/Reverse-Tutor-v0.17.14.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.15/Reverse-Tutor-v0.17.15.apk"
   ],
-  "sha256": "a2daafbfe180684857046c77f111752f854832f99b2947a915cb0daf684b145f",
-  "publishedAt": "2026-05-25",
+  "sha256": "6b62fa01db63b9513cf40dd022d2ff91663bbe583a5a855992790e1f45b04dbf",
+  "publishedAt": "2026-05-27",
   "releaseNotes": [
-    "Android 原生返回键和侧边手势返回委托给 Web 层返回链处理，不再直接退出到桌面。",
-    "会话列表长按弹出操作菜单，支持置顶、设置头像、清除头像。",
-    "脉络页新增设置子页，可独立管理当前窗口头像（上传、清除、隐藏）。",
-    "未读红点改为真实计数：仅统计离开后新增的 AI 回复，进入会话即标为已读。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.14.apk。"
+    "未配置 API 时默认走内置免费 GLM 直连接口，失败时再回退到本地 mock。",
+    "移除旧试用码入口和服务端试用中转链路。",
+    "已保存自有 API 后，也可以在设置页手动切回免费 GLM。",
+    "正式 APK 命名为 Reverse-Tutor-v0.17.15.apk。"
   ]
 }

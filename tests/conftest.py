@@ -20,6 +20,7 @@ os.environ["DB_URL"] = f"sqlite:///{_DB_PATH}"
 os.environ.pop("LLM_BASE_URL", None)
 os.environ.pop("LLM_API_KEY", None)
 os.environ.pop("LLM_MODEL", None)
+os.environ.pop("LLM_API_TYPE", None)
 
 # 让 tests/ 能 import 项目根目录的模块
 _ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -36,6 +37,10 @@ llm._HAS_REAL = False
 llm.LLM_BASE_URL = ""
 llm.LLM_API_KEY = ""
 llm.LLM_MODEL = ""
+llm.LLM_API_TYPE = ""
+llm.FREE_LLM_BASE_URL = ""
+llm.FREE_LLM_API_KEY = ""
+llm.FREE_LLM_MODEL = ""
 
 
 @pytest.fixture(autouse=True)
@@ -49,8 +54,14 @@ def fresh_db():
         db.seed_builtin_templates(s)
     # 测试中可能有用例调 apply_config 切到 live，结束后重置
     llm.apply_config("", "", "")
+    llm.FREE_LLM_BASE_URL = ""
+    llm.FREE_LLM_API_KEY = ""
+    llm.FREE_LLM_MODEL = ""
     yield
     llm.apply_config("", "", "")
+    llm.FREE_LLM_BASE_URL = ""
+    llm.FREE_LLM_API_KEY = ""
+    llm.FREE_LLM_MODEL = ""
 
 
 @pytest.fixture

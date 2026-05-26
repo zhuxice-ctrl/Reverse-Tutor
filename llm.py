@@ -17,6 +17,15 @@ load_dotenv()
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "").rstrip("/")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
+LLM_API_TYPE = os.getenv("LLM_API_TYPE", "").strip().lower()
+
+FREE_LLM_BASE_URL = os.getenv("FREE_LLM_BASE_URL", "https://open.bigmodel.cn/api/anthropic").rstrip("/")
+FREE_LLM_API_KEY = os.getenv(
+    "FREE_LLM_API_KEY",
+    "f16f94275d5842d0a63d5713f679c9d2.RdFfzGeayrffjyoL",
+).strip()
+FREE_LLM_MODEL = os.getenv("FREE_LLM_MODEL", "GLM-4.7-Flash").strip()
+FREE_LLM_API_TYPE = os.getenv("FREE_LLM_API_TYPE", "anthropic").strip().lower()
 
 _HAS_REAL = bool(LLM_BASE_URL and LLM_API_KEY and LLM_MODEL)
 
@@ -44,18 +53,69 @@ def apply_config(base_url: str, api_key, model: str) -> bool:
     return _HAS_REAL
 
 
+def _detect_api_type(base_url: str, explicit: str = "") -> str:
+    explicit = (explicit or "").strip().lower()
+    if explicit in {"openai", "anthropic"}:
+        return explicit
+    url = (base_url or "").lower()
+    if "/anthropic" in url or url.endswith("/v1/messages"):
+        return "anthropic"
+    return "openai"
+
+
+def _has_free_llm() -> bool:
+    return bool(FREE_LLM_BASE_URL and FREE_LLM_API_KEY and FREE_LLM_MODEL)
+
+
+def _active_config() -> dict[str, str] | None:
+    if _HAS_REAL:
+        return {
+            "source": "user",
+            "mode": "live",
+            "base_url": LLM_BASE_URL,
+            "api_key": LLM_API_KEY,
+            "model": LLM_MODEL,
+            "api_type": _detect_api_type(LLM_BASE_URL, LLM_API_TYPE),
+        }
+    if _has_free_llm():
+        return {
+            "source": "free",
+            "mode": "free",
+            "base_url": FREE_LLM_BASE_URL,
+            "api_key": FREE_LLM_API_KEY,
+            "model": FREE_LLM_MODEL,
+            "api_type": _detect_api_type(FREE_LLM_BASE_URL, FREE_LLM_API_TYPE),
+        }
+    return None
+
+
 def get_config() -> dict[str, Any]:
     """返回当前 LLM 配置状态（不返回明文 api_key）。"""
+    active = _active_config()
+    if active:
+        return {
+            "base_url": active["base_url"],
+            "model": active["model"],
+            "has_api_key": bool(active["api_key"]),
+            "mode": active["mode"],
+            "api_type": active["api_type"],
+            "source": active["source"],
+        }
     return {
-        "base_url": LLM_BASE_URL,
-        "model": LLM_MODEL,
-        "has_api_key": bool(LLM_API_KEY),
-        "mode": "live" if _HAS_REAL else "mock",
+        "base_url": "",
+        "model": "",
+        "has_api_key": False,
+        "mode": "mock",
+        "api_type": "mock",
+        "source": "mock",
     }
 
 
-def _is_minimax_config() -> bool:
-    return "api.minimax.io" in (LLM_BASE_URL or "").lower() or (LLM_MODEL or "").lower().startswith("minimax-")
+def _is_minimax_config(config: dict[str, str] | None = None) -> bool:
+    config = config or _active_config() or {}
+    base_url = config.get("base_url", "")
+    model = config.get("model", "")
+    return "api.minimax.io" in base_url.lower() or model.lower().startswith("minimax-")
 
 
 def _provider_temperature(temperature: float) -> float:
@@ -66,18 +126,19 @@ def _provider_temperature(temperature: float) -> float:
 
 async def ping() -> dict[str, Any]:
     """发送一个最小请求验证 LLM 联通性。"""
-    if not _HAS_REAL:
+    active = _active_config()
+    if not active:
         return {"ok": False, "mode": "mock", "reason": "no credentials"}
     try:
-        raw = await _openai_chat(
+        raw = await _provider_chat(
             "You are a connectivity check. Respond with JSON {\"ok\":true}.",
             [{"role": "user", "content": "ping"}],
             temperature=0.0, max_tokens=20,
         )
         parsed = _extract_json(raw)
-        return {"ok": True, "mode": "live", "model": LLM_MODEL, "sample": parsed}
+        return {"ok": True, "mode": active["mode"], "model": active["model"], "sample": parsed}
     except Exception as e:
-        return {"ok": False, "mode": "live", "error": str(e)}
+        return {"ok": False, "mode": active["mode"], "error": str(e)}
 
 
 # --- 公共接口 -----------------------------------------------------------------
@@ -90,9 +151,15 @@ async def chat_json(
     max_tokens: int = 2000,
 ) -> dict[str, Any]:
     """要求 LLM 输出 JSON。若未配置 LLM 凭据则走 mock。"""
-    if not _HAS_REAL:
+    active = _active_config()
+    if not active:
         return _mock_response(system, messages)
-    raw = await _openai_chat(system, messages, temperature, max_tokens)
+    try:
+        raw = await _provider_chat(system, messages, temperature, max_tokens)
+    except Exception:
+        if active["source"] == "free":
+            return _mock_response(system, messages)
+        raise
     try:
         return _extract_json(raw)
     except LLMError as first_error:
@@ -102,22 +169,43 @@ async def chat_json(
             + "comments, <think> tags, or explanations before/after the JSON. "
             + "Start with { and end with }."
         )
-        retry_raw = await _openai_chat(
-            retry_system,
-            messages,
-            min(temperature, 0.3),
-            max_tokens,
-        )
+        try:
+            retry_raw = await _provider_chat(
+                retry_system,
+                messages,
+                min(temperature, 0.3),
+                max_tokens,
+            )
+        except Exception:
+            if active["source"] == "free":
+                return _mock_response(system, messages)
+            raise
         try:
             return _extract_json(retry_raw)
         except LLMError as retry_error:
+            if active["source"] == "free":
+                return _mock_response(system, messages)
             raise LLMError(
                 f"{retry_error}; first invalid response preview={raw[:200]!r}"
             ) from first_error
 
 
 def has_real_llm() -> bool:
-    return _HAS_REAL
+    return _active_config() is not None
+
+
+async def _provider_chat(
+    system: str,
+    messages: list[dict[str, str]],
+    temperature: float,
+    max_tokens: int,
+) -> str:
+    active = _active_config()
+    if not active:
+        raise LLMError("no LLM credentials configured")
+    if active["api_type"] == "anthropic":
+        return await _anthropic_chat(system, messages, temperature, max_tokens)
+    return await _openai_chat(system, messages, temperature, max_tokens)
 
 
 # --- OpenAI 兼容调用 ----------------------------------------------------------
@@ -127,13 +215,18 @@ async def _openai_chat(
     messages: list[dict[str, str]],
     temperature: float,
     max_tokens: int,
+    config: dict[str, str] | None = None,
 ) -> str:
-    url = f"{LLM_BASE_URL}/chat/completions"
+    config = config or _active_config()
+    if not config:
+        raise LLMError("no OpenAI-compatible credentials configured")
+    base_url = config["base_url"].rstrip("/")
+    url = base_url if base_url.endswith("/chat/completions") else f"{base_url}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Authorization": f"Bearer {config['api_key']}",
         "Content-Type": "application/json",
     }
-    payload = _build_openai_payload(system, messages, temperature, max_tokens, json_mode=True)
+    payload = _build_openai_payload(system, messages, temperature, max_tokens, json_mode=True, config=config)
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             r = await client.post(url, json=payload, headers=headers)
@@ -165,7 +258,7 @@ async def _openai_chat(
         + "\n\nIMPORTANT: Return only one valid JSON object. Do not use markdown. "
         + "Do not output explanations before or after the JSON."
     )
-    retry_payload = _build_openai_payload(retry_system, messages, temperature, max_tokens, json_mode=False)
+    retry_payload = _build_openai_payload(retry_system, messages, temperature, max_tokens, json_mode=False, config=config)
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             r = await client.post(url, json=retry_payload, headers=headers)
@@ -187,19 +280,98 @@ def _build_openai_payload(
     max_tokens: int,
     *,
     json_mode: bool,
+    config: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    config = config or _active_config() or {"model": LLM_MODEL}
     payload = {
-        "model": LLM_MODEL,
+        "model": config.get("model", LLM_MODEL),
         "messages": [{"role": "system", "content": system}, *messages],
         "temperature": _provider_temperature(temperature),
     }
-    if _is_minimax_config():
+    if _is_minimax_config(config):
         payload["max_completion_tokens"] = max_tokens
     else:
         payload["max_tokens"] = max_tokens
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
     return payload
+
+
+async def _anthropic_chat(
+    system: str,
+    messages: list[dict[str, str]],
+    temperature: float,
+    max_tokens: int,
+    config: dict[str, str] | None = None,
+) -> str:
+    config = config or _active_config()
+    if not config:
+        raise LLMError("no Anthropic-compatible credentials configured")
+    base_url = config["base_url"].rstrip("/")
+    url = base_url if base_url.endswith("/v1/messages") else f"{base_url}/v1/messages"
+    payload = _build_anthropic_payload(system, messages, temperature, max_tokens, config)
+    headers = {
+        "x-api-key": config["api_key"],
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            r = await client.post(url, json=payload, headers=headers)
+            r.raise_for_status()
+        except httpx.HTTPError as e:
+            raise LLMError(f"LLM request failed: {e}") from e
+    data = _response_json(r, "LLM")
+    content = _content_from_anthropic_data(data)
+    if content.strip():
+        return content
+    raise LLMError(f"LLM returned empty anthropic content: {str(data)[:300]}")
+
+
+def _build_anthropic_payload(
+    system: str,
+    messages: list[dict[str, str]],
+    temperature: float,
+    max_tokens: int,
+    config: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    config = config or _active_config() or {"model": LLM_MODEL}
+    system_parts = [str(system or "").strip()]
+    out = []
+    for msg in messages or []:
+        role = msg.get("role", "user")
+        content = _message_text(msg.get("content", "")).strip()
+        if not content:
+            continue
+        if role == "assistant":
+            out.append({"role": "assistant", "content": content})
+        elif role == "system":
+            system_parts.append(content)
+        else:
+            out.append({"role": "user", "content": content})
+    if not out:
+        out.append({"role": "user", "content": "ping"})
+    return {
+        "model": config.get("model", LLM_MODEL),
+        "system": "\n\n".join(part for part in system_parts if part),
+        "messages": out,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+
+
+def _message_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                parts.append(str(item.get("text") or item.get("content") or ""))
+            else:
+                parts.append(str(item))
+        return "\n".join(part for part in parts if part)
+    return str(content or "")
 
 
 def _content_from_openai_data(data: dict[str, Any]) -> str:
@@ -215,6 +387,21 @@ def _content_from_openai_data(data: dict[str, Any]) -> str:
     if not content.strip():
         return ""
     return content
+
+
+def _content_from_anthropic_data(data: dict[str, Any]) -> str:
+    if isinstance(data.get("completion"), str):
+        return data["completion"]
+    if isinstance(data.get("content"), str):
+        return data["content"]
+    chunks = []
+    for item in data.get("content") or []:
+        if isinstance(item, dict):
+            if isinstance(item.get("text"), str):
+                chunks.append(item["text"])
+            elif isinstance(item.get("content"), str):
+                chunks.append(item["content"])
+    return "\n".join(chunks)
 
 
 def _response_json(response: httpx.Response, label: str) -> dict[str, Any]:

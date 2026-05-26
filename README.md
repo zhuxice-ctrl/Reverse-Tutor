@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.14-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.17.15-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.14.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.15.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -53,6 +53,13 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
+
+## v0.17.15 更新重点
+
+- 未配置 API 时默认走内置免费 GLM 直连接口，连接失败时再回退到本地 mock。
+- 删除旧试用码入口和服务器试用中转链路，移动端不再占用服务器中转资源。
+- 已保存自有 API 后，也可以在设置页手动切回“免费 GLM”。
+- 正式 APK 命名为 `Reverse-Tutor-v0.17.15.apk`。
 
 ## v0.17.14 更新重点
 
@@ -90,7 +97,7 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 
 - 新增 LLM 配置档案，可保存多套服务商、接口类型、模型能力、Base URL、Model 和 API Key。
 - 配置页支持一键切换常用模型档案，适合 GLM、Kimi、DeepSeek、Qwen、MiniMax 等多模型轮换使用。
-- 配置档案只保存在本设备，并继续兼容体验额度与本地 API 优先逻辑。
+- 配置档案只保存在本设备，并继续使用本地 API 优先逻辑。
 
 ## v0.17.8 更新重点
 
@@ -100,16 +107,7 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 
 ## v0.17.7 更新重点
 
-- 修复体验额度模式下发送消息失败的问题：当服务端中转不支持流式输出时，前端会正确降级到非流式回复。
 - 修复 `streamObj.fullText is not a function` 导致的红色失败气泡，重发后不会再卡在同一错误。
-- 公开更新说明不展示具体体验额度，只保留“受控体验额度”的说明。
-
-## v0.17.6 更新重点
-
-- 新增“体验额度”模式：用户可在设置页输入兑换码，兑换后无需填写自己的模型 API Key。
-- 体验请求通过服务器 `/api/trial` 中转，真实模型 Key 只保存在服务端，不写入 APK。
-- 兑换码默认绑定单设备，使用受控体验额度；服务端会记录用量并在请求前做额度预检。
-- 新增体验码生成脚本和服务器部署说明，便于后续批量发放、排查消耗和控制风险。
 
 ## v0.17.5 更新重点
 
@@ -170,7 +168,7 @@ copy .env.example .env
 python -m uvicorn server:app --reload --host 127.0.0.1 --port 8000
 ```
 
-启动后在浏览器打开即可。不配置 LLM 也能运行，项目会自动使用 mock 模式。
+启动后在浏览器打开即可。不配置 LLM 也能运行：项目会优先使用内置免费 GLM 直连接口，连接失败时回退到本地 mock。
 
 ## LLM 配置
 
@@ -191,27 +189,6 @@ LLM_MODEL=deepseek-v4-flash
 
 如果模型不支持图片，发送图片或表情时不会让 DeepSeek 这类文本模型强行识图；多模态能力由你选择的模型预设决定。
 
-### 体验兑换码
-
-移动端也支持“体验额度”模式：用户输入兑换码后，App 会换取短期 `trial_token`，后续请求走你的服务器 `/api/trial/chat/completions` 中转，不会把真实模型 API Key 下发到 APK。
-
-渠道切换规则：`体验额度` 是独立 provider，只有该 provider 会保存并调用 `/api/trial`；切换到 DeepSeek、MiniMax、OpenAI 或手动填写后，App 会清除残留的 trial 调用地址，不会继续使用兑换码中转。正常服务商配置会额外保存为“本地 API 快照”，发送前优先使用这个本地 API；兑换码成功后只作为备用体验渠道保存，不会覆盖用户自己的 API 配置。只有同一服务商的 OpenAI / Anthropic 协议切换会保留已保存 Key，跨服务商切换需要重新填写 API Key，避免把兑换码 token 或其他服务商 Key 混用。
-
-服务端环境变量：
-```env
-TRIAL_LLM_BASE_URL=https://api.deepseek.com
-TRIAL_LLM_API_KEY=sk-your-server-side-key
-TRIAL_LLM_MODEL=deepseek-v4-flash
-TRIAL_MAX_OUTPUT_TOKENS=700
-```
-
-生成兑换码：
-```powershell
-py -3 scripts/generate_trial_codes.py --count 20 --prefix RT --total-yuan <每码总额度>
-```
-
-默认每个兑换码绑定一台设备、不限制单日使用；如需临时加日限，可额外传 `--daily-yuan`。计费单价可通过 `TRIAL_PROMPT_PRICE_MICRO_CNY_PER_MILLION` 和 `TRIAL_COMPLETION_PRICE_MICRO_CNY_PER_MILLION` 调整。
-
 ## 移动端打包
 
 ```powershell
@@ -228,7 +205,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.14.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.15.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -250,16 +227,16 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 35,
-  "versionName": "0.17.14",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.14.apk",
+  "versionCode": 36,
+  "versionName": "0.17.15",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.15.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.14/Reverse-Tutor-v0.17.14.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.15/Reverse-Tutor-v0.17.15.apk"
   ],
-  "publishedAt": "2026-05-25",
+  "publishedAt": "2026-05-27",
   "releaseNotes": [
-    "会话列表长按操作菜单",
-    "Android 返回链优化"
+    "免费 GLM 默认直连",
+    "移除旧试用中转"
   ]
 }
 ```
@@ -283,9 +260,6 @@ npm run build:apk
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/health` | 健康检查 |
-| POST | `/api/trial/redeem` | 兑换体验码并绑定设备 |
-| GET | `/api/trial/status` | 查看体验额度剩余 |
-| POST | `/api/trial/chat/completions` | OpenAI-compatible 体验 LLM 中转 |
 | POST | `/api/sessions` | 创建会话 |
 | GET | `/api/sessions` | 列出会话 |
 | GET | `/api/sessions/{id}` | 获取会话详情 |

@@ -18,7 +18,7 @@ def test_mobile_llm_config_uses_native_preferences_for_long_term_storage():
     assert "Preferences.get" in html
 
 
-def test_mobile_llm_keeps_local_api_snapshot_separate_from_trial_redeem():
+def test_mobile_llm_keeps_local_api_snapshot_for_local_first_routing():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert "LLM_LOCAL_CONFIG_KEY" in html
@@ -26,7 +26,7 @@ def test_mobile_llm_keeps_local_api_snapshot_separate_from_trial_redeem():
     assert "DB.kvSet('llm_local_config', next)" in html
     assert "restoreLocalApiConfig" in html
     assert "selectLocalFirstLlmConfig(saved, localApi)" in html
-    assert "activeLocalApi = !isTrialProvider(cfg.provider)" in html
+    assert "const active = selectLocalFirstLlmConfig(next, localApi)" in html
 
 
 def test_android_webview_uses_native_ime_input_connection():

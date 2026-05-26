@@ -21,7 +21,7 @@ def test_mobile_settings_footer_includes_qq_group_number():
 
     assert "欢迎入qq群反馈给我更新动力" in html
     assert "QQ群：897804938" in html
-    assert "Reverse Tutor v0.17.14 · 移动 PWA" in html
+    assert "Reverse Tutor v0.17.15 · 移动 PWA" in html
 
 
 def test_readme_showcase_text_uses_explicit_alignment():
@@ -45,12 +45,12 @@ def test_release_docs_summarize_current_major_changes():
     latest = (ROOT / "static" / "app" / "latest.json").read_text(encoding="utf-8")
 
     for text in (readme, changelog, latest):
-        assert "v0.17.14" in text or "0.17.14" in text
+        assert "v0.17.15" in text or "0.17.15" in text
         assert "Reverse Tutor" in text
-        assert "Reverse-Tutor-v0.17.14.apk" in text
-        assert "头像" in text
-        assert "返回" in text
+        assert "Reverse-Tutor-v0.17.15.apk" in text
+        assert "免费 GLM" in text
     for text in (readme, changelog):
-        assert "体验额度" in text
-        assert "streamObj.fullText" in text or "流式" in text
+        assert "本地 mock" in text or "mock" in text
         assert "反转家教" in text
+        assert "体验额度" not in text
+        assert "/api/trial" not in text

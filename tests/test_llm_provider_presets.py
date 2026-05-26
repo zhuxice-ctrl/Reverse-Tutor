@@ -13,12 +13,12 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
     assert "cfg-provider" in html
     assert "cfg-api-type" in html
     assert "cfg-capability" in html
-    assert "cfg-trial-code" in html
-    assert "cfg-trial-redeem" in html
     assert "cfg-profile-save" in html
     assert "cfg-profile-toggle" in html
     assert "cfg-profile-list" in html
-    assert "DEFAULT_TRIAL_PROXY_BASE_URL" in html
+    assert "FREE_DEFAULT_LLM_CONFIG" in html
+    assert "free-glm" in html
+    assert "GLM-4.7-Flash" in html
     assert "applyLlmProviderPreset" in html
     assert "https://api.openai.com/v1" in html
     assert "https://open.bigmodel.cn/api/paas/v4" in html
@@ -56,7 +56,7 @@ def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models
     assert "id:'glm-anthropic'" in provider_block
     assert "id:'qwen'" in provider_block
     assert "id:'kimi'" in provider_block
-    assert "id:'trial'" in provider_block
+    assert "id:'trial'" not in provider_block
     assert "max_completion_tokens" in html
     assert "providerTemperature" in html
     assert "appendOpenAiDelta" in html
@@ -68,6 +68,8 @@ def test_mobile_llm_supports_anthropic_protocol_family():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert "function normalizeApiType" in html
+    assert "effective_config" in html
+    assert "user_has_real" in html
     assert "function anthropic_text" in html
     assert "function anthropicMessagesUrl" in html
     assert "function detectedApiTypeFromBaseUrl" in html
@@ -77,7 +79,7 @@ def test_mobile_llm_supports_anthropic_protocol_family():
     assert "Claude / Anthropic 格式" in html
     assert "x-api-key" in html
     assert "anthropic-version" in html
-    assert "cfg.api_type === 'anthropic'" in html
+    assert "c.api_type === 'anthropic'" in html
 
 
 def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_selects():
@@ -162,7 +164,7 @@ def test_mobile_domestic_provider_profiles_disable_json_mode_and_handle_full_end
 
     assert "function isStrictOpenAiCompatibleConfig" in html
     assert "function shouldUseResponseFormat" in html
-    assert "opts.jsonMode && shouldUseResponseFormat()" in html
+    assert "opts.jsonMode && shouldUseResponseFormat(c)" in html
     assert "function openAiChatCompletionsUrl" in html
     assert "/\\/chat\\/completions$/i.test(baseUrl)" in html
     assert "finalEndpointForApiType" in html
@@ -178,7 +180,6 @@ def test_android_background_job_carries_api_type_and_capability():
     assert "api_type: cfg.api_type" in html
     assert "capability: cfg.capability" in html
     assert "provider: cfg.provider" in html
-    assert "if (cfg.provider === 'trial') return false" in html
     assert "max_completion_tokens" in html
     assert "supportsBackgroundChat" in html
 
@@ -209,25 +210,39 @@ def test_mobile_live_stream_wrapper_handles_async_stream_setup():
     assert "LLM stream object missing async iterator" in html
 
 
-def test_mobile_trial_channel_is_isolated_from_normal_provider_config():
+def test_mobile_trial_channel_is_removed():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    provider_block = html.split("const LLM_PROVIDERS", 1)[1].split("const API_TYPE_OPTIONS", 1)[0]
 
-    assert "function isTrialProvider" in html
-    assert "function isTrialBaseUrl" in html
+    assert "cfg-trial-code" not in html
+    assert "cfg-trial-redeem" not in html
+    assert "DEFAULT_TRIAL_PROXY_BASE_URL" not in html
+    assert "体验额度" not in html
+    assert "id:'trial'" not in provider_block
     assert "function providerKeyScope" in html
     assert "function selectLocalFirstLlmConfig" in html
     assert "function isLocalApiConfig" in html
     assert "LLM_LOCAL_CONFIG_KEY" in html
-    assert "baseUrl = trialChatBaseUrl(trialApiBase)" in html
-    assert "else if (isTrialBaseUrl(baseUrl))" in html
-    assert "apiKey = ''" in html
-    assert "$('#cfg-base').value = preset.base_url || ''" in html
     assert "providerKeyScope(existing.provider) === providerKeyScope(resolvedProvider)" in html
     assert "if (id === 'glm-anthropic') return 'glm'" in html
-    assert "guardedTrialRoute ? '（已移除体验中转地址）' : ''" in html
     assert "const active = selectLocalFirstLlmConfig(next, localApi)" in html
     assert "const next = selectLocalFirstLlmConfig(saved, localApi)" in html
-    assert "体验额度已保存备用；当前优先使用本地 API" in html
+
+
+def test_mobile_free_glm_can_be_explicitly_selected_after_user_api_exists():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    normalize_block = html.split("function normalizeLlmConfig", 1)[1].split("function loadLlmConfigLocal", 1)[0]
+    select_block = html.split("function selectLocalFirstLlmConfig", 1)[1].split("function normalizeLlmConfig", 1)[0]
+    endpoint_block = html.split("function applyEndpointDetectionFromBaseUrl", 1)[1].split("async function renderLlmProfiles", 1)[0]
+    collect_block = html.split("function collectLlmConfigFromForm", 1)[1].split("async function saveCurrentLlmProfile", 1)[0]
+
+    assert "provider === FREE_DEFAULT_LLM_CONFIG.provider" in normalize_block
+    assert "baseUrl = FREE_DEFAULT_LLM_CONFIG.base_url" in normalize_block
+    assert "apiKey = apiKey || FREE_DEFAULT_LLM_CONFIG.api_key" in normalize_block
+    assert "model = FREE_DEFAULT_LLM_CONFIG.model" in normalize_block
+    assert "if (isRunnableLlmConfig(normalizedCurrent)) return normalizedCurrent" in select_block
+    assert "currentProvider !== FREE_DEFAULT_LLM_CONFIG.provider" in endpoint_block
+    assert "detected.providerId && provider !== FREE_DEFAULT_LLM_CONFIG.provider" in collect_block
 
 
 def test_mobile_chat_turns_are_bound_and_rendered_safely():

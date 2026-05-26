@@ -1479,21 +1479,6 @@
       </div>
 
       <div>
-        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">激活码</div>
-        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="text-xs text-neutral-300">兑换体验额度</div>
-              <div class="text-[11px] text-neutral-500 leading-relaxed">兑换后走服务器中转，不需要在本机填写模型 API Key；已有本地 API 时会优先使用本地 API。</div>
-            </div>
-            <button id="cfg-trial-redeem" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-emerald-800 text-emerald-300 active:bg-emerald-950">兑换</button>
-          </div>
-          <input id="cfg-trial-code" type="text" placeholder="输入激活码" class="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono uppercase">
-          <div id="cfg-trial-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
-        </div>
-      </div>
-
-      <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">数据</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
           <button id="data-export-session" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="message-square-share"></i><span>分享当前聊天窗口（聊天 + 脉络）</span></button>
@@ -1526,7 +1511,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.14 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.17.15 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1786,8 +1771,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 35;
-const APP_VERSION_NAME = '0.17.14';
+const APP_VERSION_CODE = 36;
+const APP_VERSION_NAME = '0.17.15';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -1796,8 +1781,14 @@ const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const LLM_LOCAL_CONFIG_KEY = 'rt-mobile-llm-local-config';
 const LLM_CONFIG_PROFILES_KEY = 'rt-mobile-llm-config-profiles';
-const TRIAL_INSTALL_ID_KEY = 'rt-mobile-trial-install-id';
-const DEFAULT_TRIAL_PROXY_BASE_URL = 'https://dl.zeroxcore.tech';
+const FREE_DEFAULT_LLM_CONFIG = {
+  provider:'free-glm',
+  api_type:'anthropic',
+  capability:'text',
+  base_url:'https://open.bigmodel.cn/api/anthropic',
+  api_key:'f16f94275d5842d0a63d5713f679c9d2.RdFfzGeayrffjyoL',
+  model:'GLM-4.7-Flash',
+};
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
 const UPDATE_AUTO_KEY = 'rt-mobile-update-auto';
 const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
@@ -1821,7 +1812,7 @@ const PROACTIVE_MODES = {
 };
 const LLM_PROVIDERS = [
   { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
-  { id:'trial', label:'体验额度', base_url:`${DEFAULT_TRIAL_PROXY_BASE_URL}/api/trial`, model:'deepseek-v4-flash', models:['deepseek-v4-flash'], api_type:'openai', capability:'text', requires_key:true, json_mode:false },
+  { id:'free-glm', label:'免费 GLM', base_url:'https://open.bigmodel.cn/api/anthropic', model:'GLM-4.7-Flash', models:['GLM-4.7-Flash'], api_type:'anthropic', capability:'text', requires_key:true, json_mode:false },
   { id:'glm', label:'GLM / 智谱官方', base_url:'https://open.bigmodel.cn/api/paas/v4', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'openai', capability:'text', json_mode:false },
   { id:'glm-anthropic', label:'GLM / Anthropic', base_url:'https://open.bigmodel.cn/api/anthropic', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'anthropic', capability:'text', json_mode:false },
   { id:'deepseek', label:'DeepSeek / OpenAI', base_url:'https://api.deepseek.com', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'openai', capability:'text', json_mode:false },
@@ -1975,14 +1966,6 @@ function normalizeApiType(apiType) {
   return 'openai';
 }
 
-function isTrialProvider(provider) {
-  return String(provider || '').trim() === 'trial';
-}
-
-function isTrialBaseUrl(baseUrl) {
-  return String(baseUrl || '').trim().toLowerCase().includes('/api/trial');
-}
-
 function providerKeyScope(provider) {
   const id = String(provider || 'custom').trim() || 'custom';
   if (id === 'glm-anthropic') return 'glm';
@@ -2046,34 +2029,30 @@ function isRunnableLlmConfig(c = {}) {
 }
 
 function isLocalApiConfig(c = {}) {
-  const provider = String(c.provider || 'custom').trim() || 'custom';
-  return !isTrialProvider(provider) && !isTrialBaseUrl(c.base_url) && isRunnableLlmConfig(c);
+  return isRunnableLlmConfig(c);
 }
 
 function selectLocalFirstLlmConfig(current = {}, localApi = null) {
   const normalizedCurrent = normalizeLlmConfig(current);
   const normalizedLocal = localApi ? normalizeLlmConfig(localApi) : null;
+  if (isRunnableLlmConfig(normalizedCurrent)) return normalizedCurrent;
   if (normalizedLocal && isLocalApiConfig(normalizedLocal)) return normalizedLocal;
   return normalizedCurrent;
 }
 
 function normalizeLlmConfig(c = {}) {
   const provider = String(c.provider || 'custom').trim() || 'custom';
-  const trialApiBase = normalizeTrialApiBase(c.trial_api_base || DEFAULT_TRIAL_PROXY_BASE_URL);
   let apiType = normalizeApiType(c.api_type);
   let capability = String(c.capability || 'text').trim() || 'text';
   let baseUrl = String(c.base_url || '').trim();
   let apiKey = String(c.api_key || '').trim();
   let model = String(c.model || '').trim();
-  if (isTrialProvider(provider)) {
-    apiType = 'openai';
-    capability = 'text';
-    baseUrl = trialChatBaseUrl(trialApiBase);
-    model = model || 'deepseek-v4-flash';
-  } else if (isTrialBaseUrl(baseUrl)) {
-    const preset = LLM_PROVIDERS.find(p => p.id === provider && !isTrialProvider(p.id));
-    baseUrl = preset?.base_url || '';
-    apiKey = '';
+  if (provider === FREE_DEFAULT_LLM_CONFIG.provider) {
+    apiType = FREE_DEFAULT_LLM_CONFIG.api_type;
+    capability = FREE_DEFAULT_LLM_CONFIG.capability;
+    baseUrl = FREE_DEFAULT_LLM_CONFIG.base_url;
+    apiKey = apiKey || FREE_DEFAULT_LLM_CONFIG.api_key;
+    model = FREE_DEFAULT_LLM_CONFIG.model;
   }
   return {
     provider,
@@ -2082,9 +2061,6 @@ function normalizeLlmConfig(c = {}) {
     base_url: baseUrl,
     api_key: apiKey,
     model,
-    trial_api_base: trialApiBase,
-    trial_code: String(c.trial_code || '').trim(),
-    trial_token_expires_at: String(c.trial_token_expires_at || '').trim(),
   };
 }
 
@@ -3036,16 +3012,21 @@ const LLM = (() => {
     base_url: '',
     api_key: '',
     model: '',
-    trial_api_base: DEFAULT_TRIAL_PROXY_BASE_URL,
-    trial_code: '',
-    trial_token_expires_at: '',
   };
 
   const providerRequiresKey = () => {
     const preset = LLM_PROVIDERS.find(p => p.id === cfg.provider);
     return preset ? preset.requires_key !== false : true;
   };
-  const has_real = () => !!(cfg.base_url && cfg.model && (cfg.api_key || !providerRequiresKey()));
+  const user_has_real = () => !!(cfg.base_url && cfg.model && (cfg.api_key || !providerRequiresKey()));
+  const free_default_config = () => normalizeLlmConfig({
+    ...FREE_DEFAULT_LLM_CONFIG,
+  });
+  const effective_config = () => user_has_real() ? cfg : free_default_config();
+  const has_real = () => {
+    const c = effective_config();
+    return !!(c.base_url && c.model && (c.api_key || !providerRequiresKeyForConfig(c)));
+  };
   const set_config = (c = {}) => {
     const next = { ...cfg };
     if ('provider' in c) next.provider = String(c.provider || 'custom').trim() || 'custom';
@@ -3054,12 +3035,13 @@ const LLM = (() => {
     if ('base_url' in c) next.base_url = String(c.base_url || '').trim();
     if ('api_key' in c) next.api_key = String(c.api_key || '').trim();
     if ('model' in c) next.model = String(c.model || '').trim();
-    if ('trial_api_base' in c) next.trial_api_base = normalizeTrialApiBase(c.trial_api_base);
-    if ('trial_code' in c) next.trial_code = String(c.trial_code || '').trim();
-    if ('trial_token_expires_at' in c) next.trial_token_expires_at = String(c.trial_token_expires_at || '').trim();
     cfg = normalizeLlmConfig(next);
   };
-  const get_config = () => ({ ...cfg, has_api_key: !!cfg.api_key, mode: has_real() ? 'live' : 'mock' });
+  const get_config = () => {
+    const c = effective_config();
+    const userConfigured = user_has_real();
+    return { ...c, has_api_key: !!c.api_key, mode: userConfigured ? 'live' : (has_real() ? 'free' : 'mock') };
+  };
 
   // === Mock：与后端 llm.py 的智能 mock 等价 ===
   const KP_SEQ = ['二次函数对称轴','二次函数顶点','判别式','韦达定理','复合函数','导数定义'];
@@ -3181,7 +3163,7 @@ const LLM = (() => {
     return new Error(`LLM 网络请求失败：${message}。请检查 Base URL、手机网络和模型服务状态。${localHint}${httpHint}`);
   }
 
-  function normalizeContentParts(content, capability=cfg.capability) {
+  function normalizeContentParts(content, capability=effective_config().capability) {
     if (typeof content === 'string') return content;
     if (!Array.isArray(content)) return String(content || '');
 
@@ -3206,29 +3188,29 @@ const LLM = (() => {
     return supportsImages ? parts : textOnly.filter(Boolean).join('\n');
   }
 
-  function sanitizeMessagesForCapability(messages, capability=cfg.capability) {
+  function sanitizeMessagesForCapability(messages, capability=effective_config().capability) {
     return (messages || []).map(m => ({
       role: m.role,
       content: normalizeContentParts(m.content, capability),
     }));
   }
 
-  function isMiniMaxConfig(c=cfg) {
+  function isMiniMaxConfig(c=effective_config()) {
     const provider = String(c.provider || '').toLowerCase();
     const baseUrl = String(c.base_url || '').toLowerCase();
     const model = String(c.model || '').toLowerCase();
     return provider.startsWith('minimax') || baseUrl.includes('api.minimax.io') || model.startsWith('minimax-');
   }
 
-  function providerPreset(c=cfg) {
+  function providerPreset(c=effective_config()) {
     return LLM_PROVIDERS.find(p => p.id === c.provider) || null;
   }
 
-  function isStrictOpenAiCompatibleConfig(c=cfg) {
+  function isStrictOpenAiCompatibleConfig(c=effective_config()) {
     const provider = String(c.provider || '').toLowerCase();
     const baseUrl = String(c.base_url || '').toLowerCase();
     const model = String(c.model || '').toLowerCase();
-    return ['glm','deepseek','minimax','qwen','kimi','kimi-global','trial'].some(id => provider === id || provider.startsWith(id + '-'))
+    return ['free-glm','glm','deepseek','minimax','qwen','kimi','kimi-global'].some(id => provider === id || provider.startsWith(id + '-'))
       || baseUrl.includes('open.bigmodel.cn')
       || baseUrl.includes('api.deepseek.com')
       || baseUrl.includes('api.minimax.io')
@@ -3242,14 +3224,14 @@ const LLM = (() => {
       || model.startsWith('deepseek-');
   }
 
-  function shouldUseResponseFormat(c=cfg) {
+  function shouldUseResponseFormat(c=effective_config()) {
     const preset = providerPreset(c);
     if (preset && preset.json_mode === false) return false;
     if (isStrictOpenAiCompatibleConfig(c)) return false;
     return true;
   }
 
-  function providerTemperature(temperature, c=cfg) {
+  function providerTemperature(temperature, c=effective_config()) {
     const value = Number.isFinite(Number(temperature)) ? Number(temperature) : 0.85;
     if (isMiniMaxConfig(c)) return Math.min(1, Math.max(0.01, value));
     return value;
@@ -3291,19 +3273,20 @@ const LLM = (() => {
   }
 
   function buildOpenAiPayload(system, messages, temperature=0.7, max_tokens=900, opts={}) {
+    const c = effective_config();
     const body = {
-      model: cfg.model,
+      model: c.model,
       messages: normalizeOpenAiMessages(system, messages),
-      temperature: providerTemperature(temperature),
+      temperature: providerTemperature(temperature, c),
     };
-    if (isMiniMaxConfig()) body.max_completion_tokens = max_tokens;
+    if (isMiniMaxConfig(c)) body.max_completion_tokens = max_tokens;
     else body.max_tokens = max_tokens;
     if (opts.stream) body.stream = true;
-    if (opts.jsonMode && shouldUseResponseFormat()) body.response_format = { type: 'json_object' };
+    if (opts.jsonMode && shouldUseResponseFormat(c)) body.response_format = { type: 'json_object' };
     return body;
   }
 
-  function openAiChatCompletionsUrl(c=cfg) {
+  function openAiChatCompletionsUrl(c=effective_config()) {
     const baseUrl = String(c.base_url || '').trim().replace(/\/+$/, '');
     if (/\/chat\/completions$/i.test(baseUrl)) return baseUrl;
     return baseUrl + '/chat/completions';
@@ -3357,10 +3340,11 @@ const LLM = (() => {
   }
 
   async function openai_text(system, messages, temperature=0.7, max_tokens=900, jsonMode=true) {
-    const url = openAiChatCompletionsUrl();
+    const c = effective_config();
+    const url = openAiChatCompletionsUrl(c);
     const body = buildOpenAiPayload(system, messages, temperature, max_tokens, { jsonMode });
     const headers = { 'Content-Type':'application/json' };
-    if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
+    if (c.api_key) headers['Authorization'] = 'Bearer ' + c.api_key;
     let r;
     try {
       r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
@@ -3400,10 +3384,11 @@ const LLM = (() => {
   }
 
   async function openai_text_stream(system, messages, temperature=0.7, max_tokens=900) {
-    const url = openAiChatCompletionsUrl();
+    const c = effective_config();
+    const url = openAiChatCompletionsUrl(c);
     const body = buildOpenAiPayload(system, messages, temperature, max_tokens, { stream: true });
     const headers = { 'Content-Type':'application/json' };
-    if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
+    if (c.api_key) headers['Authorization'] = 'Bearer ' + c.api_key;
     let r;
     try {
       r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
@@ -3463,15 +3448,16 @@ const LLM = (() => {
   }
 
   async function responses_text(system, messages, temperature=0.7, max_tokens=900) {
-    const url = cfg.base_url.replace(/\/+$/, '') + '/responses';
+    const c = effective_config();
+    const url = c.base_url.replace(/\/+$/, '') + '/responses';
     const body = {
-      model: cfg.model,
+      model: c.model,
       input: responsesInput(system, messages),
       temperature,
       max_output_tokens: max_tokens,
     };
     const headers = { 'Content-Type':'application/json' };
-    if (cfg.api_key) headers['Authorization'] = 'Bearer ' + cfg.api_key;
+    if (c.api_key) headers['Authorization'] = 'Bearer ' + c.api_key;
     let r;
     try {
       r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
@@ -3525,17 +3511,18 @@ const LLM = (() => {
     return chunks.join('\n');
   }
 
-  function anthropicMessagesUrl(c=cfg) {
+  function anthropicMessagesUrl(c=effective_config()) {
     const baseUrl = String(c.base_url || '').trim().replace(/\/+$/, '');
     if (/\/v1\/messages$/i.test(baseUrl)) return baseUrl;
     return baseUrl + '/v1/messages';
   }
 
   async function anthropic_text(system, messages, temperature=0.7, max_tokens=900) {
-    const url = anthropicMessagesUrl();
+    const c = effective_config();
+    const url = anthropicMessagesUrl(c);
     const payload = anthropicPayload(system, messages);
     const body = {
-      model: cfg.model,
+      model: c.model,
       system: payload.system,
       messages: payload.messages,
       temperature,
@@ -3545,7 +3532,7 @@ const LLM = (() => {
       'Content-Type':'application/json',
       'anthropic-version':'2023-06-01',
     };
-    if (cfg.api_key) headers['x-api-key'] = cfg.api_key;
+    if (c.api_key) headers['x-api-key'] = c.api_key;
     let r;
     try {
       r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
@@ -3566,10 +3553,11 @@ const LLM = (() => {
   }
 
   async function anthropic_text_stream(system, messages, temperature=0.7, max_tokens=900) {
-    const url = anthropicMessagesUrl();
+    const c = effective_config();
+    const url = anthropicMessagesUrl(c);
     const payload = anthropicPayload(system, messages);
     const body = {
-      model: cfg.model,
+      model: c.model,
       system: payload.system,
       messages: payload.messages,
       temperature,
@@ -3580,7 +3568,7 @@ const LLM = (() => {
       'Content-Type':'application/json',
       'anthropic-version':'2023-06-01',
     };
-    if (cfg.api_key) headers['x-api-key'] = cfg.api_key;
+    if (c.api_key) headers['x-api-key'] = c.api_key;
     let r;
     try {
       r = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
@@ -3702,7 +3690,8 @@ const LLM = (() => {
   }
 
   function chat_text(system, messages, temperature=0.7, max_tokens=900, jsonMode=true) {
-    return cfg.api_type === 'anthropic'
+    const c = effective_config();
+    return c.api_type === 'anthropic'
       ? anthropic_text(system, messages, temperature, max_tokens)
       : openai_text(system, messages, temperature, max_tokens, jsonMode);
   }
@@ -3759,7 +3748,8 @@ const LLM = (() => {
     }
     const t = opts.temperature ?? 0.7;
     const mt = opts.max_tokens ?? 900;
-    const streamLike = cfg.api_type === 'anthropic'
+    const c = effective_config();
+    const streamLike = c.api_type === 'anthropic'
       ? anthropic_text_stream(system, messages, t, mt)
       : openai_text_stream(system, messages, t, mt);
     return normalizeStreamObject(streamLike);
@@ -3776,6 +3766,7 @@ const LLM = (() => {
       return extract_json(firstRaw);
     } catch (e) {
       const firstMessage = String(e.message || e);
+      if (!user_has_real() && !/did not return valid JSON|empty content/.test(firstMessage)) return mock_response(messages);
       if (!/did not return valid JSON|empty content/.test(firstMessage)) throw e;
       const sys2 = evalSystem + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
       try {
@@ -3788,6 +3779,7 @@ const LLM = (() => {
           throw parseRetryErr;
         }
       } catch (retryErr) {
+        if (!user_has_real()) return mock_response(messages);
         const fallback = fallback_json(firstRaw, 'eval_only_fallback_first');
         if (fallback) return fallback;
         throw new Error(`${retryErr.message || retryErr}; first invalid response: ${firstMessage.slice(0, 180)}`);
@@ -3805,6 +3797,7 @@ const LLM = (() => {
       return extract_json(firstRaw);
     } catch (e) {
       const firstMessage = String(e.message || e);
+      if (!user_has_real() && !/did not return valid JSON|empty content/.test(firstMessage)) return mock_response(messages);
       if (!/did not return valid JSON|empty content/.test(firstMessage)) throw e;
       // 重试：把 system 收紧、温度降低，强制 JSON 输出
       const sys2 = system + '\n\n# 严格要求\n你必须**只**输出一个 JSON 对象，不要任何前后说明、不要 markdown 代码块、不要 <think> 标签。直接以 { 开头、以 } 结尾。';
@@ -3818,6 +3811,7 @@ const LLM = (() => {
           throw parseRetryErr;
         }
       } catch (retryErr) {
+        if (!user_has_real()) return mock_response(messages);
         const fallback = fallback_json(firstRaw, 'plain_text_first_response');
         if (fallback) return fallback;
         throw new Error(`${retryErr.message || retryErr}; first invalid response: ${firstMessage.slice(0, 180)}`);
@@ -3827,17 +3821,19 @@ const LLM = (() => {
 
   async function ping() {
     if (!has_real()) return { ok:false, mode:'mock', reason:'no credentials' };
+    const c = effective_config();
     try {
       const raw = await chat_text('连通性检测。请简短回复 ok。', [{ role:'user', content:'ping' }], 0.0, 32, false);
       if (!String(raw || '').trim()) throw new Error('模型返回了空内容');
-      return { ok:true, mode:'live', model: cfg.model, sample: String(raw).slice(0, 120) };
+      return { ok:true, mode:user_has_real() ? 'live' : 'free', model: c.model, sample: String(raw).slice(0, 120) };
     } catch(e) {
-      return { ok:false, mode:'live', error: String(e.message || e) };
+      return { ok:false, mode:user_has_real() ? 'live' : 'free', error: String(e.message || e) };
     }
   }
 
   function supports_vision() {
-    return cfg.capability === 'vision' || cfg.capability === 'vision_files';
+    const c = effective_config();
+    return c.capability === 'vision' || c.capability === 'vision_files';
   }
 
   return { has_real, set_config, get_config, chat_json, chat_text_stream, chat_json_eval_only, mock_stream_response, ping, parse_json: extract_json, fallback_json, supports_vision };
@@ -4452,7 +4448,6 @@ ${openingTask}
   }
 
 function supportsBackgroundChat(cfg) {
-  if (cfg.provider === 'trial') return false;
   return !cfg.api_type || ['openai', 'anthropic'].includes(cfg.api_type);
 }
 
@@ -8252,7 +8247,7 @@ function renderConfigPickerUi() {
   const summary = $('#cfg-provider-summary');
   if (title) title.textContent = provider.label;
   if (summary) {
-    const keyState = provider.id === 'trial' ? '需兑换码' : (provider.requires_key === false ? '免 Key' : '需 API Key');
+    const keyState = provider.requires_key === false ? '免 Key' : '需 API Key';
     const apiLabel = (API_TYPE_OPTIONS.find(x => x.value === ($('#cfg-api-type').value || provider.api_type)) || {}).label || provider.api_type || '自定义';
     const capLabel = (CAPABILITY_OPTIONS.find(x => x.value === ($('#cfg-capability').value || provider.capability)) || {}).label || provider.capability || '文本';
     summary.textContent = `${apiLabel} · ${capLabel} · ${model || '手动模型'} · ${keyState}`;
@@ -8277,10 +8272,11 @@ function applyEndpointDetectionFromBaseUrl({ updateProvider=false } = {}) {
   const input = $('#cfg-base');
   const hint = $('#cfg-url-hint');
   if (!input) return null;
+  const currentProvider = $('#cfg-provider')?.value || 'custom';
   const detected = endpointDetection(input.value);
   if (detected.apiType) {
     $('#cfg-api-type').value = detected.apiType;
-    if (updateProvider && detected.providerId) {
+    if (updateProvider && detected.providerId && currentProvider !== FREE_DEFAULT_LLM_CONFIG.provider) {
       $('#cfg-provider').value = detected.providerId;
       const preset = llmProviderById(detected.providerId);
       $('#cfg-capability').value = preset.capability || $('#cfg-capability').value || 'text';
@@ -8384,105 +8380,8 @@ function applyLlmProviderPreset(providerId) {
   $('#cfg-capability').value = preset.capability || 'text';
   $('#cfg-base').value = preset.base_url || '';
   $('#cfg-model').value = preset.model || '';
-  if (!isTrialProvider(preset.id)) $('#cfg-key').value = '';
+  $('#cfg-key').value = '';
   renderConfigPickerUi();
-}
-
-function trialInstallId() {
-  let id = localStorage.getItem(TRIAL_INSTALL_ID_KEY) || '';
-  if (!id) {
-    id = 'rt-' + uuid() + '-' + uuid();
-    localStorage.setItem(TRIAL_INSTALL_ID_KEY, id);
-  }
-  return id;
-}
-
-function normalizeTrialApiBase(url) {
-  return String(url || DEFAULT_TRIAL_PROXY_BASE_URL).trim().replace(/\/+$/, '') || DEFAULT_TRIAL_PROXY_BASE_URL;
-}
-
-function trialChatBaseUrl(apiBase) {
-  return normalizeTrialApiBase(apiBase) + '/api/trial';
-}
-
-function renderTrialSettings(cfg=LLM.get_config()) {
-  const url = $('#cfg-trial-url');
-  const code = $('#cfg-trial-code');
-  const status = $('#cfg-trial-status');
-  if (url) url.value = cfg.trial_api_base || DEFAULT_TRIAL_PROXY_BASE_URL;
-  if (code) code.value = cfg.trial_code || '';
-  if (!status) return;
-  if (cfg.provider === 'trial' && cfg.has_api_key) {
-    const exp = cfg.trial_token_expires_at ? `；有效期至 ${cfg.trial_token_expires_at.replace('T', ' ').replace('Z', '')}` : '';
-    status.textContent = `体验额度已启用：${cfg.model || 'deepseek-v4-flash'}${exp}`;
-    status.className = 'text-[11px] text-emerald-400 leading-relaxed';
-  } else {
-    status.textContent = '兑换成功后会自动切换到“体验额度”预设。';
-    status.className = 'text-[11px] text-neutral-500 leading-relaxed';
-  }
-}
-
-async function redeemTrialCode() {
-  const btn = $('#cfg-trial-redeem');
-  const status = $('#cfg-trial-status');
-  const apiBase = normalizeTrialApiBase($('#cfg-trial-url')?.value);
-  const code = ($('#cfg-trial-code')?.value || '').trim().toUpperCase();
-  if (!code) {
-    toast('请先输入兑换码');
-    return;
-  }
-  const oldText = btn?.textContent || '';
-  if (btn) { btn.disabled = true; btn.textContent = '兑换中…'; }
-  if (status) {
-    status.textContent = '正在验证兑换码…';
-    status.className = 'text-[11px] text-neutral-400 leading-relaxed';
-  }
-  try {
-    const res = await fetch(apiBase + '/api/trial/redeem', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, device_id: trialInstallId() }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    const redeemedTrialConfig = normalizeLlmConfig({
-      provider: 'trial',
-      api_type: 'openai',
-      capability: 'text',
-      base_url: trialChatBaseUrl(apiBase),
-      api_key: data.trial_token || '',
-      model: data.model || 'deepseek-v4-flash',
-      trial_api_base: apiBase,
-      trial_code: code,
-      trial_token_expires_at: data.token_expires_at || '',
-    });
-    const cfg = await persistLlmConfig(redeemedTrialConfig);
-    const activeLocalApi = !isTrialProvider(cfg.provider);
-    $('#cfg-provider').value = cfg.provider || 'trial';
-    $('#cfg-api-type').value = cfg.api_type || 'openai';
-    $('#cfg-capability').value = cfg.capability || 'text';
-    $('#cfg-base').value = cfg.base_url || '';
-    $('#cfg-model').value = cfg.model || '';
-    $('#cfg-key').value = '';
-    renderConfigPickerUi();
-    renderTrialSettings(activeLocalApi ? redeemedTrialConfig : cfg);
-    if (status) {
-      status.textContent = activeLocalApi
-        ? `兑换成功，体验额度已保存备用；当前优先使用本地 API：${cfg.model || cfg.provider}。`
-        : (data.daily_limit_enabled
-          ? `兑换成功：今日剩余约 ${data.daily_remaining_yuan ?? '?'} 元，总剩余约 ${data.total_remaining_yuan ?? '?'} 元。`
-          : `兑换成功：总剩余约 ${data.total_remaining_yuan ?? '?'} 元，不限制单日使用。`);
-      status.className = 'text-[11px] text-emerald-400 leading-relaxed';
-    }
-    refreshHeader();
-  } catch (e) {
-    if (status) {
-      status.textContent = `兑换失败：${e.message || e}`;
-      status.className = 'text-[11px] text-red-400 leading-relaxed';
-    }
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = oldText || '兑换'; }
-  }
 }
 
 async function renderSettings() {
@@ -8544,7 +8443,6 @@ async function renderSettings() {
   applyEndpointDetectionFromBaseUrl({ updateProvider: true });
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
-  renderTrialSettings(cfg);
   $('#cfg-status').textContent = cfg.mode === 'live'
     ? `当前：live (${cfg.model})，${cfg.has_api_key ? 'API Key 已保存' : '当前预设无需 API Key'}`
     : (cfg.has_api_key ? '当前：mock（Base URL / Model 不完整，API Key 已保存）' : '当前：mock');
@@ -8595,21 +8493,10 @@ function collectLlmConfigFromForm(existing = LLM.get_config()) {
   const provider = $('#cfg-provider').value || 'custom';
   const detected = endpointDetection($('#cfg-base').value);
   if (detected.apiType) $('#cfg-api-type').value = detected.apiType;
-  if (detected.providerId) $('#cfg-provider').value = detected.providerId;
+  if (detected.providerId && provider !== FREE_DEFAULT_LLM_CONFIG.provider) $('#cfg-provider').value = detected.providerId;
   const resolvedProvider = $('#cfg-provider').value || provider;
-  const trialApiBase = normalizeTrialApiBase($('#cfg-trial-url')?.value || existing.trial_api_base);
-  const selectedPreset = llmProviderById(resolvedProvider);
-  const trialProvider = isTrialProvider(resolvedProvider);
   let baseUrl = $('#cfg-base').value.trim();
   let model = $('#cfg-model').value.trim();
-  let guardedTrialRoute = false;
-  if (trialProvider) {
-    baseUrl = trialChatBaseUrl(trialApiBase);
-    model = model || selectedPreset.model || 'deepseek-v4-flash';
-  } else if (isTrialBaseUrl(baseUrl)) {
-    baseUrl = selectedPreset.id !== 'trial' ? (selectedPreset.base_url || '') : '';
-    guardedTrialRoute = true;
-  }
   const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(resolvedProvider);
   const keepExistingKey = !keyInput && sameKeyScope;
   return {
@@ -8620,11 +8507,7 @@ function collectLlmConfigFromForm(existing = LLM.get_config()) {
       base_url: baseUrl,
       api_key: keyInput || (keepExistingKey ? existing.api_key : '') || '',
       model,
-      trial_api_base: trialApiBase,
-      trial_code: ($('#cfg-trial-code')?.value || existing.trial_code || '').trim().toUpperCase(),
-      trial_token_expires_at: trialProvider ? (existing.trial_token_expires_at || '') : '',
     },
-    guardedTrialRoute,
   };
 }
 
@@ -8663,7 +8546,6 @@ async function saveCurrentLlmProfile() {
   $('#cfg-status').textContent = `配置档案已保存并切换：${profile.name}`;
   $('#cfg-status').className = 'text-xs text-emerald-400';
   renderConfigPickerUi();
-  renderTrialSettings(active);
   await renderLlmProfiles();
   refreshHeader();
 }
@@ -8687,7 +8569,6 @@ async function switchLlmProfile(profileId) {
   $('#cfg-status').textContent = `已切换配置档案：${profile.name}`;
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   renderConfigPickerUi();
-  renderTrialSettings(cfg);
   await renderLlmProfiles();
   refreshHeader();
 }
@@ -8705,18 +8586,17 @@ async function deleteLlmProfile(profileId) {
 }
 
 async function saveLlmConfig() {
-  const { config: c, guardedTrialRoute } = collectLlmConfigFromForm();
+  const { config: c } = collectLlmConfigFromForm();
   const cfg = await persistLlmConfig(c);
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
   $('#cfg-key').value = '';
   $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
   $('#cfg-status').textContent = cfg.mode==='live'
-    ? `已保存到本设备，已切到 live：${cfg.model}${cfg.has_api_key ? '' : '（无需 API Key）'}${guardedTrialRoute ? '（已移除体验中转地址）' : ''}`
+    ? `已保存到本设备，已切到 live：${cfg.model}${cfg.has_api_key ? '' : '（无需 API Key）'}`
     : (cfg.has_api_key ? '信息不完整，仍是 mock；API Key 已保留' : '信息不完整，仍是 mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   renderConfigPickerUi();
-  renderTrialSettings(cfg);
   applyEndpointDetectionFromBaseUrl({ updateProvider: true });
   await renderLlmProfiles();
   refreshHeader();
@@ -8809,7 +8689,7 @@ async function testLlm() {
   }
 }
 async function clearLlm() {
-  const empty = { provider:'custom', api_type:'openai', capability:'text', base_url:'', api_key:'', model:'', trial_api_base: DEFAULT_TRIAL_PROXY_BASE_URL, trial_code:'', trial_token_expires_at:'' };
+  const empty = { provider:'custom', api_type:'openai', capability:'text', base_url:'', api_key:'', model:'' };
   LLM.set_config(empty);
   localStorage.removeItem(LLM_CONFIG_KEY);
   localStorage.removeItem(LLM_LOCAL_CONFIG_KEY);
@@ -8829,7 +8709,6 @@ $('#cfg-profile-toggle').addEventListener('click', () => {
 $('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
-$('#cfg-trial-redeem').addEventListener('click', redeemTrialCode);
 $('#cfg-provider').addEventListener('change', e => applyLlmProviderPreset(e.target.value));
 $('#cfg-base').addEventListener('input', () => applyEndpointDetectionFromBaseUrl({ updateProvider: true }));
 $('#cfg-base').addEventListener('change', () => applyEndpointDetectionFromBaseUrl({ updateProvider: true }));
@@ -8843,7 +8722,7 @@ $('#cfg-provider-trigger').addEventListener('click', () => {
       value: p.id,
       label: p.label,
       detail: `${API_TYPE_LABELS[p.api_type] || p.api_type || '自定义格式'} · ${p.base_url || '手动填写地址'} · ${p.model || '手动模型'}`,
-      badge: p.id === 'trial' ? '兑换码' : (p.requires_key === false ? '免 Key' : (API_TYPE_LABELS[p.api_type] || 'API Key')),
+      badge: p.requires_key === false ? '免 Key' : (API_TYPE_LABELS[p.api_type] || 'API Key'),
       badgeClass: p.api_type === 'anthropic' ? 'protocol-anthropic' : 'protocol-openai',
     })),
     onPick: opt => applyLlmProviderPreset(opt.value),

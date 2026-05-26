@@ -139,39 +139,6 @@ class Binding(Base):
             return {}
 
 
-class TrialCode(Base):
-    """体验兑换码：绑定一台设备，通过服务端代理消耗受控额度。"""
-    __tablename__ = "trial_codes"
-    code = Column(String, primary_key=True)
-    device_id = Column(String, nullable=True, index=True)
-    token_hash = Column(String, nullable=True, index=True)
-    token_expires_at = Column(DateTime, nullable=True)
-    total_quota_micro_cny = Column(Integer, default=500_000)
-    daily_quota_micro_cny = Column(Integer, default=0)
-    used_total_micro_cny = Column(Integer, default=0)
-    used_today_micro_cny = Column(Integer, default=0)
-    used_today_date = Column(String, default="")
-    request_count = Column(Integer, default=0)
-    active = Column(Integer, default=1)
-    note = Column(String, default="")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class TrialUsage(Base):
-    """体验额度请求流水，便于排查异常消耗和后续做风控。"""
-    __tablename__ = "trial_usage"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    code = Column(String, index=True, nullable=False)
-    device_id = Column(String, index=True, nullable=False)
-    model = Column(String, default="")
-    prompt_tokens = Column(Integer, default=0)
-    completion_tokens = Column(Integer, default=0)
-    total_tokens = Column(Integer, default=0)
-    cost_micro_cny = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
 def init_db() -> None:
     Base.metadata.create_all(engine)
 
