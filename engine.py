@@ -25,6 +25,7 @@ from typing import Any
 import db
 import llm
 from kg_extractor import extract_from_turn as _kg_extract
+from kg_retriever import clear_review_pending, mark_review_pending, retrieve_kg_context
 from retrieval import FTSRetriever, Hit, Retriever
 
 # --- 工具白名单 ---------------------------------------------------------------
@@ -405,6 +406,7 @@ def build_system_prompt(
     history_summary: str | None = None,
     due_reviews: list[db.Mastery] | None = None,
     error_logs: list[db.ErrorLog] | None = None,
+    kg_context_text: str = "",
 ) -> str:
     mode = _session_mode(session)
     template = {
@@ -459,6 +461,8 @@ def build_system_prompt(
             "这是软交织提示，不强制打断当前推进；是否带回视用户回复决定。\n"
             "如果用户回复适合，可以用“顺带把【旧知识点】带回来想一下……”这类句式轻量带回旧知识点。\n"
         )
+    if kg_context_text:
+        base += "\n\n" + kg_context_text
     return base
 
 
@@ -1097,6 +1101,14 @@ async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | No
         skip_until_id = int((summary.meta() or {}).get("summarized_until_id", 0))
         summary_text = summary.content
 
+    kg_context_text = ""
+    if mode == "study":
+        try:
+            kg_ctx = retrieve_kg_context(db_sess, sid, user_input[:50])
+            kg_context_text = kg_ctx.format_for_prompt()
+        except Exception:
+            pass
+
     system = build_system_prompt(
         session,
         anchors,
@@ -1104,6 +1116,7 @@ async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | No
         history_summary=summary_text,
         due_reviews=due_reviews,
         error_logs=error_logs,
+        kg_context_text=kg_context_text,
     )
     retrieval_attempted = False
     injected_chunk_ids: set[int] = set()
@@ -1224,6 +1237,13 @@ async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | No
             )
         except Exception:
             pass
+
+    if due_reviews and any(k in user_input for k in ("不想复习", "先不管", "跳过", "以后再说")):
+        for dr in due_reviews:
+            try:
+                mark_review_pending(db_sess, sid, dr.knowledge_point, episode_id=assistant_msg.id)
+            except Exception:
+                pass
 
     db_sess.commit()
 
