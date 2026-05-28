@@ -3,6 +3,7 @@
 ## Unreleased - 2026-05-28
 
 - 板块 9A：新增嵌入式 SQLite 知识图谱数据层，包含 `KGNode` / `KGEdge` schema、CRUD helpers、episode 引用清理、会话级联删除和 memory API 暴露。
+- 板块 9B：新增知识图谱抽取器，支持 mock 规则抽取、live LLM 结构化抽取、旧关系失效，并在每轮学习对话后自动写入图谱。
 
 ## v0.18.0 - 2026-05-27
 

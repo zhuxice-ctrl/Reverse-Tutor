@@ -24,6 +24,7 @@ from typing import Any
 
 import db
 import llm
+from kg_extractor import extract_from_turn as _kg_extract
 from retrieval import FTSRetriever, Hit, Retriever
 
 # --- 工具白名单 ---------------------------------------------------------------
@@ -1211,6 +1212,18 @@ async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | No
         kind = upd.get("kind") or "requirement"
         weight = float(upd.get("weight", 1.0) or 1.0)
         db.add_anchor(db_sess, sid, kind, content, weight=weight)
+
+    if mode == "study":
+        try:
+            await _kg_extract(
+                db_sess,
+                sid,
+                evaluation=evaluation,
+                action=action,
+                episode_id=assistant_msg.id,
+            )
+        except Exception:
+            pass
 
     db_sess.commit()
 
