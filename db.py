@@ -967,6 +967,7 @@ def upsert_kg_node(
             old = row.properties()
             old.update(properties)
             row.properties_json = json.dumps(old, ensure_ascii=False)
+        db.flush()
     if episode_id is not None:
         ids = row.episode_ids()
         if int(episode_id) not in ids:
