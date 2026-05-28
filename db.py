@@ -547,6 +547,34 @@ def list_doc_chunks(db: DbSession, doc_id: int) -> list[DocChunk]:
     return list(db.scalars(stmt))
 
 
+def resolve_cited_chunks(db: DbSession, chunk_ids: list[int]) -> list[dict]:
+    """Resolve cited chunk ids to source descriptors in input order."""
+    out: list[dict] = []
+    for raw_id in chunk_ids or []:
+        try:
+            chunk_id = int(raw_id)
+        except Exception:
+            continue
+        chunk = db.get(DocChunk, chunk_id)
+        if chunk is None:
+            continue
+        doc = db.get(Document, int(chunk.doc_id))
+        if doc is None:
+            continue
+        snippet = " ".join((chunk.content or "").split())
+        if len(snippet) > 160:
+            snippet = snippet[:157].rstrip() + "..."
+        out.append({
+            "chunk_id": int(chunk.id),
+            "doc_id": int(doc.id),
+            "title": doc.title,
+            "source_type": doc.source_type,
+            "source_uri": doc.source_uri,
+            "snippet": snippet,
+        })
+    return out
+
+
 def delete_document(db: DbSession, doc_id: int) -> bool:
     doc = get_document(db, doc_id)
     if doc is None:

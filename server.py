@@ -322,6 +322,8 @@ async def chat(sid: str, req: ChatReq, d: DbSession = Depends(get_db)) -> dict:
         result = await engine.run_turn(d, sid, req.message)
     except llm.LLMError as e:
         raise HTTPException(502, f"LLM error: {e}") from e
+    assistant_msg = _latest_assistant_message(d, sid)
+    cited_sources = _message_cited_sources(d, assistant_msg) if assistant_msg is not None else []
     return {
         "reply": result.reply,
         "evaluation": result.evaluation,
@@ -329,7 +331,16 @@ async def chat(sid: str, req: ChatReq, d: DbSession = Depends(get_db)) -> dict:
         "anchor_updates": result.anchor_updates,
         "process_summary": result.process_summary,
         "evidence_episode_ids": _evidence_episode_ids_for_action(d, sid, result.action),
+        "cited_sources": cited_sources,
     }
+
+
+@app.get("/api/sessions/{sid}/messages/{mid}/sources")
+def message_sources(sid: str, mid: int, d: DbSession = Depends(get_db)) -> dict:
+    msg = d.get(db.Message, mid)
+    if msg is None or msg.session_id != sid or msg.role != "assistant":
+        raise HTTPException(404, "message not found")
+    return {"message_id": mid, "sources": _message_cited_sources(d, msg)}
 
 
 # --- Image extracts ---------------------------------------------------------
@@ -781,6 +792,19 @@ def _serialize_message(m: db.Message) -> dict:
         "id": m.id, "role": m.role, "content": m.content,
         "meta": m.meta(), "created_at": m.created_at.isoformat() + "Z",
     }
+
+
+def _latest_assistant_message(d: DbSession, sid: str) -> db.Message | None:
+    assistants = [m for m in db.list_messages(d, sid, limit=500) if m.role == "assistant"]
+    return assistants[-1] if assistants else None
+
+
+def _message_cited_sources(d: DbSession, msg: db.Message) -> list[dict]:
+    meta = msg.meta()
+    raw_ids = meta.get("cited_chunk_ids") if isinstance(meta, dict) else []
+    if not isinstance(raw_ids, list):
+        return []
+    return db.resolve_cited_chunks(d, raw_ids)
 
 
 def _serialize_error_log(d: DbSession, e: db.ErrorLog, *, include_episodes: bool) -> dict:

@@ -332,6 +332,30 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+  .cited-sources {
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid var(--glass-line);
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+  .cited-sources-title {
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .cited-sources ul {
+    display: grid;
+    gap: 4px;
+  }
+  .cited-sources a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .cited-source-snippet {
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
   .quote-preview {
     margin-bottom: 8px;
     border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
@@ -4063,6 +4087,7 @@ const ENGINE = (() => {
     privacy_level: 'standard',
     scaffold_intensity: 3,
     image_retention_days: 0,
+    web_search_enabled: false,
   };
 
   function inferConversationMode(session) {
@@ -5734,6 +5759,28 @@ function renderProcessSummary(meta={}, action={}, evaluation={}) {
     </details>`;
 }
 
+function renderCitedSources(message={}, meta={}) {
+  const sources = Array.isArray(message?.cited_sources)
+    ? message.cited_sources
+    : (Array.isArray(meta?.cited_sources) ? meta.cited_sources : []);
+  const rows = sources.filter(s => s && (s.title || s.snippet || s.source_uri));
+  if (!rows.length) return '';
+  return `
+    <div class="cited-sources">
+      <div class="cited-sources-title">来源 / Sources</div>
+      <ul>
+        ${rows.map(s => {
+          const title = esc(s.title || s.source_uri || 'Source');
+          const uri = String(s.source_uri || '').trim();
+          const titleHtml = uri
+            ? `<a href="${esc(uri)}" target="_blank" rel="noopener noreferrer">${title}</a>`
+            : `<span>${title}</span>`;
+          return `<li>${titleHtml}<div class="cited-source-snippet">${esc(s.snippet || '')}</div></li>`;
+        }).join('')}
+      </ul>
+    </div>`;
+}
+
 // --- Chat ---
 async function renderChat() {
   const chat = $('#chat');
@@ -5830,6 +5877,7 @@ async function renderChat() {
             <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
             ${queuedState}
             ${meta}
+            ${!isUser && messageIndex === 0 ? renderCitedSources(m, msgMeta) : ''}
             ${!isUser && messageIndex === 0 ? renderProcessSummary(msgMeta, a, ev) : ''}
             ${failedActions}
           </div>

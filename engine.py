@@ -25,9 +25,10 @@ from typing import Any
 import db
 import kg_gate
 import llm
+import websearch
 from kg_extractor import extract_from_turn as _kg_extract
 from kg_retriever import clear_review_pending, mark_review_pending, retrieve_kg_context
-from retrieval import FTSRetriever, Hit, Retriever
+from retrieval import FTSRetriever, Hit, Retriever, make_default_retriever
 
 # --- 工具白名单 ---------------------------------------------------------------
 
@@ -82,6 +83,7 @@ DEFAULT_STRATEGY_SETTINGS = {
     "scaffold_intensity": 3,
     "kg_extraction_enabled": True,
     "kg_blacklist": [],
+    "web_search_enabled": False,
 }
 
 # --- System Prompt 模板 -------------------------------------------------------
@@ -1078,7 +1080,13 @@ async def run_opening_turn(db_sess, sid: str) -> TurnResult:
     )
 
 
-async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | None = None) -> TurnResult:
+async def run_turn(
+    db_sess,
+    sid: str,
+    user_input: str,
+    retriever: Retriever | None = None,
+    web_search: websearch.WebSearchProvider | None = None,
+) -> TurnResult:
     """执行一轮：评估 → 决策 → 行动。"""
     session = db.get_session(db_sess, sid)
     if session is None:
@@ -1123,13 +1131,54 @@ async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | No
     )
     retrieval_attempted = False
     injected_chunk_ids: set[int] = set()
+    active_retriever = retriever or make_default_retriever(db_sess)
     if mode == "study" and _should_inject_clue_retrieval(user_input, masteries):
         retrieval_attempted = True
-        active_retriever = retriever or FTSRetriever(db_sess)
         hits = active_retriever.search(user_input[:200], session_id=sid, top_k=3)
         if hits:
             injected_chunk_ids = {int(h.chunk_id) for h in hits}
             system += "\n\n" + _format_citable_clues(hits)
+    if (
+        mode == "study"
+        and retrieval_attempted
+        and not injected_chunk_ids
+        and bool(settings.get("web_search_enabled"))
+    ):
+        try:
+            provider = web_search or websearch.get_web_search_provider()
+            web_hits = provider.search(user_input[:200], top_k=3)
+            imported_hits: list[Hit] = []
+            for hit in web_hits:
+                content = (hit.snippet or "").strip()
+                if not content:
+                    continue
+                doc = db.add_document(
+                    db_sess,
+                    session_id=sid,
+                    title=hit.title or hit.url or "Web source",
+                    source_type="web",
+                    source_uri=hit.url,
+                    content=content,
+                )
+                db_sess.flush()
+                chunks = db.list_doc_chunks(db_sess, doc.id)
+                if not chunks:
+                    continue
+                chunk = chunks[0]
+                imported_hits.append(
+                    Hit(
+                        chunk_id=int(chunk.id),
+                        doc_id=int(doc.id),
+                        title=str(doc.title),
+                        content=str(chunk.content),
+                        score=0.0,
+                    )
+                )
+            if imported_hits:
+                injected_chunk_ids = {int(h.chunk_id) for h in imported_hits}
+                system += "\n\n" + _format_citable_clues(imported_hits[:3])
+        except Exception:
+            pass
     messages = build_messages(history, user_input, skip_until_id=skip_until_id)
 
     raw = await llm.chat_json(system, messages, temperature=0.85, max_tokens=900)
