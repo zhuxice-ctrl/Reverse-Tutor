@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased - 2026-05-28
+
+- 板块 9A：新增嵌入式 SQLite 知识图谱数据层，包含 `KGNode` / `KGEdge` schema、CRUD helpers、episode 引用清理、会话级联删除和 memory API 暴露。
+
 ## v0.18.0 - 2026-05-27
 
 - 加固线索型学生路径：`clue_student` 必须使用学生请教式开头，禁止老师式表达；用户给出观察后强制切回追问。

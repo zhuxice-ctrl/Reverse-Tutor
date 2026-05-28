@@ -264,6 +264,64 @@ class Binding(Base):
             return {}
 
 
+class KGNode(Base):
+    __tablename__ = "kg_nodes"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=False)
+    kind = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    properties_json = Column(Text, default="{}")
+    source_episode_ids = Column(Text, default="[]")
+    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="active")
+
+    __table_args__ = (
+        UniqueConstraint("session_id", "kind", "name", name="uq_kg_node_session_kind_name"),
+    )
+
+    def properties(self) -> dict:
+        try:
+            return json.loads(self.properties_json or "{}")
+        except Exception:
+            return {}
+
+    def episode_ids(self) -> list[int]:
+        try:
+            raw = json.loads(self.source_episode_ids or "[]")
+        except Exception:
+            return []
+        return [int(x) for x in raw if isinstance(x, int) or str(x).isdigit()]
+
+
+class KGEdge(Base):
+    __tablename__ = "kg_edges"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=False)
+    source_id = Column(Integer, ForeignKey("kg_nodes.id"), nullable=False)
+    target_id = Column(Integer, ForeignKey("kg_nodes.id"), nullable=False)
+    relation = Column(String, nullable=False)
+    weight = Column(Float, default=1.0)
+    properties_json = Column(Text, default="{}")
+    source_episode_ids = Column(Text, default="[]")
+    valid_from = Column(DateTime, default=datetime.utcnow)
+    invalidated_at = Column(DateTime, nullable=True)
+    status = Column(String, default="active")
+
+    def properties(self) -> dict:
+        try:
+            return json.loads(self.properties_json or "{}")
+        except Exception:
+            return {}
+
+    def episode_ids(self) -> list[int]:
+        try:
+            raw = json.loads(self.source_episode_ids or "[]")
+        except Exception:
+            return []
+        return [int(x) for x in raw if isinstance(x, int) or str(x).isdigit()]
+
+
 def init_db() -> None:
     Base.metadata.create_all(engine)
     ensure_schema()
@@ -571,6 +629,7 @@ def remove_episode_references(db: DbSession, sid: str, episode_id: int) -> None:
         ids = [i for i in e.linked_ids() if i != target]
         if ids != e.linked_ids():
             e.linked_episode_ids = json.dumps(ids, ensure_ascii=False)
+    remove_kg_episode_references(db, sid, episode_id)
 
 
 def delete_image_extract(db: DbSession, sid: str, image_id: int, *, clean_references: bool = True) -> bool:
@@ -868,6 +927,234 @@ def add_episode(
     return add_message(db, sid, "system", content, meta=payload)
 
 
+def upsert_kg_node(
+    db: DbSession,
+    sid: str,
+    kind: str,
+    name: str,
+    *,
+    properties: dict[str, Any] | None = None,
+    episode_id: int | None = None,
+) -> KGNode:
+    """Create or update a knowledge-graph node unique by session/kind/name."""
+    name = (name or "").strip() or "未命名"
+    kind = (kind or "concept").strip()
+    stmt = select(KGNode).where(
+        KGNode.session_id == sid,
+        KGNode.kind == kind,
+        KGNode.name == name,
+    )
+    row = db.scalar(stmt)
+    now = datetime.utcnow()
+    if row is None:
+        row = KGNode(
+            session_id=sid,
+            kind=kind,
+            name=name,
+            properties_json=json.dumps(properties or {}, ensure_ascii=False),
+            source_episode_ids="[]",
+            first_seen_at=now,
+            last_seen_at=now,
+            status="active",
+        )
+        db.add(row)
+        db.flush()
+    else:
+        row.last_seen_at = now
+        if row.status == "invalidated":
+            row.status = "active"
+        if properties:
+            old = row.properties()
+            old.update(properties)
+            row.properties_json = json.dumps(old, ensure_ascii=False)
+    if episode_id is not None:
+        ids = row.episode_ids()
+        if int(episode_id) not in ids:
+            ids.append(int(episode_id))
+            row.source_episode_ids = json.dumps(ids, ensure_ascii=False)
+    return row
+
+
+def get_kg_node(db: DbSession, sid: str, node_id: int) -> KGNode | None:
+    stmt = select(KGNode).where(KGNode.session_id == sid, KGNode.id == node_id)
+    return db.scalar(stmt)
+
+
+def find_kg_node(db: DbSession, sid: str, kind: str, name: str) -> KGNode | None:
+    stmt = select(KGNode).where(
+        KGNode.session_id == sid,
+        KGNode.kind == kind,
+        KGNode.name == name,
+    )
+    return db.scalar(stmt)
+
+
+def list_kg_nodes(
+    db: DbSession,
+    sid: str,
+    *,
+    kind: str | None = None,
+    status: str = "active",
+) -> list[KGNode]:
+    stmt = select(KGNode).where(KGNode.session_id == sid)
+    if kind:
+        stmt = stmt.where(KGNode.kind == kind)
+    if status:
+        stmt = stmt.where(KGNode.status == status)
+    stmt = stmt.order_by(KGNode.last_seen_at.desc())
+    return list(db.scalars(stmt))
+
+
+def invalidate_kg_node(db: DbSession, sid: str, node_id: int) -> KGNode | None:
+    row = get_kg_node(db, sid, node_id)
+    if row is None:
+        return None
+    row.status = "invalidated"
+    row.last_seen_at = datetime.utcnow()
+    db.flush()
+    return row
+
+
+def upsert_kg_edge(
+    db: DbSession,
+    sid: str,
+    source_id: int,
+    target_id: int,
+    relation: str,
+    *,
+    weight: float = 1.0,
+    properties: dict[str, Any] | None = None,
+    episode_id: int | None = None,
+) -> KGEdge:
+    """Create or update an active edge for source/target/relation."""
+    relation = (relation or "").strip() or "related"
+    stmt = select(KGEdge).where(
+        KGEdge.session_id == sid,
+        KGEdge.source_id == source_id,
+        KGEdge.target_id == target_id,
+        KGEdge.relation == relation,
+        KGEdge.status == "active",
+    )
+    row = db.scalar(stmt)
+    now = datetime.utcnow()
+    if row is None:
+        row = KGEdge(
+            session_id=sid,
+            source_id=source_id,
+            target_id=target_id,
+            relation=relation,
+            weight=weight,
+            properties_json=json.dumps(properties or {}, ensure_ascii=False),
+            source_episode_ids="[]",
+            valid_from=now,
+            status="active",
+        )
+        db.add(row)
+        db.flush()
+    else:
+        row.weight = weight
+        if properties:
+            old = row.properties()
+            old.update(properties)
+            row.properties_json = json.dumps(old, ensure_ascii=False)
+    if episode_id is not None:
+        ids = row.episode_ids()
+        if int(episode_id) not in ids:
+            ids.append(int(episode_id))
+            row.source_episode_ids = json.dumps(ids, ensure_ascii=False)
+    return row
+
+
+def get_kg_edge(db: DbSession, sid: str, edge_id: int) -> KGEdge | None:
+    stmt = select(KGEdge).where(KGEdge.session_id == sid, KGEdge.id == edge_id)
+    return db.scalar(stmt)
+
+
+def list_kg_edges(
+    db: DbSession,
+    sid: str,
+    *,
+    node_id: int | None = None,
+    relation: str | None = None,
+    status: str = "active",
+) -> list[KGEdge]:
+    """List graph edges. node_id matches either source or target."""
+    stmt = select(KGEdge).where(KGEdge.session_id == sid)
+    if node_id is not None:
+        stmt = stmt.where((KGEdge.source_id == node_id) | (KGEdge.target_id == node_id))
+    if relation:
+        stmt = stmt.where(KGEdge.relation == relation)
+    if status:
+        stmt = stmt.where(KGEdge.status == status)
+    stmt = stmt.order_by(KGEdge.valid_from.desc())
+    return list(db.scalars(stmt))
+
+
+def invalidate_kg_edge(db: DbSession, sid: str, edge_id: int) -> KGEdge | None:
+    row = get_kg_edge(db, sid, edge_id)
+    if row is None:
+        return None
+    row.status = "invalidated"
+    row.invalidated_at = datetime.utcnow()
+    db.flush()
+    return row
+
+
+def supersede_kg_edge(
+    db: DbSession,
+    sid: str,
+    source_id: int,
+    target_id: int,
+    relation: str,
+    *,
+    new_weight: float = 1.0,
+    new_properties: dict[str, Any] | None = None,
+    episode_id: int | None = None,
+) -> KGEdge:
+    """Supersede an active edge with new evidence and create a replacement."""
+    now = datetime.utcnow()
+    stmt = select(KGEdge).where(
+        KGEdge.session_id == sid,
+        KGEdge.source_id == source_id,
+        KGEdge.target_id == target_id,
+        KGEdge.relation == relation,
+        KGEdge.status == "active",
+    )
+    old = db.scalar(stmt)
+    if old is not None:
+        old.status = "superseded"
+        old.invalidated_at = now
+    new_edge = KGEdge(
+        session_id=sid,
+        source_id=source_id,
+        target_id=target_id,
+        relation=relation,
+        weight=new_weight,
+        properties_json=json.dumps(new_properties or {}, ensure_ascii=False),
+        source_episode_ids=json.dumps([episode_id] if episode_id else [], ensure_ascii=False),
+        valid_from=now,
+        status="active",
+    )
+    db.add(new_edge)
+    db.flush()
+    return new_edge
+
+
+def remove_kg_episode_references(db: DbSession, sid: str, episode_id: int) -> None:
+    """Remove an episode id from all graph nodes and edges owned by this session."""
+    target = int(episode_id)
+    for n in db.scalars(select(KGNode).where(KGNode.session_id == sid)):
+        ids = n.episode_ids()
+        if target in ids:
+            ids.remove(target)
+            n.source_episode_ids = json.dumps(ids, ensure_ascii=False)
+    for e in db.scalars(select(KGEdge).where(KGEdge.session_id == sid)):
+        ids = e.episode_ids()
+        if target in ids:
+            ids.remove(target)
+            e.source_episode_ids = json.dumps(ids, ensure_ascii=False)
+
+
 def delete_session(db_sess: DbSession, sid: str) -> bool:
     """级联删除会话及其所有 anchors / messages / mastery / bindings。"""
     s = db_sess.get(Session, sid)
@@ -883,6 +1170,8 @@ def delete_session(db_sess: DbSession, sid: str) -> bool:
     db_sess.query(Binding).filter(Binding.session_id == sid).delete(synchronize_session=False)
     for doc in list(db_sess.scalars(select(Document).where(Document.session_id == sid))):
         delete_document(db_sess, doc.id)
+    db_sess.query(KGEdge).filter(KGEdge.session_id == sid).delete(synchronize_session=False)
+    db_sess.query(KGNode).filter(KGNode.session_id == sid).delete(synchronize_session=False)
     db_sess.delete(s)
     db_sess.commit()
     return True

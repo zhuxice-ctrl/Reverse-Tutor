@@ -454,12 +454,35 @@ def get_session_memory(sid: str, d: DbSession = Depends(get_db)) -> dict:
         "images": [_serialize_image_extract(row) for row in db.list_image_extracts(d, sid)],
         "recent_episodes": [_serialize_message(m) for m in reversed(recent)],
         "documents": [_serialize_document(d, doc) for doc in private_docs],
+        "kg_nodes": [
+            {
+                "id": n.id,
+                "kind": n.kind,
+                "name": n.name,
+                "status": n.status,
+                "first_seen_at": n.first_seen_at.isoformat() if n.first_seen_at else None,
+                "last_seen_at": n.last_seen_at.isoformat() if n.last_seen_at else None,
+            }
+            for n in db.list_kg_nodes(d, sid, status="")
+        ],
+        "kg_edges": [
+            {
+                "id": e.id,
+                "source_id": e.source_id,
+                "target_id": e.target_id,
+                "relation": e.relation,
+                "weight": e.weight,
+                "status": e.status,
+                "valid_from": e.valid_from.isoformat() if e.valid_from else None,
+            }
+            for e in db.list_kg_edges(d, sid, status="")
+        ],
     }
 
 
 @app.delete("/api/sessions/{sid}/memory/{kind}/{rid}")
 def delete_session_memory_item(sid: str, kind: str, rid: int, d: DbSession = Depends(get_db)) -> dict:
-    allowed = {"anchor", "mastery", "error_log", "image", "episode", "document"}
+    allowed = {"anchor", "mastery", "error_log", "image", "episode", "document", "kg_node", "kg_edge"}
     if kind not in allowed:
         raise HTTPException(422, "invalid memory kind")
     if not db.get_session(d, sid):
@@ -485,6 +508,14 @@ def delete_session_memory_item(sid: str, kind: str, rid: int, d: DbSession = Dep
         doc = db.get_document(d, rid)
         if doc is not None and doc.session_id == sid:
             deleted = db.delete_document(d, rid)
+    elif kind == "kg_node":
+        if db.get_kg_node(d, sid, rid) is not None:
+            db.invalidate_kg_node(d, sid, rid)
+            deleted = True
+    elif kind == "kg_edge":
+        if db.get_kg_edge(d, sid, rid) is not None:
+            db.invalidate_kg_edge(d, sid, rid)
+            deleted = True
 
     if not deleted:
         raise HTTPException(404, "memory item not found")
