@@ -1,18 +1,18 @@
 {
-  "versionCode": 36,
-  "versionName": "0.17.15",
+  "versionCode": 37,
+  "versionName": "0.18.0",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.15.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.18.0.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.15/Reverse-Tutor-v0.17.15.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.18.0/Reverse-Tutor-v0.18.0.apk"
   ],
-  "sha256": "6b62fa01db63b9513cf40dd022d2ff91663bbe583a5a855992790e1f45b04dbf",
+  "sha256": "86f7d2ee04cdfe1ae74c8493b17125211df326099fd29fd1f7891d130b167c4f",
   "publishedAt": "2026-05-27",
   "releaseNotes": [
-    "未配置 API 时默认走内置免费 GLM 直连接口，失败时再回退到本地 mock。",
-    "移除旧试用码入口和服务端试用中转链路。",
-    "已保存自有 API 后，也可以在设置页手动切回免费 GLM。",
-    "正式 APK 命名为 Reverse-Tutor-v0.17.15.apk。"
+    "移动端离线引擎与在线学习 schema 对齐：entry_status、student_role、evidence_for_mastery。",
+    "消息气泡可展开查看本轮判断、依据、策略、下一步和证据 episodes。",
+    "next_review_at 驱动到期复习软提示，支持 1/3/7/14 天复习阶梯。",
+    "本地 APK 命名为 Reverse-Tutor-v0.18.0.apk；本次先本地测试，未推送 release。"
   ]
 }

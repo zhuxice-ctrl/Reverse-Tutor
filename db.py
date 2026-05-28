@@ -10,15 +10,20 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+import hashlib
+import re
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from sqlalchemy import (
-    Column, DateTime, Float, Integer, String, Text, UniqueConstraint,
-    create_engine, select,
+    Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint,
+    create_engine, inspect, select, text,
 )
 from sqlalchemy.orm import DeclarativeBase, Session as DbSession, sessionmaker
+
+from chunker import chunk_text
 
 load_dotenv()
 
@@ -35,7 +40,10 @@ class Session(Base):
     __tablename__ = "sessions"
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
+    mode = Column(String, default="study")       # study | goal | companion
+    core_self = Column(Text, default="")         # 用户最希望 AI 理解的一点
     persona_json = Column(Text, nullable=False)  # {role, goal, deadline, personality, mood}
+    settings_json = Column(Text, default="{}")   # slider/toggle settings
     plan_json = Column(Text, default="[]")       # 课程主线节点列表
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -45,6 +53,13 @@ class Session(Base):
 
     def plan(self) -> list:
         return json.loads(self.plan_json or "[]")
+
+    def settings(self) -> dict:
+        try:
+            raw = json.loads(self.settings_json or "{}")
+        except Exception:
+            return {}
+        return raw if isinstance(raw, dict) else {}
 
 
 class Anchor(Base):
@@ -80,10 +95,120 @@ class Mastery(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String, index=True, nullable=False)
     knowledge_point = Column(String, nullable=False)
-    level = Column(Float, default=0.0)      # 0-1
+    level = Column(Float, default=0.0)      # 0-1, compatibility view of mastery_score
+    mastery_score = Column(Float, default=0.0)      # 0-100
+    confidence_score = Column(Float, default=0.0)   # subjective/soft confidence, 0-100
     attempts = Column(Integer, default=0)
     last_correctness = Column(Float, default=0.0)
     last_depth = Column(Float, default=0.0)
+    last_evidence_type = Column(String, default="none")
+    last_verification_status = Column(String, default="none")
+    error_type = Column(String, default="")
+    evidence_episode_ids = Column(Text, default="[]")
+    updated_reason = Column(Text, default="")
+    next_review_at = Column(DateTime, nullable=True)
+    review_interval = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def evidence_ids(self) -> list[int]:
+        try:
+            raw = json.loads(self.evidence_episode_ids or "[]")
+        except Exception:
+            return []
+        return [int(x) for x in raw if isinstance(x, int) or str(x).isdigit()]
+
+
+class ErrorLog(Base):
+    __tablename__ = "error_log"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=False)
+    kp = Column(String, nullable=False)
+    error_pattern = Column(String, nullable=False)
+    first_seen_at = Column(DateTime, default=datetime.utcnow)
+    last_seen_at = Column(DateTime, default=datetime.utcnow)
+    recurrence_count = Column(Integer, default=1)
+    linked_episode_ids = Column(Text, default="[]")
+    status = Column(String, default="active")
+
+    __table_args__ = (
+        UniqueConstraint("session_id", "kp", "error_pattern", name="uq_error_log_pattern"),
+    )
+
+    def linked_ids(self) -> list[int]:
+        try:
+            raw = json.loads(self.linked_episode_ids or "[]")
+        except Exception:
+            return []
+        return [int(x) for x in raw if isinstance(x, int) or str(x).isdigit()]
+
+
+class Document(Base):
+    __tablename__ = "documents"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=True)
+    title = Column(String, nullable=False)
+    source_type = Column(String, nullable=False)
+    source_uri = Column(String, default="")
+    hash = Column(String, nullable=False, index=True)
+    content_text = Column(Text, nullable=False, default="")
+    imported_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DocChunk(Base):
+    __tablename__ = "doc_chunks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    doc_id = Column(Integer, ForeignKey("documents.id"), index=True)
+    chunk_index = Column(Integer)
+    content = Column(Text, nullable=False)
+    token_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("doc_id", "chunk_index", name="uq_doc_chunk_index"),)
+
+
+class ImageExtract(Base):
+    __tablename__ = "image_extracts"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=False)
+    image_id = Column(Integer, unique=True, nullable=False)
+    mime = Column(String, default="")
+    extracted_text = Column(Text, default="")
+    structure_json = Column(Text, default="{}")
+    detected_kps_json = Column(Text, default="[]")
+    episode_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    original_path = Column(String, nullable=True)
+    retained_until = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def structure(self) -> dict:
+        try:
+            raw = json.loads(self.structure_json or "{}")
+        except Exception:
+            return {}
+        return raw if isinstance(raw, dict) else {}
+
+    def detected_kps(self) -> list[str]:
+        try:
+            raw = json.loads(self.detected_kps_json or "[]")
+        except Exception:
+            return []
+        return [str(x) for x in raw if str(x).strip()]
+
+
+class GoalState(Base):
+    __tablename__ = "goal_state"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=False)
+    state_json = Column(Text, default="{}")
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CompanionState(Base):
+    __tablename__ = "companion_state"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, index=True, nullable=False)
+    state_json = Column(Text, default="{}")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -141,6 +266,87 @@ class Binding(Base):
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
+    ensure_schema()
+
+
+def ensure_schema() -> None:
+    """Lightweight SQLite migration for newly added V1 learning-state columns."""
+    if engine.dialect.name != "sqlite":
+        return
+    desired: dict[str, dict[str, str]] = {
+        "sessions": {
+            "mode": "VARCHAR DEFAULT 'study'",
+            "core_self": "TEXT DEFAULT ''",
+            "settings_json": "TEXT DEFAULT '{}'",
+        },
+        "mastery": {
+            "mastery_score": "FLOAT DEFAULT 0.0",
+            "confidence_score": "FLOAT DEFAULT 0.0",
+            "last_evidence_type": "VARCHAR DEFAULT 'none'",
+            "last_verification_status": "VARCHAR DEFAULT 'none'",
+            "error_type": "VARCHAR DEFAULT ''",
+            "evidence_episode_ids": "TEXT DEFAULT '[]'",
+            "updated_reason": "TEXT DEFAULT ''",
+            "next_review_at": "DATETIME",
+            "review_interval": "INTEGER DEFAULT 0",
+        },
+        "documents": {
+            "content_text": "TEXT NOT NULL DEFAULT ''",
+        },
+    }
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table, columns in desired.items():
+            if table not in existing_tables:
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            for name, ddl in columns.items():
+                if name not in existing:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+        if "documents" in existing_tables and "doc_chunks" in existing_tables:
+            rows = conn.execute(text(
+                "SELECT id FROM documents WHERE COALESCE(content_text, '') = ''"
+            )).fetchall()
+            for (doc_id,) in rows:
+                chunks = conn.execute(text(
+                    "SELECT content FROM doc_chunks WHERE doc_id = :doc_id ORDER BY chunk_index"
+                ), {"doc_id": doc_id}).scalars().all()
+                if chunks:
+                    conn.execute(text(
+                        "UPDATE documents SET content_text = :content WHERE id = :doc_id"
+                    ), {"content": "\n\n".join(chunks), "doc_id": doc_id})
+        _ensure_fts(conn)
+
+
+def _ensure_fts(conn_or_sess) -> None:
+    conn_or_sess.execute(text(
+        "CREATE VIRTUAL TABLE IF NOT EXISTS doc_chunks_fts USING fts5("
+        "content, title UNINDEXED, doc_id UNINDEXED, chunk_id UNINDEXED, "
+        "session_id UNINDEXED, tokenize = 'unicode61')"
+    ))
+    conn_or_sess.execute(text(
+        "DELETE FROM doc_chunks_fts WHERE doc_id NOT IN (SELECT id FROM documents)"
+    ))
+
+
+def _delete_fts_for_doc(db: DbSession, doc_id: int) -> None:
+    _ensure_fts(db)
+    db.execute(text("DELETE FROM doc_chunks_fts WHERE doc_id = :doc_id"), {"doc_id": doc_id})
+
+
+def _insert_fts_row(db: DbSession, doc: "Document", chunk: "DocChunk") -> None:
+    _ensure_fts(db)
+    db.execute(text(
+        "INSERT INTO doc_chunks_fts(content, title, doc_id, chunk_id, session_id) "
+        "VALUES (:content, :title, :doc_id, :chunk_id, :session_id)"
+    ), {
+        "content": _normalize_fts_text(chunk.content),
+        "title": doc.title,
+        "doc_id": doc.id,
+        "chunk_id": chunk.id,
+        "session_id": doc.session_id or "",
+    })
 
 
 # --- 便捷查询 -----------------------------------------------------------------
@@ -171,14 +377,378 @@ def list_mastery(db: DbSession, sid: str) -> list[Mastery]:
     return list(db.scalars(stmt))
 
 
+def list_due_reviews(db: DbSession, sid: str, now: datetime) -> list[Mastery]:
+    stmt = (
+        select(Mastery)
+        .where(
+            Mastery.session_id == sid,
+            Mastery.next_review_at.is_not(None),
+            Mastery.next_review_at <= now,
+        )
+        .order_by(Mastery.next_review_at.asc(), Mastery.updated_at.asc())
+    )
+    return list(db.scalars(stmt))
+
+
+def _document_hash(content: str) -> str:
+    return hashlib.sha256((content or "").encode("utf-8")).hexdigest()
+
+
+# TODO(V2): replace per-char CJK split with jieba/cuttoken when 切到外置分词。
+# 当前实现是 unicode61 的 fallback：在每个 CJK 字符两侧加空格，让默认分词器能切。
+# 切 jieba 时，本函数和 _prepare_fts_query 必须同步替换。
+def _normalize_fts_text(value: str) -> str:
+    return re.sub(r"([\u4e00-\u9fff])", r" \1 ", value or "")
+
+
+def _prepare_fts_query(query: str) -> str:
+    tokens = re.findall(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]", query or "")
+    return " ".join(tokens)
+
+
+def _search_doc_chunks_fts(
+    db: DbSession,
+    query: str,
+    *,
+    session_id: str | None,
+    top_k: int = 3,
+) -> list[dict[str, Any]]:
+    _ensure_fts(db)
+    fts_query = _prepare_fts_query(query)
+    if not fts_query:
+        return []
+    sid = session_id or ""
+    rows = db.execute(text(
+        "SELECT c.id AS chunk_id, c.doc_id AS doc_id, d.title AS title, "
+        "c.content AS content, -bm25(doc_chunks_fts) AS score "
+        "FROM doc_chunks_fts "
+        "JOIN doc_chunks c ON c.id = doc_chunks_fts.chunk_id "
+        "JOIN documents d ON d.id = c.doc_id "
+        "WHERE doc_chunks_fts MATCH :query "
+        "AND (doc_chunks_fts.session_id = '' OR (:sid != '' AND doc_chunks_fts.session_id = :sid)) "
+        "ORDER BY bm25(doc_chunks_fts) ASC "
+        "LIMIT :limit"
+    ), {"query": fts_query, "sid": sid, "limit": max(1, int(top_k))}).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def _document_scope_filter(session_id: str | None):
+    if session_id is None:
+        return Document.session_id.is_(None)
+    return (Document.session_id.is_(None)) | (Document.session_id == session_id)
+
+
+def add_document(
+    db: DbSession,
+    *,
+    session_id: str | None,
+    title: str,
+    source_type: str,
+    source_uri: str = "",
+    content: str,
+) -> Document:
+    _ensure_fts(db)
+    doc_hash = _document_hash(content)
+    stmt = select(Document).where(Document.session_id == session_id, Document.hash == doc_hash)
+    existing = db.scalar(stmt)
+    if existing is not None:
+        return existing
+    doc = Document(
+        session_id=session_id,
+        title=(title or "Untitled").strip() or "Untitled",
+        source_type=source_type,
+        source_uri=source_uri or "",
+        hash=doc_hash,
+        content_text=content or "",
+    )
+    db.add(doc)
+    db.flush()
+    _write_chunks(db, doc, content)
+    return doc
+
+
+def _write_chunks(db: DbSession, doc: Document, content: str) -> None:
+    for idx, ch in enumerate(chunk_text(content)):
+        row = DocChunk(doc_id=doc.id, chunk_index=idx, content=ch.content, token_count=ch.token_count)
+        db.add(row)
+        db.flush()
+        _insert_fts_row(db, doc, row)
+
+
+def list_documents(db: DbSession, *, session_id: str | None) -> list[Document]:
+    stmt = select(Document).where(_document_scope_filter(session_id)).order_by(Document.imported_at.desc(), Document.id.desc())
+    return list(db.scalars(stmt))
+
+
+def get_document(db: DbSession, doc_id: int) -> Document | None:
+    return db.get(Document, doc_id)
+
+
+def list_doc_chunks(db: DbSession, doc_id: int) -> list[DocChunk]:
+    stmt = select(DocChunk).where(DocChunk.doc_id == doc_id).order_by(DocChunk.chunk_index.asc())
+    return list(db.scalars(stmt))
+
+
+def delete_document(db: DbSession, doc_id: int) -> bool:
+    doc = get_document(db, doc_id)
+    if doc is None:
+        return False
+    _delete_fts_for_doc(db, doc_id)
+    db.query(DocChunk).filter(DocChunk.doc_id == doc_id).delete(synchronize_session=False)
+    db.delete(doc)
+    return True
+
+
+def reindex_document(db: DbSession, doc_id: int) -> Document | None:
+    doc = get_document(db, doc_id)
+    if doc is None:
+        return None
+    _delete_fts_for_doc(db, doc_id)
+    db.query(DocChunk).filter(DocChunk.doc_id == doc_id).delete(synchronize_session=False)
+    db.flush()
+    _write_chunks(db, doc, doc.content_text or "")
+    doc.updated_at = datetime.utcnow()
+    return doc
+
+
+def _unlink_path(path: str | None) -> None:
+    if not path:
+        return
+    try:
+        p = Path(path)
+        if p.exists() and p.is_file():
+            p.unlink()
+    except OSError:
+        pass
+
+
+def add_image_extract(
+    db: DbSession,
+    sid: str,
+    *,
+    image_id: int,
+    mime: str,
+    extracted_text: str,
+    structure: dict[str, Any],
+    detected_kps: list[str],
+    episode_id: int | None,
+    original_path: str | None,
+    retained_until: datetime | None,
+) -> ImageExtract:
+    row = ImageExtract(
+        session_id=sid,
+        image_id=image_id,
+        mime=mime,
+        extracted_text=extracted_text or "",
+        structure_json=json.dumps(structure or {}, ensure_ascii=False),
+        detected_kps_json=json.dumps(detected_kps or [], ensure_ascii=False),
+        episode_id=episode_id,
+        original_path=original_path,
+        retained_until=retained_until,
+    )
+    db.add(row)
+    return row
+
+
+def list_image_extracts(db: DbSession, sid: str) -> list[ImageExtract]:
+    stmt = select(ImageExtract).where(ImageExtract.session_id == sid).order_by(ImageExtract.created_at.desc(), ImageExtract.id.desc())
+    return list(db.scalars(stmt))
+
+
+def get_image_extract(db: DbSession, sid: str, image_id: int) -> ImageExtract | None:
+    stmt = select(ImageExtract).where(ImageExtract.session_id == sid, ImageExtract.image_id == image_id)
+    return db.scalar(stmt)
+
+
+def remove_episode_references(db: DbSession, sid: str, episode_id: int) -> None:
+    """Remove an episode id from memory records owned by this session."""
+    target = int(episode_id)
+    for m in list_mastery(db, sid):
+        ids = [i for i in m.evidence_ids() if i != target]
+        if ids != m.evidence_ids():
+            m.evidence_episode_ids = json.dumps(ids, ensure_ascii=False)
+    for e in list_error_logs(db, sid):
+        ids = [i for i in e.linked_ids() if i != target]
+        if ids != e.linked_ids():
+            e.linked_episode_ids = json.dumps(ids, ensure_ascii=False)
+
+
+def delete_image_extract(db: DbSession, sid: str, image_id: int, *, clean_references: bool = True) -> bool:
+    row = get_image_extract(db, sid, image_id)
+    if row is None:
+        return False
+    _unlink_path(row.original_path)
+    if row.episode_id is not None:
+        if clean_references:
+            remove_episode_references(db, sid, int(row.episode_id))
+        msg = db.get(Message, row.episode_id)
+        if msg is not None and msg.session_id == sid and msg.meta().get("kind") == "image_extract":
+            db.delete(msg)
+    db.delete(row)
+    return True
+
+
+def delete_session_images(db: DbSession, sid: str, *, clean_references: bool = True) -> int:
+    count = 0
+    for row in list(list_image_extracts(db, sid)):
+        if delete_image_extract(db, sid, int(row.image_id), clean_references=clean_references):
+            count += 1
+    return count
+
+
+def purge_expired_images(db: DbSession, now: datetime) -> int:
+    stmt = select(ImageExtract).where(
+        ImageExtract.retained_until.is_not(None),
+        ImageExtract.retained_until <= now,
+    )
+    rows = list(db.scalars(stmt))
+    for row in rows:
+        _unlink_path(row.original_path)
+        row.original_path = None
+        row.retained_until = None
+    return len(rows)
+
+
+def _clean_error_pattern(pattern: str) -> str:
+    return str(pattern or "").strip()[:12]
+
+
+def list_error_logs(db: DbSession, sid: str) -> list[ErrorLog]:
+    stmt = (
+        select(ErrorLog)
+        .where(ErrorLog.session_id == sid)
+        .order_by((ErrorLog.status == "resolved").asc(), ErrorLog.recurrence_count.desc(), ErrorLog.last_seen_at.desc())
+    )
+    return list(db.scalars(stmt))
+
+
+def get_error_log(db: DbSession, sid: str, eid: int) -> ErrorLog | None:
+    stmt = select(ErrorLog).where(ErrorLog.session_id == sid, ErrorLog.id == eid)
+    return db.scalar(stmt)
+
+
+def upsert_error_log(
+    db: DbSession,
+    sid: str,
+    kp: str,
+    error_pattern: str,
+    *,
+    evidence_episode_id: int | None,
+) -> ErrorLog | None:
+    pattern = _clean_error_pattern(error_pattern)
+    if not pattern:
+        return None
+    kp = (kp or "当前焦点").strip() or "当前焦点"
+    now = datetime.utcnow()
+    stmt = select(ErrorLog).where(
+        ErrorLog.session_id == sid,
+        ErrorLog.kp == kp,
+        ErrorLog.error_pattern == pattern,
+    )
+    row = db.scalar(stmt)
+    if row is None:
+        row = ErrorLog(
+            session_id=sid,
+            kp=kp,
+            error_pattern=pattern,
+            first_seen_at=now,
+            last_seen_at=now,
+            recurrence_count=1,
+            linked_episode_ids="[]",
+            status="active",
+        )
+        db.add(row)
+        db.flush()
+    else:
+        row.recurrence_count = int(row.recurrence_count or 0) + 1
+        row.last_seen_at = now
+        row.status = "active"
+    ids = row.linked_ids()
+    if evidence_episode_id is not None and int(evidence_episode_id) not in ids:
+        ids.append(int(evidence_episode_id))
+        row.linked_episode_ids = json.dumps(ids, ensure_ascii=False)
+    return row
+
+
+def resolve_error_log(db: DbSession, sid: str, eid: int) -> ErrorLog | None:
+    row = get_error_log(db, sid, eid)
+    if row is None:
+        return None
+    row.status = "resolved"
+    row.last_seen_at = datetime.utcnow()
+    return row
+
+
+def resolve_error_pattern(db: DbSession, sid: str, kp: str, error_pattern: str) -> ErrorLog | None:
+    pattern = _clean_error_pattern(error_pattern)
+    if not pattern:
+        return None
+    stmt = select(ErrorLog).where(
+        ErrorLog.session_id == sid,
+        ErrorLog.kp == ((kp or "当前焦点").strip() or "当前焦点"),
+        ErrorLog.error_pattern == pattern,
+    )
+    row = db.scalar(stmt)
+    if row is None:
+        return None
+    row.status = "resolved"
+    row.last_seen_at = datetime.utcnow()
+    return row
+
+
+_EVIDENCE_SCORES = {
+    "none": 0.0,
+    "explanation": 35.0,
+    "retrieval": 55.0,
+    "transfer": 72.0,
+    "delayed_retrieval": 82.0,
+    "correction": 90.0,
+}
+
+
+def _next_review_interval(current: int, review_frequency: str = "normal") -> int:
+    ladder = [1, 2, 4, 7] if review_frequency == "high" else [1, 3, 7, 14]
+    for days in ladder:
+        if current < days:
+            return days
+    return ladder[-1]
+
+
+def mastery_band(score: float) -> str:
+    score = float(score or 0.0)
+    if score < 10:
+        return "未接触"
+    if score < 30:
+        return "有直观入口"
+    if score < 50:
+        return "能跟着例子讲"
+    if score < 70:
+        return "能基础应用"
+    if score < 85:
+        return "能处理变式"
+    return "可迁移纠错"
+
+
 def upsert_mastery(
     db: DbSession,
     sid: str,
     kp: str,
     correctness: float,
     depth: float,
+    *,
+    evidence_type: str = "none",
+    verification_status: str = "none",
+    evidence_episode_id: int | None = None,
+    error_type: str = "",
+    updated_reason: str = "",
+    review_frequency: str = "normal",
 ) -> Mastery:
-    """掌握度增量更新：指数移动平均 + 试次累计。"""
+    """Evidence-gated mastery update.
+
+    A user saying "懂了" is not evidence. Score increases only when a turn
+    supplies passed/partial evidence such as explanation, retrieval, transfer,
+    delayed retrieval, or correction.
+    """
     stmt = select(Mastery).where(
         Mastery.session_id == sid, Mastery.knowledge_point == kp
     )
@@ -186,11 +756,46 @@ def upsert_mastery(
     if m is None:
         m = Mastery(session_id=sid, knowledge_point=kp)
         db.add(m)
-    alpha = 0.35
-    m.level = round((1 - alpha) * (m.level or 0.0) + alpha * (0.5 * correctness + 0.5 * depth), 4)
+        db.flush()
+
+    evidence_type = evidence_type if evidence_type in _EVIDENCE_SCORES else "none"
+    verification_status = verification_status or "none"
+    old_score = float(m.mastery_score or (m.level or 0.0) * 100)
+
     m.attempts = (m.attempts or 0) + 1
     m.last_correctness = correctness
     m.last_depth = depth
+    m.last_evidence_type = evidence_type
+    m.last_verification_status = verification_status
+    m.updated_reason = updated_reason or ""
+
+    ids = m.evidence_ids()
+    if evidence_episode_id is not None and int(evidence_episode_id) not in ids:
+        ids.append(int(evidence_episode_id))
+        m.evidence_episode_ids = json.dumps(ids, ensure_ascii=False)
+
+    if error_type:
+        m.error_type = error_type
+
+    if evidence_type != "none" and verification_status in {"passed", "partial"}:
+        alpha = 0.35
+        target = _EVIDENCE_SCORES[evidence_type]
+        if verification_status == "partial":
+            target *= 0.75
+        score = (1 - alpha) * old_score + alpha * target
+        m.mastery_score = round(max(0.0, min(100.0, score)), 2)
+        m.review_interval = _next_review_interval(int(m.review_interval or 0), review_frequency)
+        m.next_review_at = datetime.utcnow() + timedelta(days=m.review_interval)
+    elif verification_status == "failed":
+        # Failed verification is evidence, but not evidence for progress.
+        rollback = 8.0 if old_score > 50 else 0.0
+        m.mastery_score = round(max(0.0, old_score - rollback), 2)
+        m.review_interval = 1
+        m.next_review_at = datetime.utcnow() + timedelta(days=1)
+    else:
+        m.mastery_score = round(max(0.0, min(100.0, old_score)), 2)
+
+    m.level = round((m.mastery_score or 0.0) / 100.0, 4)
     return m
 
 
@@ -219,15 +824,65 @@ def add_message(
     return m
 
 
+def delete_anchor(db: DbSession, sid: str, anchor_id: int) -> bool:
+    row = db.get(Anchor, anchor_id)
+    if row is None or row.session_id != sid:
+        return False
+    db.delete(row)
+    return True
+
+
+def delete_mastery_entry(db: DbSession, sid: str, mastery_id: int) -> bool:
+    row = db.get(Mastery, mastery_id)
+    if row is None or row.session_id != sid:
+        return False
+    db.delete(row)
+    return True
+
+
+def delete_episode_message(db: DbSession, sid: str, message_id: int) -> bool:
+    row = db.get(Message, message_id)
+    if row is None or row.session_id != sid:
+        return False
+    remove_episode_references(db, sid, int(message_id))
+    db.delete(row)
+    return True
+
+
+def add_episode(
+    db: DbSession,
+    sid: str,
+    *,
+    kind: str,
+    content: str,
+    meta: dict[str, Any] | None = None,
+) -> Message:
+    """Append-only episode wrapper.
+
+    V1 stores episodes in messages with role=system and meta.kind. The wrapper
+    keeps the boundary explicit so the storage can move to a dedicated table
+    later without changing call sites.
+    """
+    payload = dict(meta or {})
+    payload["kind"] = kind
+    return add_message(db, sid, "system", content, meta=payload)
+
+
 def delete_session(db_sess: DbSession, sid: str) -> bool:
     """级联删除会话及其所有 anchors / messages / mastery / bindings。"""
     s = db_sess.get(Session, sid)
     if s is None:
         return False
-    db_sess.query(Anchor).filter(Anchor.session_id == sid).delete(synchronize_session=False)
     db_sess.query(Message).filter(Message.session_id == sid).delete(synchronize_session=False)
+    delete_session_images(db_sess, sid, clean_references=False)
+    db_sess.query(Anchor).filter(Anchor.session_id == sid).delete(synchronize_session=False)
     db_sess.query(Mastery).filter(Mastery.session_id == sid).delete(synchronize_session=False)
+    db_sess.query(ErrorLog).filter(ErrorLog.session_id == sid).delete(synchronize_session=False)
+    db_sess.query(GoalState).filter(GoalState.session_id == sid).delete(synchronize_session=False)
+    db_sess.query(CompanionState).filter(CompanionState.session_id == sid).delete(synchronize_session=False)
     db_sess.query(Binding).filter(Binding.session_id == sid).delete(synchronize_session=False)
+    for doc in list(db_sess.scalars(select(Document).where(Document.session_id == sid))):
+        delete_document(db_sess, doc.id)
     db_sess.delete(s)
     db_sess.commit()
     return True

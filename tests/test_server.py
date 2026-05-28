@@ -40,6 +40,7 @@ async def test_full_session_lifecycle(client):
     body = r.json()
     assert body["reply"]
     assert "action" in body and body["action"].get("type")
+    assert body["process_summary"]
 
     # 拉详情
     r = await client.get(f"/api/sessions/{sid}")
@@ -47,6 +48,11 @@ async def test_full_session_lifecycle(client):
     assert len(full["messages"]) >= 3
     assert len(full["anchors"]) >= 1
     assert len(full["mastery"]) >= 1
+    mastery = full["mastery"][0]
+    assert "mastery_score" in mastery
+    assert "mastery_band" in mastery
+    assert "evidence_episode_ids" in mastery
+    assert isinstance(mastery["evidence_episode_ids"], list)
 
     # 手动加 anchor
     r = await client.post(f"/api/sessions/{sid}/anchors",
@@ -63,6 +69,38 @@ async def test_full_session_lifecycle(client):
     assert r.status_code == 200
     r = await client.get(f"/api/sessions/{sid}")
     assert r.status_code == 404
+
+
+async def test_no_entry_chat_routes_to_clue_then_back_to_probe_over_http(client):
+    r = await client.post("/api/sessions", json={
+        "role": "高三生",
+        "goal": "方法学习",
+        "auto_opening": False,
+    })
+    sid = r.json()["id"]
+
+    r = await client.post(
+        f"/api/sessions/{sid}/chat",
+        json={"message": "老师我完全没听过极值点偏移，这是什么"},
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["evaluation"]["entry_status"] == "no_entry"
+    assert body["action"]["type"] in {"clue", "scaffold_example"}
+    assert body["action"]["student_role"] == "clue_student"
+    assert "入口" in body["process_summary"]
+
+    r = await client.post(
+        f"/api/sessions/{sid}/chat",
+        json={"message": "因为这种方法好像是先看旧方法哪里卡住，再找第一步变形"},
+    )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["evaluation"]["entry_status"] == "has_entry"
+    assert body["action"]["type"] == "probe"
+    assert body["action"]["student_role"] == "probing_student"
 
 
 async def test_webhook_to_bindings_endpoint(client):

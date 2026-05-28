@@ -8,6 +8,8 @@ __pycache__/
 .idea/
 .vscode/
 .pytest_cache/
+.claude/
+docs/superpowers/plans/
 node_modules/
 dist/
 release-artifacts/

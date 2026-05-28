@@ -590,11 +590,19 @@ public class BackgroundLlmService extends Service {
             JSONObject evaluation = new JSONObject();
             evaluation.put("correctness", 0);
             evaluation.put("depth", 0);
+            evaluation.put("entry_status", "has_entry");
+            JSONObject evidence = new JSONObject();
+            evidence.put("type", "none");
+            evidence.put("status", "none");
+            evidence.put("error_type", "");
+            evidence.put("reason", "background_fallback");
+            evaluation.put("evidence_for_mastery", evidence);
             evaluation.put("user_emotion", "unknown");
             evaluation.put("new_requirements", new JSONArray());
 
             JSONObject action = new JSONObject();
             action.put("type", "ask");
+            action.put("student_role", "probing_student");
             action.put("knowledge_point", "后台回复");
             action.put("difficulty", 0.5);
             action.put("note", "background_fallback");

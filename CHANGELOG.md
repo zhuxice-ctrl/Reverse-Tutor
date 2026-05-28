@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.18.0 - 2026-05-27
+
+- 加固线索型学生路径：`clue_student` 必须使用学生请教式开头，禁止老师式表达；用户给出观察后强制切回追问。
+- `entry_status=no_entry` 增加二次校验，已有 learning_state 且最近给过可执行步骤时不再误入线索模式。
+- 聊天气泡新增“本轮判断”折叠区，展示依据、策略、下一步和证据 episodes；chat 返回体透传 `evidence_episode_ids`。
+- `next_review_at` 开始驱动到期复习软提示，复习间隔采用 1/3/7/14 天阶梯，失败重置为 1 天。
+- 移动端离线引擎和 Android 后台 fallback JSON 对齐新 schema：`entry_status`、`student_role`、新动作类型、`evidence_for_mastery`。
+- 本地 APK 命名为 `Reverse-Tutor-v0.18.0.apk`；本条为本地发版草稿，未推送 release。
+
 ## v0.17.15 - 2026-05-27
 
 - 未配置用户 API 时默认走内置免费 GLM 直连接口，连接失败时再回退到本地 mock。

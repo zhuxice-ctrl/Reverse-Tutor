@@ -430,6 +430,28 @@ def test_mobile_chat_handles_topic_drift_fuzzy_retrieval_and_visible_thinking_st
     assert "开始输出" in html
 
 
+def test_mobile_offline_engine_schema_matches_v1_learning_fields():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "entry_status" in html
+    assert "has_entry|no_entry|recall_decay" in html
+    assert "student_role" in html
+    assert "probing_student|clue_student|scaffold_student|examiner|review_student" in html
+    assert "evidence_for_mastery" in html
+    assert "none|explanation|retrieval|transfer|delayed_retrieval|correction" in html
+    assert "ask|probe|clue|scaffold_example|examiner_verify|emote|persuade|next|recap" in html
+    assert "const allowed = ['ask', 'probe', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error']" in html
+    assert "normalizeEvidence" in html
+
+
+def test_android_background_fallback_uses_v1_learning_schema():
+    service = (ROOT / "mobile" / "android" / "app" / "src" / "main" / "java" / "com" / "reversetutor" / "app" / "BackgroundLlmService.java").read_text(encoding="utf-8")
+
+    assert 'evaluation.put("entry_status", "has_entry")' in service
+    assert 'evaluation.put("evidence_for_mastery", evidence)' in service
+    assert 'action.put("student_role", "probing_student")' in service
+
+
 def test_mobile_failed_chat_message_can_be_retried_or_restored_to_input():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 

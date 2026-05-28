@@ -157,6 +157,9 @@ async def test_ping_returns_mock_when_no_credentials():
 async def test_chat_json_uses_mock_when_not_live():
     out = await llm.chat_json("sys", [{"role": "user", "content": "hi"}])
     assert "evaluation" in out and "action" in out and "reply" in out
+    assert out["evaluation"]["entry_status"] in {"has_entry", "no_entry", "recall_decay"}
+    assert "evidence_for_mastery" in out["evaluation"]
+    assert out["action"]["student_role"]
 
 
 # --- Mock 智能性 -------------------------------------------------------------
@@ -172,14 +175,25 @@ async def test_mock_intent_persuade_when_user_rejects():
     assert out["evaluation"]["user_emotion"] in ("frustrated",)
 
 
-async def test_mock_intent_next_when_user_says_understood():
+async def test_mock_intent_examiner_when_user_says_understood():
     out = await _mock("懂了懂了，继续下一个吧")
-    assert out["action"]["type"] == "next"
+    assert out["action"]["type"] == "examiner_verify"
+    assert out["action"]["student_role"] == "examiner"
+    assert out["evaluation"]["evidence_for_mastery"]["type"] == "none"
+
+
+async def test_mock_intent_clue_when_user_has_no_entry():
+    out = await _mock("我没听过极值点偏移，这是什么")
+    assert out["action"]["type"] == "clue"
+    assert out["action"]["student_role"] == "clue_student"
+    assert out["evaluation"]["entry_status"] == "no_entry"
 
 
 async def test_mock_intent_probe_when_user_gives_explanation():
     out = await _mock("因为对称轴是 x=-b/(2a)，所以代入顶点公式可以得到 y_min = c - b²/(4a)")
     assert out["action"]["type"] == "probe"
+    assert out["evaluation"]["evidence_for_mastery"]["type"] == "explanation"
+    assert out["evaluation"]["evidence_for_mastery"]["status"] == "passed"
 
 
 async def test_mock_intent_encourage_when_user_praises():

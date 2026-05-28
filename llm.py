@@ -546,6 +546,17 @@ _MOCK_LINES = {
         "嗯……可如果题目里改一个条件，**{kp}** 这个结论还成立吗？",
         "我有点疑惑：**{kp}** 在什么情况下会失效？老师能举个反例吗？",
     ],
+    "clue": [
+        "老师，据说这种题有一种方法叫 **{kp}**。好像第一步要先找它解决不了的旧方法，你能不能给我讲讲为什么？",
+        "老师我好像没入口……我只听说 **{kp}** 是先看一个具体例子。我们能不能从例子里第一步开始？",
+    ],
+    "scaffold_example": [
+        "老师，我先拿一个 **{kp}** 的小例子看：它好像不是先背定义，而是先观察哪里卡住。你能顺着这个例子讲第一步吗？",
+    ],
+    "examiner_verify": [
+        "老师你说懂了，那我想考考自己：如果题目换个条件，**{kp}** 第一步还一样吗？你能验证我这个想法吗？",
+        "那我先不算自己真会了。老师你能不用资料，把 **{kp}** 的第一步和适用条件再问我一遍吗？",
+    ],
     "persuade": [
         "诶老师别走啊……我就剩 **{kp}** 这一节没搞懂了，你陪我弄完好不好，我请你喝奶茶 QAQ",
         "（小声）我知道我笨……但你刚才那个思路对我帮助超大，能再讲下 **{kp}** 不？",
@@ -574,6 +585,9 @@ def _detect_intent(user_text: str) -> str:
     if not t:
         return "ask"
 
+    # 没有方法入口 → clue
+    if any(k in t for k in ("不知道", "没听过", "没学过", "不会", "这是什么", "完全没")):
+        return "clue"
     # 拒绝 / 撤退 / 烦躁 → persuade
     if any(k in t for k in ("不想", "算了", "放弃", "没意思", "烦", "够了", "退出", "拜拜", "再见", "晚安")):
         return "persuade"
@@ -590,7 +604,9 @@ def _detect_intent(user_text: str) -> str:
     if any(k in t for k in ("今天就这样", "今天就到", "明天", "下次再", "下次见", "结束", "总结一下", "总结今天")):
         return "wrap"
     # 明确推进 → next
-    if any(k in t for k in ("继续", "下一", "next", "再来", "懂了", "明白了")):
+    if any(k in t for k in ("懂了", "明白了", "会了", "理解了")):
+        return "examiner_verify"
+    if any(k in t for k in ("继续", "下一", "next", "再来")):
         return "next"
     # 默认 ask（继续提问）
     return "ask"
@@ -656,6 +672,9 @@ def _mock_response(system: str, messages: list[dict[str, str]]) -> dict[str, Any
     elif intent == "persuade":
         correctness = 0.1
         depth = 0.1
+    elif intent in ("clue", "scaffold_example", "examiner_verify"):
+        correctness = 0.0
+        depth = 0.0
     else:
         correctness = 0.4
         depth = 0.3
@@ -673,15 +692,41 @@ def _pack(
     import random
     pool = _MOCK_LINES.get(action_type, _MOCK_LINES["ask"])
     reply = random.choice(pool).format(kp=kp)
+    entry_status = "no_entry" if action_type in ("clue", "scaffold_example") else "has_entry"
+    student_role = {
+        "clue": "clue_student",
+        "scaffold_example": "scaffold_student",
+        "examiner_verify": "examiner",
+        "recap": "review_student",
+        "next": "review_student",
+        "wrap": "review_student",
+    }.get(action_type, "probing_student")
+    if action_type == "probe":
+        evidence = {
+            "type": "explanation",
+            "status": "passed",
+            "error_type": "",
+            "reason": "用户给出了可追问的解释",
+        }
+    else:
+        evidence = {
+            "type": "none",
+            "status": "none",
+            "error_type": "",
+            "reason": "mock 本轮不提供掌握度进位证据",
+        }
     return {
         "evaluation": {
             "correctness": round(correctness, 2),
             "depth": round(depth, 2),
+            "entry_status": entry_status,
+            "evidence_for_mastery": evidence,
             "user_emotion": emotion,
             "new_requirements": reqs,
         },
         "action": {
             "type": action_type,
+            "student_role": student_role,
             "knowledge_point": kp,
             "difficulty": 0.4 if action_type == "ask" else 0.6,
             "note": extra_note,

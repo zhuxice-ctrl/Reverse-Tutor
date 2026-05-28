@@ -73,16 +73,16 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 36,
-  "versionName": "0.17.15",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.17.15.apk",
+  "versionCode": 37,
+  "versionName": "0.18.0",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.18.0.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.17.15/Reverse-Tutor-v0.17.15.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.18.0/Reverse-Tutor-v0.18.0.apk"
   ],
-  "publishedAt": "2026-05-25",
+  "publishedAt": "2026-05-27",
   "releaseNotes": [
-    "会话列表长按操作菜单",
-    "Android 返回链优化"
+    "移动端离线引擎对齐学习 schema",
+    "过程摘要和复习软交织进入本地测试版"
   ]
 }
 ```

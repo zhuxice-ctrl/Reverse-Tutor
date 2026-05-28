@@ -34,6 +34,7 @@ async def test_run_opening_turn_produces_assistant_message(db_sess):
     assert len(msgs) == before + 1
     assert msgs[-1].role == "assistant"
     assert msgs[-1].meta().get("opening") is True
+    assert result.process_summary
 
 
 async def test_run_turn_persists_user_and_assistant_and_updates_mastery(db_sess):
@@ -41,6 +42,9 @@ async def test_run_turn_persists_user_and_assistant_and_updates_mastery(db_sess)
     r1 = await engine.run_turn(db_sess, s.id, "对称轴是 x=-b/(2a)")
     assert r1.reply
     assert r1.action.get("type") in engine.ACTION_TYPES
+    assert r1.evaluation.get("entry_status") in {"has_entry", "no_entry", "recall_decay"}
+    assert r1.action.get("student_role")
+    assert r1.process_summary
 
     msgs = db.list_messages(db_sess, s.id)
     roles = [m.role for m in msgs]
@@ -50,6 +54,31 @@ async def test_run_turn_persists_user_and_assistant_and_updates_mastery(db_sess)
     masteries = db.list_mastery(db_sess, s.id)
     assert len(masteries) >= 1
     assert masteries[0].attempts >= 1
+    assert masteries[0].evidence_ids()
+
+
+async def test_no_entry_routes_to_clue_student(db_sess):
+    s = engine.create_session(db_sess, title="", role="高三生", goal="方法学习")
+    result = await engine.run_turn(db_sess, s.id, "老师我完全没听过极值点偏移，这是什么")
+
+    assert result.evaluation["entry_status"] == "no_entry"
+    assert result.action["type"] in {"clue", "scaffold_example"}
+    assert result.action["student_role"] == "clue_student"
+    assert "线索" in result.process_summary or "入口" in result.process_summary
+
+
+async def test_understood_triggers_examiner_without_mastery_increase(db_sess):
+    s = engine.create_session(db_sess, title="", role="高三生", goal="方法学习")
+    await engine.run_turn(db_sess, s.id, "因为对称轴是 x=-b/(2a)，所以可以代入顶点公式解释最值")
+    before = db.list_mastery(db_sess, s.id)[0].mastery_score
+
+    result = await engine.run_turn(db_sess, s.id, "懂了懂了，继续下一个吧")
+    after = db.list_mastery(db_sess, s.id)[0].mastery_score
+
+    assert result.action["type"] == "examiner_verify"
+    assert result.action["student_role"] == "examiner"
+    assert result.evaluation["evidence_for_mastery"]["type"] == "none"
+    assert after == before
 
 
 async def test_anchor_updates_persist_when_user_mentions_requirement(db_sess):

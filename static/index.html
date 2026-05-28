@@ -119,6 +119,11 @@
   .scroll-y::-webkit-scrollbar { width: 6px; }
   .scroll-y::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
   .bubble-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .process-summary { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 11px; color: var(--text-soft); }
+  .process-summary summary { cursor: pointer; color: var(--muted); }
+  .process-summary dl { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 8px; margin-top: 6px; }
+  .process-summary dt { color: var(--muted); }
+  .process-summary dd { min-width: 0; overflow-wrap: anywhere; }
   .bar { height: 6px; background: var(--panel-3); border-radius: 3px; overflow: hidden; }
   .bar > div { height: 100%; background: linear-gradient(90deg,#8b7a4a,#5d836b); }
   .anchor-pill { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
@@ -552,6 +557,32 @@ async function openSession(sid) {
 const EMO_ICON = { fresh:'✨', neutral:'😐', engaged:'🔥', tired:'😪', frustrated:'😤', refusing:'🙅' };
 const ACT_LABEL = { ask:'提问', probe:'追问', emote:'情绪', persuade:'说服', next:'推进', recap:'回顾' };
 
+function renderProcessSummary(meta) {
+  const a = meta?.action || {};
+  const ev = meta?.evaluation || {};
+  const evidence = ev.evidence_for_mastery || {};
+  const ids = meta?.evidence_episode_ids || [];
+  if (!meta?.process_summary && !a.type && !evidence.type && !ids.length) return '';
+  const next = a.note || (a.type === 'probe' ? '继续追问用户的解释' : '根据用户下一句再调整');
+  const basis = [
+    evidence.type ? `${evidence.type}/${evidence.status || 'none'}` : '',
+    evidence.reason || '',
+    ev.correctness !== undefined ? `correctness=${ev.correctness}` : '',
+    ev.depth !== undefined ? `depth=${ev.depth}` : '',
+  ].filter(Boolean).join(' · ') || '暂无显式证据';
+  return `
+    <details class="process-summary">
+      <summary>本轮判断</summary>
+      <dl>
+        <dt>本轮判断</dt><dd>${esc(meta.process_summary || ev.entry_status || '未记录')}</dd>
+        <dt>依据</dt><dd>${esc(basis)}</dd>
+        <dt>策略</dt><dd>${esc([a.type, a.student_role, a.knowledge_point].filter(Boolean).join(' · ') || '未记录')}</dd>
+        <dt>下一步</dt><dd>${esc(next)}</dd>
+        <dt>证据 episodes</dt><dd>${ids.length ? ids.map(id => `#${esc(String(id))}`).join(', ') : '无'}</dd>
+      </dl>
+    </details>`;
+}
+
 function renderInsights(messages, mastery) {
   const ai = messages.filter(m => m.role === 'assistant');
   const turns = ai.length;
@@ -621,6 +652,7 @@ function renderChat(msgs) {
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
             <div class="md">${isUser ? `<div class="whitespace-pre-wrap">${esc(m.content)}</div>` : md(m.content)}</div>
             ${metaLine}
+            ${!isUser ? renderProcessSummary(meta) : ''}
           </div>
         </div>
       `;

@@ -309,6 +309,29 @@
     gap: 5px;
   }
   .message-failed-actions svg { width: 13px; height: 13px; display: block; }
+  .process-summary {
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid var(--glass-line);
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+  .process-summary summary {
+    cursor: pointer;
+    color: var(--muted);
+    list-style-position: inside;
+  }
+  .process-summary dl {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 4px 8px;
+    margin-top: 6px;
+  }
+  .process-summary dt { color: var(--muted); }
+  .process-summary dd {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .quote-preview {
     margin-bottom: 8px;
     border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
@@ -1286,6 +1309,9 @@
           <button type="button" class="context-tab active" data-context-tab="graph">图谱</button>
           <button type="button" class="context-tab" data-context-tab="anchors">锚点</button>
           <button type="button" class="context-tab" data-context-tab="notes">随笔</button>
+          <button type="button" class="context-tab" data-context-tab="errors">错因</button>
+          <button type="button" class="context-tab" data-context-tab="images">图片</button>
+          <button type="button" class="context-tab" data-context-tab="memory">记忆</button>
           <button type="button" class="context-tab" data-context-tab="settings">设置</button>
         </div>
       </div>
@@ -1511,7 +1537,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.17.15 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.18.0 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1772,7 +1798,7 @@ function refreshIcons() {
 }
 
 const APP_VERSION_CODE = 36;
-const APP_VERSION_NAME = '0.17.15';
+const APP_VERSION_NAME = '0.18.0';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -2792,17 +2818,41 @@ function shapeReplyBubbles(text, maxBubbles=3) {
 }
 
 function normalizeAction(rawAction={}, fallbackNote='自由回复') {
-  const allowed = ['ask', 'probe', 'explain_back', 'persuade', 'encourage', 'next', 'wrap', 'pending', 'error'];
+  const allowed = ['ask', 'probe', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error'];
   const action = (rawAction && typeof rawAction === 'object') ? { ...rawAction } : {};
   if (!allowed.includes(action.type)) action.type = 'ask';
+  const roleByAction = {
+    clue: 'clue_student',
+    scaffold_example: 'scaffold_student',
+    examiner_verify: 'examiner',
+    next: 'review_student',
+    recap: 'review_student',
+  };
+  const roles = ['probing_student', 'clue_student', 'scaffold_student', 'examiner', 'review_student'];
+  if (!roles.includes(action.student_role)) action.student_role = roleByAction[action.type] || 'probing_student';
   const kp = String(action.knowledge_point || '').trim();
   if (!kp || /^(unknown|\?|模型自由回复)$/i.test(kp)) delete action.knowledge_point;
   if (!action.note) action.note = fallbackNote;
   return action;
 }
 
+function normalizeEvidence(rawEvidence={}) {
+  const evidence = (rawEvidence && typeof rawEvidence === 'object') ? { ...rawEvidence } : {};
+  const types = ['none', 'explanation', 'retrieval', 'transfer', 'delayed_retrieval', 'correction'];
+  const statuses = ['none', 'passed', 'partial', 'failed'];
+  if (!types.includes(evidence.type)) evidence.type = 'none';
+  if (!statuses.includes(evidence.status)) evidence.status = 'none';
+  evidence.error_type = String(evidence.error_type || '');
+  evidence.reason = String(evidence.reason || '');
+  return evidence;
+}
+
 function cleanEvaluation(rawEvaluation={}) {
   const ev = (rawEvaluation && typeof rawEvaluation === 'object') ? { ...rawEvaluation } : {};
+  const statuses = ['has_entry', 'no_entry', 'recall_decay'];
+  if (!statuses.includes(ev.entry_status)) ev.entry_status = 'has_entry';
+  ev.evidence_for_mastery = normalizeEvidence(ev.evidence_for_mastery || {});
+  ev.error_pattern = String(ev.error_pattern || '').trim().slice(0, 12);
   const emotion = String(ev.user_emotion || '').trim();
   if (!emotion || /^(unknown|\?|未知)$/i.test(emotion)) delete ev.user_emotion;
   return ev;
@@ -2894,8 +2944,8 @@ function safeChatHtml(content) {
 // ============== IndexedDB 封装 ==============
 const DB = (() => {
   const DB_NAME = 'reverse-tutor';
-  const DB_VERSION = 1;
-  const STORES = ['sessions', 'messages', 'anchors', 'mastery', 'kv'];
+  const DB_VERSION = 2;
+  const STORES = ['sessions', 'messages', 'anchors', 'mastery', 'error_log', 'kv'];
   let _db = null;
 
   function open() {
@@ -2918,6 +2968,10 @@ const DB = (() => {
         if (!d.objectStoreNames.contains('mastery')) {
           const s = d.createObjectStore('mastery', { keyPath: 'id', autoIncrement: true });
           s.createIndex('sid_kp', ['sid', 'kp'], { unique: true });
+          s.createIndex('sid', 'sid', { unique: false });
+        }
+        if (!d.objectStoreNames.contains('error_log')) {
+          const s = d.createObjectStore('error_log', { keyPath: 'id', autoIncrement: true });
           s.createIndex('sid', 'sid', { unique: false });
         }
         if (!d.objectStoreNames.contains('kv')) {
@@ -2972,6 +3026,7 @@ const DB = (() => {
       messages: await all('messages'),
       anchors: await all('anchors'),
       mastery: await all('mastery'),
+      error_log: await all('error_log'),
       kv: await all('kv'),
     };
   }
@@ -3056,6 +3111,19 @@ const LLM = (() => {
       '嗯……可如果题目里改一个条件，**{kp}** 这个结论还成立吗？',
       '我有点疑惑：**{kp}** 在什么情况下会失效？老师能举个反例吗？',
     ],
+    clue: [
+      '老师，据说 **{kp}** 可以先看一个具体例子里的第一步。你能不能先讲这一点？',
+      '老师，我听说 **{kp}** 不是先背定义，而是先找旧方法哪里卡住。你能讲讲这个第一步吗？',
+    ],
+    scaffold_example: [
+      '老师，我听说 **{kp}** 可以先拿一个小例子观察第一步。你能只讲这个例子开头吗？',
+    ],
+    examiner_verify: [
+      '那我先不算自己真会了。老师你能换个条件问我一下 **{kp}** 的第一步吗？',
+    ],
+    emote: [
+      '（眼睛一亮）真的吗？那 **{kp}** 我是不是有点摸到门了？',
+    ],
     persuade: [
       '诶老师别走啊……我就剩 **{kp}** 这一节没搞懂了，你陪我弄完好不好，我请你喝奶茶 QAQ',
       '（小声）我知道我笨……但你刚才那个思路对我帮助超大，能再讲下 **{kp}** 不？',
@@ -3075,18 +3143,24 @@ const LLM = (() => {
       '今天就到这吧老师，我先把 **{kp}** 复盘一下，明天接着来！',
       '差不多了！我感觉脑子充电了，今天的 **{kp}** 我会再做两题巩固。',
     ],
+    recap: [
+      '今天就到这吧老师，我先把 **{kp}** 复盘一下，明天接着来！',
+      '差不多了！我感觉脑子充电了，今天的 **{kp}** 我会再做两题巩固。',
+    ],
   };
 
   function detect_intent(t) {
     t = (t||'').trim();
     if (!t) return 'ask';
     const has = (arr) => arr.some(k => t.includes(k));
+    if (has(['不知道','没听过','没学过','不会','这是什么','完全没'])) return 'clue';
     if (has(['不想','算了','放弃','没意思','烦','够了','退出','拜拜','再见','晚安'])) return 'persuade';
     if (t.length > 25 && has(['因为','所以','由于','推出','证明','推导','推论','证'])) return 'probe';
     if (['=','→','²','^','∫','代码','函数'].some(c => t.includes(c))) return 'probe';
-    if (has(['你真棒','你不错','你厉害','你掌握','你学得快','你懂了','你做得','做得好','学得不错'])) return 'encourage';
-    if (has(['今天就这样','今天就到','明天','下次再','下次见','结束','总结一下','总结今天'])) return 'wrap';
-    if (has(['继续','下一','next','再来','懂了','明白了'])) return 'next';
+    if (has(['你真棒','你不错','你厉害','你掌握','你学得快','你懂了','你做得','做得好','学得不错'])) return 'emote';
+    if (has(['今天就这样','今天就到','明天','下次再','下次见','结束','总结一下','总结今天'])) return 'recap';
+    if (has(['懂了','明白了','会了','理解了'])) return 'examiner_verify';
+    if (has(['继续','下一','next','再来'])) return 'next';
     return 'ask';
   }
   function detect_emotion(t) {
@@ -3104,10 +3178,22 @@ const LLM = (() => {
   function pack(action_type, kp, emotion, correctness, depth, reqs, note='mock') {
     const pool = LINES[action_type] || LINES.ask;
     const reply = pool[Math.floor(Math.random()*pool.length)].replace('{kp}', kp);
+    const evidence = action_type === 'probe'
+      ? { type: 'explanation', status: 'passed', error_type: '', reason: '用户给出了可追问的解释' }
+      : { type: 'none', status: 'none', error_type: '', reason: '本轮不提供掌握度进位证据' };
+    const roleByAction = {
+      clue: 'clue_student',
+      scaffold_example: 'scaffold_student',
+      examiner_verify: 'examiner',
+      next: 'review_student',
+      recap: 'review_student',
+    };
     return {
       evaluation: { correctness: +correctness.toFixed(2), depth: +depth.toFixed(2),
+                     entry_status: ['clue','scaffold_example'].includes(action_type) ? 'no_entry' : 'has_entry',
+                     evidence_for_mastery: evidence,
                      user_emotion: emotion, new_requirements: reqs },
-      action: { type: action_type, knowledge_point: kp,
+      action: { type: action_type, student_role: roleByAction[action_type] || 'probing_student', knowledge_point: kp,
                 difficulty: action_type==='ask' ? 0.4 : 0.6, note },
       reply,
       anchor_updates: reqs.map(r => ({ kind:'requirement', content: r, weight: 1.2 })),
@@ -3130,8 +3216,9 @@ const LLM = (() => {
     const kp_idx = Math.min(n_next + (intent==='next' ? 1 : 0), KP_SEQ.length - 1);
     const kp = KP_SEQ[kp_idx];
     let correctness, depth;
-    if (['probe','next','encourage'].includes(intent)) { correctness = Math.min(0.85, 0.35 + 0.1*userMsgs.length); depth = 0.6; }
+    if (['probe','next','emote'].includes(intent)) { correctness = Math.min(0.85, 0.35 + 0.1*userMsgs.length); depth = 0.6; }
     else if (intent === 'persuade') { correctness = 0.1; depth = 0.1; }
+    else if (['clue','scaffold_example','examiner_verify'].includes(intent)) { correctness = 0; depth = 0; }
     else { correctness = 0.4; depth = 0.3; }
     return pack(intent, kp, emotion, correctness, depth, reqs);
   }
@@ -3957,13 +4044,26 @@ const ENGINE = (() => {
   const ACTION_TYPES = {
     ask: '主动提问',
     probe: '追问（让用户解释更深或把目标说清楚）',
-    explain_back: '复述（"我是不是这么理解……？"）',
+    clue: '线索型学生：没有入口时递一个方法名或第一步线索',
+    scaffold_example: '脚手架：用一个具体例子引导用户观察第一步',
+    examiner_verify: '考官验证：用户说懂了以后先验证',
+    emote: '情绪反应，引导用户继续解释',
     persuade: '情感说服（用户拒绝时）',
-    encourage: '鼓励（用户进展时）',
     next: '推进到下一个学习点或目标步骤',
-    wrap: '本轮收尾',
+    recap: '小结/回顾刚学内容',
   };
   const SUMMARY_THRESHOLD = 30, SUMMARY_KEEP_RECENT = 12;
+  const DEFAULT_STRATEGY_SETTINGS = {
+    feedback_intensity: 3,
+    probing_intensity: 3,
+    correction_timing: 'immediate',
+    review_frequency: 'normal',
+    tone: 'natural',
+    proactivity: 'normal',
+    privacy_level: 'standard',
+    scaffold_intensity: 3,
+    image_retention_days: 0,
+  };
 
   function inferConversationMode(session) {
     const p = session.persona || {};
@@ -4164,6 +4264,43 @@ const ENGINE = (() => {
     return Object.entries(ACTION_TYPES).map(([k,v]) => `- \`${k}\`: ${v}`).join('\n');
   }
 
+  function clampStrategyInt(value, fallback=3) {
+    const n = Number.parseInt(value, 10);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(1, Math.min(5, n));
+  }
+
+  function normalizeStrategySettings(raw={}) {
+    const s = { ...DEFAULT_STRATEGY_SETTINGS, ...(raw || {}) };
+    s.feedback_intensity = clampStrategyInt(s.feedback_intensity, 3);
+    s.probing_intensity = clampStrategyInt(s.probing_intensity, 3);
+    s.scaffold_intensity = clampStrategyInt(s.scaffold_intensity, 3);
+    s.image_retention_days = Math.max(0, Math.min(365, parseInt(s.image_retention_days || 0, 10) || 0));
+    if (!['immediate', 'summary_only'].includes(s.correction_timing)) s.correction_timing = 'immediate';
+    if (!['low', 'normal', 'high'].includes(s.review_frequency)) s.review_frequency = 'normal';
+    for (const key of ['tone', 'proactivity', 'privacy_level']) s[key] = String(s[key] || DEFAULT_STRATEGY_SETTINGS[key]);
+    return s;
+  }
+
+  function formatStrategySettings(raw={}) {
+    const settings = normalizeStrategySettings(raw);
+    const lines = [
+      `- 反馈强度：${settings.feedback_intensity}/5`,
+      `- 追问强度：${settings.probing_intensity}/5`,
+      `- 纠错时机：${settings.correction_timing}`,
+      `- 复习频率：${settings.review_frequency}`,
+      `- 语气：${settings.tone}`,
+      `- 主动性：${settings.proactivity}`,
+      `- 隐私级别：${settings.privacy_level}`,
+      `- 脚手架强度：${settings.scaffold_intensity}/5`,
+    ];
+    if (settings.probing_intensity >= 5) lines.push('- probing_intensity=5：连续 3 轮内不允许进入 small_lecture；优先选择 probe，每轮只追一个为什么。');
+    if (settings.correction_timing === 'summary_only') lines.push('- correction_timing=summary_only：禁止在追问中纠错，仅 recap 时纠正。');
+    if (settings.review_frequency === 'high') lines.push('- review_frequency=high：复习间隔阶梯改为 1/2/4/7。');
+    if (settings.privacy_level === 'strict') lines.push('- privacy_level=strict：只记录对学习策略有必要的事实，避免扩展私人生活细节。');
+    return lines.join('\n');
+  }
+
   function build_system_prompt(session, anchors, masteries, summary='', sourceContext='') {
     const p = session.persona || {};
     const conversationMode = inferConversationMode(session);
@@ -4177,6 +4314,12 @@ const ENGINE = (() => {
 - 目标: ${p.goal||''}
 - 截止: ${p.deadline||''}
 - 性格: ${p.personality||''}
+
+# 核心自述
+${session.core_self || '（未设置）'}
+
+# 策略设置
+${formatStrategySettings(session.settings || {})}
 
 # 主线锚（不可漂移，**永远不能违背**）
 ${format_anchors(anchors)}
@@ -4206,11 +4349,19 @@ ${format_actions()}
   "evaluation": {
     "correctness": 0.0,
     "depth": 0.0,
+    "entry_status": "has_entry|no_entry|recall_decay",
+    "evidence_for_mastery": {
+      "type": "none|explanation|retrieval|transfer|delayed_retrieval|correction",
+      "status": "none|passed|partial|failed",
+      "error_type": "概念错|条件错|步骤跳跃|表达不清|迁移失败|...",
+      "reason": "为什么这轮算/不算掌握度证据"
+    },
     "user_emotion": "neutral|frustrated|engaged|curious|fresh",
     "new_requirements": ["（若用户说出了新诉求/约定就抽取，否则 []）"]
   },
   "action": {
-    "type": "ask|probe|explain_back|persuade|encourage|next|wrap",
+    "type": "ask|probe|clue|scaffold_example|examiner_verify|emote|persuade|next|recap",
+    "student_role": "probing_student|clue_student|scaffold_student|examiner|review_student",
     "knowledge_point": "本回合相关的具体知识点（短词组）",
     "related_kps": ["与本知识点在知识体系上有前置/并列/推导关系的已学知识点，最多3个，没有则[]"],
     "difficulty": 0.0,
@@ -4312,6 +4463,35 @@ ${format_actions()}
               last_correctness: correctness, last_depth: depth, updated_at: Date.now() };
       await DB.add('mastery', row);
     }
+  }
+
+  async function upsert_error_log(sid, kp, errorPattern, episodeId=null) {
+    const pattern = String(errorPattern || '').trim().slice(0, 12);
+    if (!pattern) return null;
+    const keyKp = String(kp || '当前焦点').trim() || '当前焦点';
+    const now = Date.now();
+    const rows = await DB.bySid('error_log', sid);
+    let row = rows.find(e => e.kp === keyKp && e.error_pattern === pattern);
+    if (row) {
+      row.recurrence_count = (row.recurrence_count || 0) + 1;
+      row.last_seen_at = now;
+      row.status = 'active';
+      row.linked_episode_ids = Array.from(new Set([...(row.linked_episode_ids || []), episodeId].filter(Boolean)));
+      await DB.put('error_log', row);
+      return row;
+    }
+    row = {
+      sid,
+      kp: keyKp,
+      error_pattern: pattern,
+      first_seen_at: now,
+      last_seen_at: now,
+      recurrence_count: 1,
+      linked_episode_ids: episodeId ? [episodeId] : [],
+      status: 'active',
+    };
+    row.id = await DB.add('error_log', row);
+    return row;
   }
 
   async function add_anchor(sid, kind, content, weight=1.0, extra={}) {
@@ -4719,10 +4899,11 @@ function supportsBackgroundChat(cfg) {
       const fullReply = streamObj.fullText() || currentBubbleText;
       const reply = (fullReply||'').trim() || '（……我有点走神了，你刚才说啥？）';
       const bubbles = shapeReplyBubbles(reply, 3);
+      let assistantEpisodeId = null;
       for (let i = 0; i < bubbles.length; i++) {
         if (i > 0 && typeof opts.onBubbleStart === 'function') opts.onBubbleStart(i);
         if (typeof opts.onBubbleComplete === 'function') opts.onBubbleComplete(i, bubbles[i]);
-        await add_message(sid, 'assistant', bubbles[i], {
+        const savedAssistant = await add_message(sid, 'assistant', bubbles[i], {
           action: ac, evaluation: ev,
           turn_id: turnId,
           reply_to_message_id: sourceMessage ? sourceMessage.id : null,
@@ -4730,10 +4911,14 @@ function supportsBackgroundChat(cfg) {
           message_index: i, message_total: bubbles.length,
           source:'foreground_llm', status: 'completed',
         });
+        if (!assistantEpisodeId) assistantEpisodeId = savedAssistant.id;
       }
 
       if (ac.knowledge_point) {
         await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+        if (ac.type === 'examiner_verify' && (+ev.correctness || 0) < 0.5 && ev.error_pattern) {
+          await upsert_error_log(sid, ac.knowledge_point, ev.error_pattern, assistantEpisodeId);
+        }
       }
       for (const u of updates) {
         await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0, {
@@ -4763,8 +4948,9 @@ function supportsBackgroundChat(cfg) {
     const updates = raw.anchor_updates || [];
 
     const bubbles = shapeReplyBubbles(reply, 1);
+    let assistantEpisodeId = null;
     for (let i = 0; i < bubbles.length; i++) {
-      await add_message(sid, 'assistant', bubbles[i], {
+      const savedAssistant = await add_message(sid, 'assistant', bubbles[i], {
         action: ac,
         evaluation: ev,
         turn_id: turnId,
@@ -4775,10 +4961,14 @@ function supportsBackgroundChat(cfg) {
         source:'foreground_llm',
         status: 'completed',
       });
+      if (!assistantEpisodeId) assistantEpisodeId = savedAssistant.id;
     }
 
     if (ac.knowledge_point) {
       await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+      if (ac.type === 'examiner_verify' && (+ev.correctness || 0) < 0.5 && ev.error_pattern) {
+        await upsert_error_log(sid, ac.knowledge_point, ev.error_pattern, assistantEpisodeId);
+      }
     }
     for (const u of updates) {
       await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0, {
@@ -4858,12 +5048,14 @@ function supportsBackgroundChat(cfg) {
     return { reply, action: ac, evaluation: ev, proactive_mode: mode };
   }
 
-  async function create_session({ title, role, goal, deadline='', personality='', reqs=[] }) {
+  async function create_session({ title, role, goal, deadline='', personality='', reqs=[], core_self='', settings={} }) {
     const sid = uuid();
     const session = {
       id: sid,
       title: title || `${role} · ${goal}`,
       persona: { role, goal, deadline, personality: personality || '好奇、有点贪玩、容易丧气但能被鼓励' },
+      core_self: core_self || '',
+      settings: normalizeStrategySettings(settings || {}),
       avatar_image: '',
       avatar_hidden: false,
       last_read_at: Date.now(),
@@ -4883,10 +5075,11 @@ function supportsBackgroundChat(cfg) {
       DB.delBySid('messages', sid),
       DB.delBySid('anchors', sid),
       DB.delBySid('mastery', sid),
+      DB.delBySid('error_log', sid),
     ]);
   }
 
-  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, queue_pending_user_message, ACTION_TYPES };
+  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, queue_pending_user_message, normalizeStrategySettings, formatStrategySettings, ACTION_TYPES };
 })();
 </script>
 
@@ -5514,6 +5707,33 @@ function appendQueuedUserMessageBubble(message) {
   keepChatTailVisible(0, { wasNearBottom });
 }
 
+function renderProcessSummary(meta={}, action={}, evaluation={}) {
+  const a = action || {};
+  const ev = evaluation || {};
+  const evidence = ev.evidence_for_mastery || {};
+  const ids = meta.evidence_episode_ids || [];
+  if (!meta.process_summary && !a.type && !evidence.type && !ids.length) return '';
+  const basis = [
+    evidence.type ? `${evidence.type}/${evidence.status || 'none'}` : '',
+    evidence.reason || '',
+    ev.correctness !== undefined ? `correctness=${ev.correctness}` : '',
+    ev.depth !== undefined ? `depth=${ev.depth}` : '',
+  ].filter(Boolean).join(' · ') || '暂无显式证据';
+  const strategy = [a.type, a.student_role, a.knowledge_point].filter(Boolean).join(' · ') || '未记录';
+  const next = a.note || (a.type === 'probe' ? '继续追问用户的解释' : '根据用户下一句再调整');
+  return `
+    <details class="process-summary">
+      <summary>本轮判断</summary>
+      <dl>
+        <dt>本轮判断</dt><dd>${esc(meta.process_summary || ev.entry_status || '未记录')}</dd>
+        <dt>依据</dt><dd>${esc(basis)}</dd>
+        <dt>策略</dt><dd>${esc(strategy)}</dd>
+        <dt>下一步</dt><dd>${esc(next)}</dd>
+        <dt>证据 episodes</dt><dd>${ids.length ? ids.map(id => `#${esc(String(id))}`).join(', ') : '无'}</dd>
+      </dl>
+    </details>`;
+}
+
 // --- Chat ---
 async function renderChat() {
   const chat = $('#chat');
@@ -5610,6 +5830,7 @@ async function renderChat() {
             <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
             ${queuedState}
             ${meta}
+            ${!isUser && messageIndex === 0 ? renderProcessSummary(msgMeta, a, ev) : ''}
             ${failedActions}
           </div>
         </div>`;
@@ -6897,7 +7118,7 @@ $('#anchor-reprocess-file').addEventListener('change', async e => {
 
 async function openLearningContext(tab=state.contextTab || 'graph') {
   if (!state.sid) { toast('先打开一个聊天窗口'); return; }
-  state.contextTab = ['graph','anchors','notes','settings'].includes(tab) ? tab : 'graph';
+  state.contextTab = ['graph','anchors','notes','errors','images','memory','settings'].includes(tab) ? tab : 'graph';
   await markSessionRead(state.sid);
   state.chatScreen = 'context';
   const s = await DB.get('sessions', state.sid);
@@ -6918,6 +7139,9 @@ async function renderLearningContext() {
   $$('.context-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.contextTab === state.contextTab));
   if (state.contextTab === 'anchors') return renderContextAnchors();
   if (state.contextTab === 'notes') return renderContextNotes();
+  if (state.contextTab === 'errors') return renderContextErrors();
+  if (state.contextTab === 'images') return renderContextImages();
+  if (state.contextTab === 'memory') return renderContextMemory();
   if (state.contextTab === 'settings') return renderContextSettings();
   return renderContextGraph();
 }
@@ -7066,6 +7290,225 @@ async function renderContextNotes() {
   refreshIcons();
 }
 
+function relativeDayText(ts) {
+  const t = Number(ts || 0);
+  if (!t) return '未知';
+  const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  return days <= 0 ? '今天' : `${days} 天前`;
+}
+
+async function renderContextErrors() {
+  const body = $('#learning-context-body');
+  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  const [rows, messages] = await Promise.all([
+    DB.bySid('error_log', state.sid),
+    DB.bySid('messages', state.sid),
+  ]);
+  const msgById = new Map(messages.map(m => [Number(m.id), m]));
+  const sorted = rows.sort((a,b) => {
+    const ar = a.status === 'resolved' ? 1 : 0;
+    const br = b.status === 'resolved' ? 1 : 0;
+    return ar - br || (b.recurrence_count || 0) - (a.recurrence_count || 0) || (b.last_seen_at || 0) - (a.last_seen_at || 0);
+  }).slice(0, 20);
+  body.innerHTML = `
+    <div class="space-y-2">
+      ${sorted.map(e => {
+        const episodes = (e.linked_episode_ids || []).slice(-3).map(id => msgById.get(Number(id))).filter(Boolean);
+        return `
+          <details class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs" ${e.status === 'resolved' ? '' : 'open'}>
+            <summary class="cursor-pointer">
+              <span class="font-semibold text-neutral-200">${esc(e.kp || '当前焦点')}</span>
+              <span class="text-neutral-500"> · ${esc(e.error_pattern || '')} · 出现 ${e.recurrence_count || 1} 次 · 最近 ${esc(relativeDayText(e.last_seen_at))}</span>
+              ${e.status === 'resolved' ? '<span class="pill pill-next ml-1">resolved</span>' : ''}
+            </summary>
+            <div class="mt-2 space-y-1.5">
+              ${episodes.map(m => `<div class="rounded border border-neutral-800 p-2 text-neutral-400">${esc(String(m.content || '').slice(0, 160))}</div>`).join('') || '<div class="text-neutral-500">暂无关联 episode 片段</div>'}
+            </div>
+          </details>`;
+      }).join('') || '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">还没有反复错因。考官验证失败并给出 error_pattern 后，会在这里沉淀。</div>'}
+    </div>`;
+}
+
+async function renderContextImages() {
+  const body = $('#learning-context-body');
+  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  let image_extracts = [];
+  try {
+    image_extracts = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images`).then(r => r.ok ? r.json() : []);
+  } catch (e) {
+    image_extracts = [];
+  }
+  body.innerHTML = `
+    <div class="space-y-3" data-image-extracts="image_extracts">
+      <label class="block bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
+        <span class="text-neutral-300 inline-flex items-center gap-1.5"><i class="button-icon" data-lucide="image-plus"></i><span>上传图片</span></span>
+        <input id="ctx-image-upload" type="file" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full text-neutral-400">
+      </label>
+      ${(image_extracts || []).map(row => `
+        <details class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
+          <summary class="cursor-pointer flex items-center justify-between gap-2">
+            <span class="min-w-0 truncate">${esc(String(row.extracted_text || '图片识别结果').slice(0, 80))}</span>
+            <button type="button" data-delete-image="${row.image_id}" class="shrink-0 text-[11px] px-2 py-1 rounded border border-neutral-700">删除</button>
+          </summary>
+          <div class="mt-2 space-y-2 text-neutral-400">
+            ${row.original_url ? `<img src="${esc(row.original_url)}" class="max-h-32 rounded border border-neutral-800" alt="">` : ''}
+            <div>${esc(row.extracted_text || '')}</div>
+            <pre class="whitespace-pre-wrap text-[11px] bg-neutral-950 border border-neutral-800 rounded p-2">${esc(JSON.stringify(row.structure || {}, null, 2))}</pre>
+            <div class="text-[11px] text-neutral-500">episode #${esc(row.episode_id || '')}</div>
+          </div>
+        </details>`).join('') || '<div class="text-xs text-neutral-500 text-center py-10">还没有图片识别记录</div>'}
+    </div>`;
+  $('#ctx-image-upload')?.addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('file', file);
+    await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images`, { method:'POST', body: form });
+    await renderContextImages();
+  });
+  $$('[data-delete-image]').forEach(btn => btn.addEventListener('click', async e => {
+    e.preventDefault();
+    await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images/${encodeURIComponent(btn.dataset.deleteImage)}`, { method:'DELETE' });
+    await renderContextImages();
+  }));
+  if (window.lucide) lucide.createIcons();
+}
+
+function memoryTime(value) {
+  return value ? esc(String(value).replace('T', ' ').slice(0, 16)) : '未记录';
+}
+
+function memoryDeleteButton(kind, id, label) {
+  return `<button type="button" data-memory-delete-kind="${esc(kind)}" data-memory-delete-id="${esc(id)}" data-memory-delete-label="${esc(label)}" class="shrink-0 text-[11px] px-2 py-1 rounded border border-neutral-700 active:border-red-500 active:text-red-300">删除</button>`;
+}
+
+function memoryRowHtml(kind, id, label, title, detail, time) {
+  return `
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <div class="font-semibold text-neutral-200 truncate">${title}</div>
+          <div class="text-neutral-400 mt-1 leading-relaxed break-words">${detail}</div>
+          <div class="text-[10px] text-neutral-500 mt-2">${time}</div>
+        </div>
+        ${memoryDeleteButton(kind, id, label)}
+      </div>
+    </div>`;
+}
+
+async function renderContextMemory() {
+  const body = $('#learning-context-body');
+  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  let memory = null;
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/memory`);
+    memory = res.ok ? await res.json() : null;
+  } catch (e) {
+    memory = null;
+  }
+  if (!memory) {
+    body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">记忆读取失败</div>';
+    return;
+  }
+  const tabs = [
+    ['anchors', '锚点'], ['mastery', '掌握度'], ['error_logs', '错因'],
+    ['images', '图片'], ['documents', '资料'], ['recent_episodes', '记录'],
+  ];
+  const active = tabs.some(t => t[0] === state.memoryTab) ? state.memoryTab : 'anchors';
+  state.memoryTab = active;
+  const rows = {
+    anchors: (memory.anchors || []).map(a => memoryRowHtml('anchor', a.id, '锚点', `${esc(a.kind || 'anchor')} · weight ${esc(a.weight || 0)}`, esc(a.content || ''), memoryTime(a.created_at))),
+    mastery: (memory.mastery || []).map(m => memoryRowHtml('mastery', m.id, '掌握度', esc(m.knowledge_point || '未命名知识点'), `level ${esc(m.level || 0)} · ${esc(m.mastery_score || 0)}/100 · next ${memoryTime(m.next_review_at)}`, memoryTime(m.updated_at))),
+    error_logs: (memory.error_logs || []).map(e => memoryRowHtml('error_log', e.id, '错因', `${esc(e.kp || '当前焦点')} · ${esc(e.error_pattern || '')}`, `出现 ${esc(e.recurrence_count || 1)} 次 · ${esc(e.status || 'active')}`, memoryTime(e.last_seen_at))),
+    images: (memory.images || []).map(i => memoryRowHtml('image', i.id, '图片', esc(String(i.extracted_text || '图片识别结果').slice(0, 60)), `KP: ${esc((i.detected_kps || []).join(', ') || '未命中')} · episode #${esc(i.episode_id || '')}`, memoryTime(i.created_at))),
+    documents: (memory.documents || []).map(d => memoryRowHtml('document', d.id, '资料', esc(d.title || 'Untitled'), `${esc(d.source_type || '')} · chunks ${esc(d.chunk_count || 0)}`, memoryTime(d.imported_at))),
+    recent_episodes: (memory.recent_episodes || []).map(e => memoryRowHtml('episode', e.id, '记录', `${esc(e.role || '')} · ${esc((e.meta || {}).kind || '')}`, esc(String(e.content || '').slice(0, 80)), memoryTime(e.created_at))),
+  };
+  body.innerHTML = `
+    <div class="space-y-3">
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        ${tabs.map(([key, label]) => `<button type="button" data-memory-kind="${key}" class="context-tab ${key === active ? 'active' : ''}">${label}</button>`).join('')}
+      </div>
+      <div class="space-y-2" data-memory-panel="${active}">
+        ${(rows[active] || []).join('') || '<div class="text-xs text-neutral-500 text-center py-10">当前分类还没有记忆</div>'}
+      </div>
+      <div class="hidden" data-memory-confirm-copy>确定删除这条 [类型] 记忆？删除后不可恢复。</div>
+    </div>`;
+  $$('[data-memory-kind]').forEach(btn => btn.addEventListener('click', async () => {
+    state.memoryTab = btn.dataset.memoryKind;
+    await renderContextMemory();
+  }));
+  $$('[data-memory-delete-kind]').forEach(btn => btn.addEventListener('click', async () => {
+    const label = btn.dataset.memoryDeleteLabel || '记忆';
+    if (!confirm(`确定删除这条 ${label} 记忆？删除后不可恢复。`)) return;
+    const res = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/memory/${encodeURIComponent(btn.dataset.memoryDeleteKind)}/${encodeURIComponent(btn.dataset.memoryDeleteId)}`, { method: 'DELETE' });
+    if (!res.ok) {
+      let detail = '未知错误';
+      try { detail = (await res.json()).detail || detail; } catch (e) {}
+      toast(`删除失败：${detail}`);
+      return;
+    }
+    toast('已删除');
+    await renderContextMemory();
+  }));
+}
+
+function strategyOption(value, current, label) {
+  return `<option value="${esc(value)}" ${current === value ? 'selected' : ''}>${esc(label)}</option>`;
+}
+
+function strategySettingsPanelHtml(session) {
+  const st = ENGINE.normalizeStrategySettings(session?.settings || {});
+  return `
+    <div>
+      <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">策略层</div>
+      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3 text-xs">
+        <label class="block">
+          <span class="text-neutral-400">核心自述</span>
+          <textarea id="setting-core-self" rows="2" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">${esc(session?.core_self || '')}</textarea>
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="text-neutral-400">反馈强度</span><input id="setting-feedback-intensity" data-strategy-setting="feedback_intensity" type="range" min="1" max="5" value="${st.feedback_intensity}" class="w-full accent-emerald-700"></label>
+          <label class="block"><span class="text-neutral-400">追问强度</span><input id="setting-probing-intensity" data-strategy-setting="probing_intensity" type="range" min="1" max="5" value="${st.probing_intensity}" class="w-full accent-emerald-700"></label>
+          <label class="block"><span class="text-neutral-400">脚手架强度</span><input id="setting-scaffold-intensity" data-strategy-setting="scaffold_intensity" type="range" min="1" max="5" value="${st.scaffold_intensity}" class="w-full accent-emerald-700"></label>
+          <label class="block"><span class="text-neutral-400">纠错时机</span><select id="setting-correction-timing" data-strategy-setting="correction_timing" class="native-config-select">${strategyOption('immediate', st.correction_timing, '即时')}${strategyOption('summary_only', st.correction_timing, '只在小结')}</select></label>
+          <label class="block"><span class="text-neutral-400">复习频率</span><select id="setting-review-frequency" data-strategy-setting="review_frequency" class="native-config-select">${strategyOption('low', st.review_frequency, '低')}${strategyOption('normal', st.review_frequency, '正常')}${strategyOption('high', st.review_frequency, '高')}</select></label>
+          <label class="block"><span class="text-neutral-400">语气</span><select id="setting-tone" data-strategy-setting="tone" class="native-config-select">${strategyOption('natural', st.tone, '自然')}${strategyOption('calm', st.tone, '冷静')}${strategyOption('warm', st.tone, '温和')}</select></label>
+          <label class="block"><span class="text-neutral-400">主动性</span><select id="setting-proactivity" data-strategy-setting="proactivity" class="native-config-select">${strategyOption('low', st.proactivity, '低')}${strategyOption('normal', st.proactivity, '正常')}${strategyOption('high', st.proactivity, '高')}</select></label>
+          <label class="block"><span class="text-neutral-400">隐私级别</span><select id="setting-privacy-level" data-strategy-setting="privacy_level" class="native-config-select">${strategyOption('standard', st.privacy_level, '标准')}${strategyOption('strict', st.privacy_level, '严格')}</select></label>
+          <label class="block"><span class="text-neutral-400">保留原图 N 天</span><input id="setting-image-retention-days" data-strategy-setting="image_retention_days" type="number" min="0" max="365" value="${st.image_retention_days}" class="native-config-select"></label>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <div id="setting-strategy-status" class="text-[11px] text-neutral-500">已绑定到当前会话</div>
+          <button id="setting-save-strategy" type="button" class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">保存</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveCurrentSessionStrategySettings() {
+  if (!state.sid) return;
+  const s = await DB.get('sessions', state.sid);
+  if (!s) return;
+  const raw = {};
+  $$('[data-strategy-setting]').forEach(el => { raw[el.dataset.strategySetting] = el.value; });
+  s.core_self = $('#setting-core-self')?.value || '';
+  s.settings = ENGINE.normalizeStrategySettings(raw);
+  s.updated_at = Date.now();
+  await DB.put('sessions', s);
+  const status = $('#setting-strategy-status');
+  if (status) status.textContent = '已保存';
+  toast('设置已保存');
+  await refreshHeader();
+}
+
+function bindStrategySettingsControls() {
+  $('#setting-save-strategy')?.addEventListener('click', saveCurrentSessionStrategySettings);
+  $$('#setting-core-self, [data-strategy-setting]').forEach(el => {
+    el.addEventListener('change', saveCurrentSessionStrategySettings);
+  });
+}
+
 async function renderContextSettings() {
   const body = $('#learning-context-body');
   if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
@@ -7073,6 +7516,7 @@ async function renderContextSettings() {
   if (!s) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">会话不存在</div>'; return; }
   body.innerHTML = `
     <div class="space-y-4">
+      ${strategySettingsPanelHtml(s)}
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话头像</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-4 space-y-4">
@@ -7105,6 +7549,7 @@ async function renderContextSettings() {
         </div>
       </div>
     </div>`;
+  bindStrategySettingsControls();
   $('#ctx-avatar-choose')?.addEventListener('click', () => chooseSessionAvatar(state.sid));
   $('#ctx-avatar-clear')?.addEventListener('click', async () => {
     await updateSessionAvatar(state.sid, { avatar_image: '' });
