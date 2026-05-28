@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import Any
 
 import db
+import kg_gate
 import llm
 from kg_extractor import extract_from_turn as _kg_extract
 from kg_retriever import clear_review_pending, mark_review_pending, retrieve_kg_context
@@ -79,6 +80,8 @@ DEFAULT_STRATEGY_SETTINGS = {
     "proactivity": "normal",
     "privacy_level": "standard",
     "scaffold_intensity": 3,
+    "kg_extraction_enabled": True,
+    "kg_blacklist": [],
 }
 
 # --- System Prompt 模板 -------------------------------------------------------
@@ -1227,16 +1230,18 @@ async def run_turn(db_sess, sid: str, user_input: str, retriever: Retriever | No
         db.add_anchor(db_sess, sid, kind, content, weight=weight)
 
     if mode == "study":
-        try:
-            await _kg_extract(
-                db_sess,
-                sid,
-                evaluation=evaluation,
-                action=action,
-                episode_id=assistant_msg.id,
-            )
-        except Exception:
-            pass
+        allow_kg, _kg_reason = kg_gate.should_extract(settings, user_input, evaluation, action)
+        if allow_kg:
+            try:
+                await _kg_extract(
+                    db_sess,
+                    sid,
+                    evaluation=evaluation,
+                    action=action,
+                    episode_id=assistant_msg.id,
+                )
+            except Exception:
+                pass
 
     if due_reviews and any(k in user_input for k in ("不想复习", "先不管", "跳过", "以后再说")):
         for dr in due_reviews:
