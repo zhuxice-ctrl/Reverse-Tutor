@@ -1,18 +1,17 @@
 {
-  "versionCode": 37,
-  "versionName": "0.18.0",
+  "versionCode": 38,
+  "versionName": "0.19.0",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.18.0.apk",
-  "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.18.0/Reverse-Tutor-v0.18.0.apk"
-  ],
-  "sha256": "86f7d2ee04cdfe1ae74c8493b17125211df326099fd29fd1f7891d130b167c4f",
-  "publishedAt": "2026-05-27",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.0.apk",
+  "apkMirrors": [],
+  "sha256": "",
+  "publishedAt": "2026-05-29",
   "releaseNotes": [
-    "移动端离线引擎与在线学习 schema 对齐：entry_status、student_role、evidence_for_mastery。",
-    "消息气泡可展开查看本轮判断、依据、策略、下一步和证据 episodes。",
-    "next_review_at 驱动到期复习软提示，支持 1/3/7/14 天复习阶梯。",
-    "本地 APK 命名为 Reverse-Tutor-v0.18.0.apk；本次先本地测试，未推送 release。"
+    "新增反例追问式纠错：challenge / confused_student 保持学生口吻处理误解。",
+    "移动端掌握度改为证据门控：只说“懂了”不再提高掌握度。",
+    "修复用户先发消息时 AI 开场插到第一条的问题，连续发送会合并为一轮处理。",
+    "图谱记忆改为学习整理、历史错因、证据摘要和后续策略，不再只复制聊天记录。",
+    "本地 APK 命名为 Reverse-Tutor-v0.19.0.apk；本次只做本地测试，未推送 GitHub Release。"
   ]
 }
