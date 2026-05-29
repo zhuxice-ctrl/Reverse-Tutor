@@ -205,6 +205,31 @@ def test_mobile_graph_sheet_displays_saved_branch_expansion():
     assert "key_concepts" in html
 
 
+def test_mobile_graph_organizes_chat_turns_into_learning_digest_nodes():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function buildKpMemoryDigests" in html
+    assert "nodeType:'insight'" in html
+    assert "insightType:'error'" in html
+    assert "insightType:'evidence'" in html
+    assert "insightType:'next_step'" in html
+    assert "chatMessageIds: digest.chatMessageIds" in html
+    assert "content:msg.content" not in html
+    assert "nodeType: count%5===0?'support':'memory'" not in html
+
+
+def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function buildKpConversationDigest" in html
+    assert "学习整理" in html
+    assert "历史错因" in html
+    assert "证据摘要" in html
+    assert "可回顾原始对话" in html
+    assert "summaryBullets.push(c)" not in html
+    assert "exampleBullets.push(c)" not in html
+
+
 def test_mobile_image_pdf_import_saves_preview_pages_for_vision_recovery():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
@@ -559,12 +584,37 @@ def test_mobile_queued_user_messages_are_visible_and_reused_for_next_turn():
     assert "existingUserMessages" in html
     assert "queuedUserMessages" in html
     assert "await hasPendingNativeBackgroundTurn(state.sid)" in html
-    assert "return queueForNextTurn();" in html
+    assert "return queueForNextTurn({ notifyBusy: true });" in html
     assert "const batch = state.messageQueue.splice(0)" in html
     assert "await submitChatText(combinedText, { queuedUserMessages" in html
     assert "queued_user_message" in html
     assert "待处理" in html
     assert "处理中" in html
+
+
+def test_mobile_opening_turn_is_skipped_once_user_has_started_talking():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "async function hasUserMessagesBeforeOpening" in html
+    assert "if (await hasUserMessagesBeforeOpening(sid)) return { reply: '', action: { type: 'pending' }, skipped: true };" in html
+    assert "if (await hasUserMessagesBeforeOpening(sid)) return { reply: '', action, skipped: true };" in html
+    assert "if (result?.skipped) return;" in html
+    assert "if (state.messageQueue.length) await processMessageQueue();" in html
+
+
+def test_mobile_regular_sends_are_debounced_into_one_queued_turn():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "queueProcessing: false" in html
+    assert "let queueProcessTimer = null;" in html
+    assert "function scheduleMessageQueueProcessing" in html
+    assert "clearTimeout(queueProcessTimer);" in html
+    assert "state.queueProcessing = true;" in html
+    assert "state.queueProcessing = false;" in html
+    assert "return queueForNextTurn({ notifyBusy: true });" in html
+    assert "await queueForNextTurn({ notifyBusy: pendingNative });" in html
+    assert "scheduleMessageQueueProcessing();" in html
+    assert "await submitChatText(txt);" not in html
 
 
 def test_mobile_import_accepts_reader_friendly_document_formats():

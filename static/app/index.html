@@ -1807,9 +1807,11 @@ const state = {
   quotedMessage: null,
   messageQueue: [],
   isGenerating: false,
+  queueProcessing: false,
 };
 let appHistoryReady = false;
 let appHistorySuppress = false;
+let queueProcessTimer = null;
 
 function refreshIcons() {
   if (!window.lucide) return;
@@ -4617,6 +4619,11 @@ ${format_actions()}
     });
   }
 
+  async function hasUserMessagesBeforeOpening(sid) {
+    const msgs = await DB.bySid('messages', sid);
+    return msgs.some(m => m.role === 'user');
+  }
+
   // 压缩：模拟后端 maybe_summarize
   async function maybe_summarize(sid) {
     const msgs = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
@@ -4641,6 +4648,7 @@ ${format_actions()}
   }
 
   async function run_opening_turn(sid) {
+    if (await hasUserMessagesBeforeOpening(sid)) return { reply: '', action: { type: 'pending' }, skipped: true };
     const session = await DB.get('sessions', sid);
     const anchors = await DB.bySid('anchors', sid);
     const masteries = await DB.bySid('mastery', sid);
@@ -4664,6 +4672,7 @@ ${openingTask}
     const raw = await LLM.chat_json(system_prompt, messages, { temperature: 0.85 });
     const reply = (raw.reply||'').trim() || '（站在讲台前傻笑）……老师好，咱开始吧！';
     const action = raw.action || { type:'ask', knowledge_point:'?' };
+    if (await hasUserMessagesBeforeOpening(sid)) return { reply: '', action, skipped: true };
     await add_message(sid, 'assistant', reply, { action, evaluation: cleanEvaluation(raw.evaluation || {}), opening: true });
     return { reply, action };
   }
@@ -6291,7 +6300,7 @@ async function submitChatText(txt, opts={}) {
     setChatSending(false);
     await renderChat();
     refreshHeader();
-    processMessageQueue();
+    scheduleMessageQueueProcessing(0);
   }
 }
 
@@ -6310,7 +6319,8 @@ async function sendMessage() {
     if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
     return openingFor(state.sid);
   }
-  async function queueForNextTurn() {
+  if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
+  async function queueForNextTurn({ notifyBusy=true } = {}) {
     const quotedMessage = state.quotedMessage;
     const queuedMessage = await ENGINE.queue_pending_user_message(state.sid, txt, quotedMessage);
     state.messageQueue.push({ text: txt, message: queuedMessage, quotedMessage });
@@ -6318,36 +6328,52 @@ async function sendMessage() {
     if (quotedMessage) clearQuotedMessage();
     appendQueuedUserMessageBubble(queuedMessage);
     renderQueueIndicator();
-    toast('已进入对话，等待上一条回复完成', 1500);
+    if (notifyBusy) toast('已进入对话，等待上一条回复完成', 1500);
     return;
   }
-  if (state.isGenerating) {
-    return queueForNextTurn();
+  if (state.isGenerating || state.queueProcessing) {
+    return queueForNextTurn({ notifyBusy: true });
   }
   await importNativeBackgroundTurns({ silent: true });
-  if (await hasPendingNativeBackgroundTurn(state.sid)) {
-    return queueForNextTurn();
+  const pendingNative = await hasPendingNativeBackgroundTurn(state.sid);
+  if (pendingNative) {
+    await queueForNextTurn({ notifyBusy: true });
+    scheduleMessageQueueProcessing();
+    return;
   }
-  await submitChatText(txt);
+  await queueForNextTurn({ notifyBusy: pendingNative });
+  scheduleMessageQueueProcessing();
+}
+
+function scheduleMessageQueueProcessing(delay=360) {
+  if (queueProcessTimer) clearTimeout(queueProcessTimer);
+  queueProcessTimer = setTimeout(() => {
+    queueProcessTimer = null;
+    processMessageQueue();
+  }, delay);
 }
 
 async function processMessageQueue() {
-  if (!state.sid || state.isGenerating) return;
-  if (await hasPendingNativeBackgroundTurn(state.sid)) { renderQueueIndicator(); return; }
-  const batch = state.messageQueue.splice(0);
-  if (!batch.length) { renderQueueIndicator(); return; }
-  const queuedUserMessages = batch.map(item => item.message).filter(Boolean);
-  const existingUserMessages = queuedUserMessages.filter(msg => msg && msg.id);
-  const combinedText = existingUserMessages.map(msg => String(msg.content || '').trim()).filter(Boolean).join('\n');
-  if (!combinedText) { renderQueueIndicator(); return; }
-  renderQueueIndicator();
+  if (!state.sid || state.isGenerating || state.queueProcessing) return;
+  state.queueProcessing = true;
   try {
+    if (await hasPendingNativeBackgroundTurn(state.sid)) { renderQueueIndicator(); return; }
+    const batch = state.messageQueue.splice(0);
+    if (!batch.length) { renderQueueIndicator(); return; }
+    const queuedUserMessages = batch.map(item => item.message).filter(Boolean);
+    const existingUserMessages = queuedUserMessages.filter(msg => msg && msg.id);
+    const combinedText = existingUserMessages.map(msg => String(msg.content || '').trim()).filter(Boolean).join('\n');
+    if (!combinedText) { renderQueueIndicator(); return; }
+    renderQueueIndicator();
     await submitChatText(combinedText, { queuedUserMessages, quotedMessage: null, clearInput: false, clearQuote: false });
   } catch (e) {
     toast('队列消息发送失败: ' + (e.message||e), 4000);
+  } finally {
+    state.queueProcessing = false;
+    renderQueueIndicator();
   }
   if (state.messageQueue.length > 0) {
-    processMessageQueue();
+    scheduleMessageQueueProcessing(0);
   }
 }
 
@@ -6416,6 +6442,7 @@ async function openingFor(sid) {
   setChatSending(true);
   try {
     const result = await ENGINE.run_opening_turn(sid);
+    if (result?.skipped) return;
     await renderChat();
     notifyAssistantReply('学生 AI 主动开场', result.reply, 4200, { source: 'opening' });
   }
@@ -6423,6 +6450,7 @@ async function openingFor(sid) {
   finally {
     setChatSending(false);
     await renderChat();
+    if (state.messageQueue.length) await processMessageQueue();
   }
 }
 
@@ -7761,6 +7789,157 @@ function compactGraphNodeLabel(label, maxLen=8) {
   return clean.length > maxLen ? `${clean.slice(0, maxLen)}…` : clean;
 }
 
+function graphUniqueClean(items, limit=8) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items || []) {
+    const text = String(item || '').replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    const key = normalizeGraphTopic(text);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+function graphTrim(text, limit=80) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
+}
+
+function actionTypeLabel(type) {
+  const map = {
+    ask: '请教',
+    probe: '追问',
+    challenge: '反例追问',
+    clue: '线索',
+    scaffold_example: '脚手架',
+    examiner_verify: '验证',
+    recap: '回顾',
+    next: '下一步',
+  };
+  return map[type] || type || '下一步';
+}
+
+function entryStatusLabel(status) {
+  const map = {
+    no_entry: '还缺入口',
+    has_entry: '已有入口',
+    recall_decay: '回忆衰退',
+    mastered: '已掌握',
+  };
+  return map[status] || status || '持续学习中';
+}
+
+function evidenceDigestText(ev={}) {
+  const evidence = ev.evidence_for_mastery || {};
+  const type = evidence.type || 'none';
+  const status = evidence.status || 'none';
+  const reason = evidence.reason || '';
+  if (type === 'none' && status === 'none' && !reason) return '';
+  return `${type}/${status}${reason ? `：${graphTrim(reason, 44)}` : ''}`;
+}
+
+function buildKpConversationDigest(pairs=[], kpName='') {
+  const rows = (pairs || []).filter(Boolean);
+  const last = rows[rows.length - 1] || {};
+  const correctness = rows.map(p => Number(p.ev?.correctness || 0)).filter(Number.isFinite);
+  const depth = rows.map(p => Number(p.ev?.depth || 0)).filter(Number.isFinite);
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : 0;
+  const errors = graphUniqueClean(rows.map(p => p.ev?.misconception || p.ev?.error_pattern), 5);
+  const evidence = graphUniqueClean(rows.map(p => evidenceDigestText(p.ev || {})), 5);
+  const nextSteps = graphUniqueClean(rows.slice(-5).map(p => {
+    const action = p.act || {};
+    const note = graphTrim(action.note || '', 54);
+    return [actionTypeLabel(action.type), note].filter(Boolean).join('：');
+  }), 5);
+  const chatMessageIds = graphUniqueClean(rows.flatMap(p => [p.user?.id, p.ai?.id]), 20).map(Number).filter(Boolean);
+  const latestStatus = entryStatusLabel(last.ev?.entry_status || '');
+  return {
+    kp: kpName,
+    rounds: rows.length,
+    status: rows.length
+      ? `${latestStatus}；平均正确度 ${avg(correctness).toFixed(2)}，平均深度 ${avg(depth).toFixed(2)}`
+      : '还没有足够对话证据',
+    errors,
+    evidence,
+    nextSteps,
+    chatMessageIds,
+  };
+}
+
+function buildKpMemoryDigests(ai, byKp) {
+  const grouped = new Map();
+  for (const msg of (ai || []).slice(-80)) {
+    const meta = msg.meta || {};
+    const action = meta.action || {};
+    const ev = meta.evaluation || {};
+    const kp = String(action.knowledge_point || '').trim();
+    if (!kp || !byKp.has(kp)) continue;
+    const row = grouped.get(kp) || {
+      kp,
+      chatMessageIds: [],
+      errors: [],
+      evidence: [],
+      nextSteps: [],
+      correctness: [],
+      depth: [],
+      latestStatus: '',
+    };
+    if (msg.id) row.chatMessageIds.push(msg.id);
+    if (ev.misconception || ev.error_pattern) row.errors.push(ev.misconception || ev.error_pattern);
+    const evidenceText = evidenceDigestText(ev);
+    if (evidenceText) row.evidence.push(evidenceText);
+    row.nextSteps.push([actionTypeLabel(action.type), graphTrim(action.note || '', 52)].filter(Boolean).join('：'));
+    row.correctness.push(Number(ev.correctness || 0));
+    row.depth.push(Number(ev.depth || 0));
+    row.latestStatus = entryStatusLabel(ev.entry_status || row.latestStatus);
+    grouped.set(kp, row);
+  }
+  const digests = [];
+  for (const row of grouped.values()) {
+    const suffix = normalizeGraphTopic(row.kp);
+    const ids = Array.from(new Set(row.chatMessageIds)).slice(-20);
+    const errors = graphUniqueClean(row.errors, 4);
+    const evidence = graphUniqueClean(row.evidence, 4);
+    const nextSteps = graphUniqueClean(row.nextSteps, 4);
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : 0;
+    if (errors.length) {
+      digests.push({
+        key:`insight-${suffix}-error`,
+        kp: row.kp,
+        insightType:'error',
+        label:`错因：${graphTrim(errors[0], 12)}`,
+        summary:`历史错因：${errors.join('；')}`,
+        chatMessageIds: ids,
+      });
+    }
+    if (evidence.length) {
+      digests.push({
+        key:`insight-${suffix}-evidence`,
+        kp: row.kp,
+        insightType:'evidence',
+        label:'证据摘要',
+        summary:`掌握证据：${evidence.join('；')}；平均正确度 ${avg(row.correctness).toFixed(2)}，平均深度 ${avg(row.depth).toFixed(2)}`,
+        chatMessageIds: ids,
+      });
+    }
+    if (nextSteps.length || row.latestStatus) {
+      digests.push({
+        key:`insight-${suffix}-next`,
+        kp: row.kp,
+        insightType:'next_step',
+        label: row.latestStatus || '下一步',
+        summary:`当前状态：${row.latestStatus || '持续学习中'}。后续策略：${nextSteps.join('；') || '继续收集解释证据'}`,
+        chatMessageIds: ids,
+      });
+    }
+  }
+  return digests.slice(-30);
+}
+
 function cleanOutlineTitle(raw) {
   return String(raw || '')
     .replace(/\s+/g, ' ')
@@ -7985,12 +8164,14 @@ const ForceGraph = (() => {
         : n.nodeType==='section' ? Math.min(W(),H())*.27
         : n.nodeType==='diagnostic' ? Math.min(W(),H())*.24
         : n.nodeType==='latent' ? Math.min(W(),H())*.34
+        : n.nodeType==='insight' ? Math.min(W(),H())*.40
         : Math.min(W(),H())*.42;
       const radius = n.nodeType==='kp' ? Math.max(13,13+(n.level||0)*16)
         : n.nodeType==='source' ? 16
         : n.nodeType==='section' ? 12
         : n.nodeType==='diagnostic' ? 11
         : n.nodeType==='latent' ? 10
+        : n.nodeType==='insight' ? 9
         : (n.nodeType==='support'?7:5);
       return { ...n, x: cx+Math.cos(a)*r+(Math.random()-.5)*30,
         y: cy+Math.sin(a)*r+(Math.random()-.5)*30,
@@ -8080,7 +8261,7 @@ const ForceGraph = (() => {
       const isSel = sel===n;
       const conn = sel && links.some(l=>(l.source===sel&&l.target===n)||(l.target===sel&&l.source===n));
       const dim = sel && !isSel && !conn;
-      const c = n.nodeType==='kp'?kpC:(n.nodeType==='source'?srcC:(n.nodeType==='section'?supC:(n.nodeType==='diagnostic'?diagC:(n.nodeType==='latent'?latC:(n.nodeType==='note'?noteC:(n.nodeType==='support'?supC:memC))))));
+      const c = n.nodeType==='kp'?kpC:(n.nodeType==='source'?srcC:(n.nodeType==='section'?supC:(n.nodeType==='diagnostic'?diagC:(n.nodeType==='latent'?latC:(n.nodeType==='note'?noteC:(n.nodeType==='insight'?memC:(n.nodeType==='support'?supC:memC)))))));
       const learned = n.nodeType==='kp' && (n.level || n.unlockedFromSource);
       // Glow is reserved for learned nodes; locked document topics stay quiet until chat unlocks them.
       if ((isSel || (learned && !dim))) {
@@ -8106,7 +8287,7 @@ const ForceGraph = (() => {
         ctx.strokeStyle='rgba(235,230,220,.24)'; ctx.lineWidth=.8; ctx.stroke();
       }
       // label
-      if ((n.nodeType==='kp' || n.nodeType==='source' || n.nodeType==='section' || n.nodeType==='diagnostic' || n.nodeType==='latent' || n.nodeType==='note') && !dim) {
+      if ((n.nodeType==='kp' || n.nodeType==='source' || n.nodeType==='section' || n.nodeType==='diagnostic' || n.nodeType==='latent' || n.nodeType==='note' || n.nodeType==='insight') && !dim) {
         const fs=Math.max(9,n.radius*.6);
         ctx.font=`${isSel?'bold ':''}${fs}px -apple-system,sans-serif`;
         ctx.fillStyle=n.nodeType==='latent'?'rgba(235,230,220,.48)':(n.nodeType==='diagnostic'?'rgba(244,181,174,.86)':'rgba(235,230,220,.88)');
@@ -8252,15 +8433,21 @@ function buildGraphData(masteries, ai, anchors=[]) {
     const source = target || (note.note_source_id ? sourceNodeById.get(String(note.note_source_id)) : null);
     if (source) links.push({ a:source, b:noteNode, weight:1.2, kind:'note' });
   });
-  const recentByKp = new Map();
-  ai.slice(-34).forEach((msg,i) => {
-    const kp=(msg.meta||{}).action?.knowledge_point;
-    const parent=byKp.get(kp); if(!parent) return;
-    const count=recentByKp.get(kp)||0; recentByKp.set(kp,count+1);
-    nodes.push({ key:`mem-${i}`, nodeType: count%5===0?'support':'memory', kp, content:msg.content, meta:msg.meta||{} });
-  });
-  for (const n of nodes) {
-    if (n.nodeType==='memory' || n.nodeType==='support') { const p=byKp.get(n.kp); if(p) links.push({a:p,b:n,weight:1,kind:'memory'}); }
+  for (const digest of buildKpMemoryDigests(ai, byKp)) {
+    const parent = byKp.get(digest.kp);
+    if (!parent) continue;
+    const insight = {
+      key: digest.key,
+      nodeType:'insight',
+      insightType: digest.insightType,
+      kp: digest.kp,
+      label: digest.label,
+      summary: digest.summary,
+      chatMessageIds: digest.chatMessageIds,
+      meta: { action: { type:'recap', knowledge_point: digest.kp } },
+    };
+    nodes.push(insight);
+    links.push({ a:parent, b:insight, weight:1.1, kind:'memory' });
   }
   let prev=null;
   for (const msg of ai) {
@@ -8383,16 +8570,7 @@ async function showGraphSheet(node) {
     }
   }
 
-  // Build summary bullets from pairs
-  const summaryBullets = [];
-  const exampleBullets = [];
-  for (const p of pairs) {
-    const c = (p.ai.content||'').trim();
-    if (!c) continue;
-    // Heuristic: if AI reply contains "?" or "？", treat as example question
-    if (/[?？]/.test(c) && c.length < 120) exampleBullets.push(c);
-    else summaryBullets.push(c);
-  }
+  const digest = buildKpConversationDigest(pairs, kpName);
 
   let html='';
   if (node.nodeType==='kp') {
@@ -8417,27 +8595,23 @@ async function showGraphSheet(node) {
       <div class="flex justify-between"><span class="text-neutral-500">最近深度</span><span>${Number(node.last_depth||0).toFixed(2)}</span></div>
     </div>`;
 
-    // Knowledge summary
-    if (summaryBullets.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">📝 知识点总结</div><div class="space-y-1.5">`;
-      for (const s of summaryBullets.slice(0,8)) {
-        html+=`<div class="text-xs leading-relaxed" style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--accent-soft);">${esc(s)}</div>`;
-      }
-      html+=`</div></div>`;
+    html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">学习整理</div>
+      <div class="text-xs leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(digest.status)}</div></div>`;
+
+    if (digest.errors.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">历史错因</div><div class="flex flex-wrap gap-1.5">${digest.errors.map(e=>`<span class="pill pill-challenge">${esc(e)}</span>`).join('')}</div></div>`;
     }
 
-    // Example questions
-    if (exampleBullets.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">💡 例题 / 追问</div><div class="space-y-1.5">`;
-      for (const q of exampleBullets.slice(0,6)) {
-        html+=`<div class="text-xs leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${esc(q)}</div>`;
-      }
-      html+=`</div></div>`;
+    if (digest.evidence.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">证据摘要</div><div class="space-y-1.5">${digest.evidence.map(e=>`<div class="text-xs leading-relaxed" style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--accent-soft);">${esc(e)}</div>`).join('')}</div></div>`;
     }
 
-    // Chat records
+    if (digest.nextSteps.length) {
+      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--text-soft)">后续策略</div><div class="space-y-1.5">${digest.nextSteps.map(s=>`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${esc(s)}</div>`).join('')}</div></div>`;
+    }
+
     if (pairs.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--text-soft)">💬 相关对话记录 <span class="text-neutral-500 font-normal">(${pairs.length} 轮)</span></div><div class="space-y-3">`;
+      html+=`<details class="sheet-section"><summary class="text-xs font-semibold mb-2" style="color:var(--text-soft)">可回顾原始对话 <span class="text-neutral-500 font-normal">(${pairs.length} 轮)</span></summary><div class="space-y-3 mt-2">`;
       for (const p of pairs.slice(-10)) {
         const actType = p.act.type||'ask';
         const score = ((Number(p.ev.correctness||0)+Number(p.ev.depth||0))/2).toFixed(2);
@@ -8447,7 +8621,7 @@ async function showGraphSheet(node) {
         html+=`<div class="flex gap-1.5"><span class="pill pill-${actType}">${actType}</span><span class="text-neutral-500" style="font-size:10px">综合 ${score}</span></div>`;
         html+=`</div>`;
       }
-      html+=`</div></div>`;
+      html+=`</div></details>`;
     }
 
   } else if (node.nodeType === 'note') {
@@ -8556,6 +8730,18 @@ async function showGraphSheet(node) {
     if (node.preview) {
       html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">来源线索</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.preview)}</div></div>`;
     }
+
+  } else if (node.nodeType === 'insight') {
+    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
+      <span class="pill pill-recap">学习整理</span>
+      <span class="pill pill-next">${esc(kpName || '知识点')}</span>
+      ${node.insightType ? `<span class="pill pill-${node.insightType === 'error' ? 'challenge' : 'next'}">${esc(node.insightType)}</span>` : ''}
+    </div>
+    <div class="text-base font-bold mb-2">${esc(node.label || '记忆摘要')}</div>
+    <div class="flex gap-2 mb-2">
+      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
+    </div>
+    <div class="sheet-section text-sm leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.summary || '')}</div>`;
 
   } else {
     // Memory / support node: show this specific conversation round in context
@@ -9646,8 +9832,9 @@ function graphNodeExport(node, { includeContent=false } = {}) {
     chat_message_ids: node.chatMessageIds || [],
     memory_node_id: node.memoryNodeId || '',
     memory_status: node.memoryStatus || '',
+    insight_type: node.insightType || '',
   };
-  const text = node.preview || node.content || node.sourceText || '';
+  const text = node.summary || node.preview || node.content || node.sourceText || '';
   if (includeContent) out.content = String(node.content || node.sourceText || text || '');
   else if (text) out.preview = String(text).replace(/\s+/g, ' ').trim().slice(0, 280);
   return out;
