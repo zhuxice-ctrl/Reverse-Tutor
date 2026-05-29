@@ -442,6 +442,12 @@ def test_mobile_offline_engine_schema_matches_v1_learning_fields():
     assert "ask|probe|challenge|clue|scaffold_example|examiner_verify|emote|persuade|next|recap" in html
     assert "const allowed = ['ask', 'probe', 'challenge', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error']" in html
     assert "normalizeEvidence" in html
+    assert "EVIDENCE_SCORES" in html
+    assert "delayed_retrieval:0.82" in html
+    assert "correction:0.90" in html
+    assert "async function upsert_mastery(sid, kp, correctness, depth, evidenceType='none', verificationStatus='none')" in html
+    assert html.count("evidence_for_mastery?.type || 'none'") >= 3
+    assert html.count("evidence_for_mastery?.status || 'none'") >= 3
 
 
 def test_android_background_fallback_uses_v1_learning_schema():

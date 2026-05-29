@@ -4498,20 +4498,42 @@ ${format_actions()}
     ].join('\n');
   }
 
-  async function upsert_mastery(sid, kp, correctness, depth) {
+  const EVIDENCE_SCORES = { none:0, explanation:0.35, retrieval:0.55, transfer:0.72, delayed_retrieval:0.82, correction:0.90 };
+
+  function clamp01(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(1, n));
+  }
+
+  async function upsert_mastery(sid, kp, correctness, depth, evidenceType='none', verificationStatus='none') {
     if (!kp) return;
     const all = await DB.bySid('mastery', sid);
     let row = all.find(m => m.kp === kp);
     const alpha = 0.35;
-    const target = 0.5*correctness + 0.5*depth;
+    evidenceType = Object.prototype.hasOwnProperty.call(EVIDENCE_SCORES, evidenceType) ? evidenceType : 'none';
+    verificationStatus = String(verificationStatus || 'none');
+    const oldLevel = clamp01(row?.level || 0);
+    let nextLevel = oldLevel;
+    if (evidenceType !== 'none' && (verificationStatus === 'passed' || verificationStatus === 'partial')) {
+      let target = EVIDENCE_SCORES[evidenceType];
+      if (verificationStatus === 'partial') target *= 0.75;
+      nextLevel = clamp01((1 - alpha) * oldLevel + alpha * target);
+    } else if (verificationStatus === 'failed') {
+      nextLevel = clamp01(oldLevel - (oldLevel > 0.5 ? 0.08 : 0));
+    }
     if (row) {
-      row.level = Math.min(1, row.level + alpha*(target - row.level));
-      row.attempts += 1; row.last_correctness = correctness; row.last_depth = depth;
+      row.level = nextLevel;
+      row.attempts = (row.attempts || 0) + 1;
+      row.last_correctness = correctness; row.last_depth = depth;
+      row.last_evidence_type = evidenceType; row.last_verification_status = verificationStatus;
       row.updated_at = Date.now();
       await DB.put('mastery', row);
     } else {
-      row = { sid, kp, level: alpha*target, attempts: 1,
-              last_correctness: correctness, last_depth: depth, updated_at: Date.now() };
+      row = { sid, kp, level: nextLevel, attempts: 1,
+              last_correctness: correctness, last_depth: depth,
+              last_evidence_type: evidenceType, last_verification_status: verificationStatus,
+              updated_at: Date.now() };
       await DB.add('mastery', row);
     }
   }
@@ -4772,7 +4794,9 @@ function supportsBackgroundChat(cfg) {
           });
         }
         if (ac.knowledge_point) {
-          await upsert_mastery(job.sid, ac.knowledge_point, +ev.correctness || 0, +ev.depth || 0);
+          await upsert_mastery(job.sid, ac.knowledge_point, +ev.correctness || 0, +ev.depth || 0,
+            ev.evidence_for_mastery?.type || 'none',
+            ev.evidence_for_mastery?.status || 'none');
         }
         for (const u of updates) {
           if (u && u.content) {
@@ -4979,7 +5003,9 @@ function supportsBackgroundChat(cfg) {
       }
 
       if (ac.knowledge_point) {
-        await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+        await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0,
+          ev.evidence_for_mastery?.type || 'none',
+          ev.evidence_for_mastery?.status || 'none');
         if (ev.misconception) {
           await upsert_error_log(sid, ac.knowledge_point, ev.misconception, assistantEpisodeId);
         }
@@ -5035,7 +5061,9 @@ function supportsBackgroundChat(cfg) {
     }
 
     if (ac.knowledge_point) {
-      await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+      await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0,
+        ev.evidence_for_mastery?.type || 'none',
+        ev.evidence_for_mastery?.status || 'none');
       if (ev.misconception) {
         await upsert_error_log(sid, ac.knowledge_point, ev.misconception, assistantEpisodeId);
       }
