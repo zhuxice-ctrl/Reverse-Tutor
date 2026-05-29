@@ -4110,6 +4110,8 @@ const ENGINE = (() => {
     scaffold_intensity: 3,
     image_retention_days: 0,
     web_search_enabled: false,
+    kg_extraction_enabled: true,
+    kg_blacklist: [],
   };
 
   function inferConversationMode(session) {
@@ -4327,6 +4329,9 @@ const ENGINE = (() => {
     if (!['gentle', 'balanced', 'persistent'].includes(s.correction_persistence)) s.correction_persistence = 'balanced';
     if (!['low', 'normal', 'high'].includes(s.review_frequency)) s.review_frequency = 'normal';
     for (const key of ['tone', 'proactivity', 'privacy_level']) s[key] = String(s[key] || DEFAULT_STRATEGY_SETTINGS[key]);
+    s.kg_extraction_enabled = s.kg_extraction_enabled !== false;
+    if (typeof s.kg_blacklist === 'string') s.kg_blacklist = s.kg_blacklist.split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
+    if (!Array.isArray(s.kg_blacklist)) s.kg_blacklist = [];
     return s;
   }
 
@@ -4520,6 +4525,51 @@ ${format_actions()}
     const n = Number(value);
     if (!Number.isFinite(n)) return 0;
     return Math.max(0, Math.min(1, n));
+  }
+
+  const KIND_CONCEPT = 'concept';
+  const KIND_ERROR = 'error_pattern';
+  const REL_LEARNING = '学习中';
+  const REL_MASTERED = '已掌握';
+  const REL_MISUNDERSTOOD = '曾误解';
+  const REL_ERROR_ON = '错在';
+  const KG_DEFAULT_BLACKLIST = [
+    '身份证', '手机号', '电话', '家庭住址', '住址', '银行卡', '密码',
+    '工资', '收入', '病', '诊断', '抑郁', '恋爱', '感情', '分手',
+    '家人', '父母', '隐私',
+  ];
+
+  function kgBlacklistedHit(text, blacklist) {
+    const raw = String(text || '');
+    for (const kw of blacklist || []) {
+      const clean = String(kw || '').trim();
+      if (clean && raw.includes(clean)) return clean;
+    }
+    return '';
+  }
+
+  function kgHasLearningEvidence(evaluation) {
+    const ev = evaluation || {};
+    const evidence = ev.evidence_for_mastery || {};
+    if (['passed', 'partial'].includes(evidence.status)) return true;
+    if (String(ev.error_pattern || ev.misconception || '').trim()) return true;
+    return Number(ev.correctness || 0) >= 0.5;
+  }
+
+  function should_extract(settings, userInput, evaluation, action) {
+    const st = normalizeStrategySettings(settings || {});
+    const ev = evaluation || {};
+    const ac = action || {};
+    if (st.kg_extraction_enabled === false) return { allowed: false, reason: 'disabled' };
+    const kp = String(ac.knowledge_point || '').trim();
+    if (!kp) return { allowed: false, reason: 'no_kp' };
+    const blacklist = [...KG_DEFAULT_BLACKLIST, ...(st.kg_blacklist || [])];
+    const hit = kgBlacklistedHit(userInput, blacklist) || kgBlacklistedHit(kp, blacklist);
+    if (hit) return { allowed: false, reason: `blacklisted:${hit}` };
+    if (String(st.privacy_level || 'standard') === 'strict' && !kgHasLearningEvidence(ev)) {
+      return { allowed: false, reason: 'strict_no_evidence' };
+    }
+    return { allowed: true, reason: 'allowed' };
   }
 
   async function upsert_mastery(sid, kp, correctness, depth, evidenceType='none', verificationStatus='none') {
@@ -4781,6 +4831,82 @@ ${format_actions()}
     return row;
   }
 
+  async function extract_from_turn(sid, { evaluation={}, action={}, episodeId=null }={}) {
+    const ops = [];
+    const kp = String(action.knowledge_point || '').trim();
+    if (!kp) return ops;
+
+    const entryStatus = evaluation.entry_status || 'has_entry';
+    const evidence = evaluation.evidence_for_mastery || {};
+    const correctness = Number(evaluation.correctness || 0) || 0;
+    const errorPattern = String(evaluation.error_pattern || evaluation.misconception || '').trim();
+
+    const concept = await upsert_kg_node(sid, KIND_CONCEPT, kp, { episodeId });
+    ops.push({ op: 'upsert_node', kind: KIND_CONCEPT, name: kp });
+    const userNode = await upsert_kg_node(sid, 'person', '用户', { episodeId });
+
+    if (correctness >= 0.7 && evidence.status === 'passed') {
+      await supersede_kg_edge(sid, userNode.id, concept.id, REL_LEARNING, { newWeight: 0.0, episodeId });
+      await upsert_kg_edge(sid, userNode.id, concept.id, REL_MASTERED, { weight: correctness, episodeId });
+      ops.push({ op: 'mastered', kp });
+    } else if (entryStatus === 'no_entry') {
+      await upsert_kg_edge(sid, userNode.id, concept.id, REL_LEARNING, { weight: 0.1, episodeId });
+      ops.push({ op: 'learning_no_entry', kp });
+    } else {
+      await upsert_kg_edge(sid, userNode.id, concept.id, REL_LEARNING, { weight: Math.max(0.2, correctness), episodeId });
+      ops.push({ op: 'learning', kp });
+    }
+
+    if (errorPattern) {
+      const errNode = await upsert_kg_node(sid, KIND_ERROR, errorPattern, {
+        properties: { kp, correctness },
+        episodeId,
+      });
+      await upsert_kg_edge(sid, userNode.id, errNode.id, REL_ERROR_ON, {
+        weight: 1.0,
+        properties: { kp },
+        episodeId,
+      });
+      ops.push({ op: 'error', pattern: errorPattern, kp });
+    }
+
+    if (
+      evidence.status === 'passed'
+      && ['correction', 'delayed_retrieval'].includes(evidence.type)
+      && errorPattern
+    ) {
+      const errNode = await find_kg_node(sid, KIND_ERROR, errorPattern);
+      if (errNode) {
+        const edges = await list_kg_edges(sid, { nodeId: errNode.id, relation: REL_ERROR_ON });
+        for (const edge of edges) await invalidate_kg_edge(sid, edge.id);
+        ops.push({ op: 'resolve_error', pattern: errorPattern });
+      }
+    }
+
+    if (entryStatus === 'recall_decay') {
+      await upsert_kg_edge(sid, userNode.id, concept.id, REL_MISUNDERSTOOD, {
+        weight: 0.5,
+        properties: { reason: 'recall_decay' },
+        episodeId,
+      });
+      ops.push({ op: 'recall_decay', kp });
+    }
+
+    return ops;
+  }
+
+  async function maybe_extract_kg_from_turn(session, sid, userInput, evaluation, action, episodeId) {
+    try {
+      if (inferConversationMode(session) !== 'learning') return [];
+      const gate = should_extract(session?.settings || {}, userInput || '', evaluation || {}, action || {});
+      if (!gate.allowed) return [];
+      return await extract_from_turn(sid, { evaluation, action, episodeId });
+    } catch (e) {
+      console.warn('kg extraction failed', e);
+      return [];
+    }
+  }
+
   async function add_anchor(sid, kind, content, weight=1.0, extra={}) {
     return DB.add('anchors', { sid, kind, content, weight, created_at: Date.now(), ...extra });
   }
@@ -4974,6 +5100,8 @@ function supportsBackgroundChat(cfg) {
         const ac = normalizeAction(raw.action || {}, '');
         const reply = (raw.reply || '').trim() || '（后台回复已生成，但内容为空）';
         const updates = raw.anchor_updates || [];
+        const session = await DB.get('sessions', job.sid);
+        const sourceMessage = sidMessages.find(m => m.id === reply_to_message_id) || null;
 
         if (pending && pending.id) {
           pending.status = 'completed';
@@ -4987,8 +5115,9 @@ function supportsBackgroundChat(cfg) {
         }
 
         const bubbles = shapeReplyBubbles(reply, 1);
+        let assistantEpisodeId = null;
         for (let i = 0; i < bubbles.length; i++) {
-          await add_message(job.sid, 'assistant', bubbles[i], {
+          const savedAssistant = await add_message(job.sid, 'assistant', bubbles[i], {
             action: ac,
             evaluation: ev,
             native_background_job_id: jobId,
@@ -5000,11 +5129,13 @@ function supportsBackgroundChat(cfg) {
             source:'native_background',
             status: 'completed',
           });
+          if (!assistantEpisodeId) assistantEpisodeId = savedAssistant.id;
         }
         if (ac.knowledge_point) {
           await upsert_mastery(job.sid, ac.knowledge_point, +ev.correctness || 0, +ev.depth || 0,
             ev.evidence_for_mastery?.type || 'none',
             ev.evidence_for_mastery?.status || 'none');
+          await maybe_extract_kg_from_turn(session, job.sid, sourceMessage?.content || '', ev, ac, assistantEpisodeId);
         }
         for (const u of updates) {
           if (u && u.content) {
@@ -5223,6 +5354,7 @@ function supportsBackgroundChat(cfg) {
         if (ev.evidence_for_mastery?.type === 'correction' && ev.evidence_for_mastery?.status === 'passed') {
           await resolve_error_pattern(sid, ac.knowledge_point, ev.misconception || ev.error_pattern || ev.evidence_for_mastery?.error_type || '');
         }
+        await maybe_extract_kg_from_turn(session, sid, effectiveUserInput, ev, ac, assistantEpisodeId);
       }
       for (const u of updates) {
         await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0, {
@@ -5281,6 +5413,7 @@ function supportsBackgroundChat(cfg) {
       if (ev.evidence_for_mastery?.type === 'correction' && ev.evidence_for_mastery?.status === 'passed') {
         await resolve_error_pattern(sid, ac.knowledge_point, ev.misconception || ev.error_pattern || ev.evidence_for_mastery?.error_type || '');
       }
+      await maybe_extract_kg_from_turn(session, sid, effectiveUserInput, ev, ac, assistantEpisodeId);
     }
     for (const u of updates) {
       await add_anchor(sid, u.kind||'requirement', u.content||'', +u.weight||1.0, {

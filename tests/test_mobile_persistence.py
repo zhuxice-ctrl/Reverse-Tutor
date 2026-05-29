@@ -260,6 +260,25 @@ def test_mobile_kg_indexeddb_stores_and_crud_helpers_are_present():
         assert f"async function {fn}" in html
 
 
+def test_mobile_kg_gate_and_rule_extractor_are_mounted_on_turns():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "kg_extraction_enabled: true" in html
+    assert "const KG_DEFAULT_BLACKLIST = [" in html
+    for word in ["身份证", "手机号", "银行卡", "隐私"]:
+        assert word in html
+    assert "function should_extract(settings, userInput, evaluation, action)" in html
+    assert "function kgHasLearningEvidence(evaluation)" in html
+    assert "async function extract_from_turn(sid, { evaluation={}, action={}, episodeId=null }={})" in html
+    assert "async function maybe_extract_kg_from_turn(session, sid, userInput, evaluation, action, episodeId)" in html
+    assert "await supersede_kg_edge(sid, userNode.id, concept.id, REL_LEARNING" in html
+    assert "REL_MASTERED" in html
+    assert "REL_ERROR_ON" in html
+    assert "REL_MISUNDERSTOOD" in html
+    assert html.count("await maybe_extract_kg_from_turn(") >= 3
+    assert "kg extraction failed" in html
+
+
 def test_mobile_image_pdf_import_saves_preview_pages_for_vision_recovery():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
