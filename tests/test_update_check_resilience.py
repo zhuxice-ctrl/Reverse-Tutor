@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +18,20 @@ def test_update_check_has_timeout_cache_buster_and_fallback_feed():
     assert "GITHUB_LATEST_RELEASE_URL" in html
     assert "updateFeedCandidates" in html
     assert "api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest" in html
+
+
+def test_frontend_update_version_matches_android_and_package_versions():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    package = json.loads((ROOT / "mobile" / "package.json").read_text(encoding="utf-8"))
+    gradle = (ROOT / "mobile" / "android" / "app" / "build.gradle").read_text(encoding="utf-8")
+
+    version_name = re.search(r'versionName "([^"]+)"', gradle).group(1)
+    version_code = int(re.search(r"versionCode\s+(\d+)", gradle).group(1))
+
+    assert package["version"] == version_name
+    assert f"const APP_VERSION_NAME = '{version_name}';" in html
+    assert f"const APP_VERSION_CODE = {version_code};" in html
+    assert f"Reverse Tutor v{version_name} · 移动 PWA" in html
 
 
 def test_update_check_prefers_self_hosted_source_and_migrates_legacy_github_feed():
