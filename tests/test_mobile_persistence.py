@@ -296,6 +296,19 @@ def test_mobile_kg_context_retrieval_is_injected_into_system_prompt():
     assert html.count("await buildKgContextTextForPrompt(") >= 3
 
 
+def test_mobile_prereq_gap_detection_is_injected_into_kg_prompt():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "const PREREQ_MASTERY_THRESHOLD = 0.5;" in html
+    assert "async function detect_prereq_gaps(sid, currentKp, masteryThreshold=PREREQ_MASTERY_THRESHOLD)" in html
+    assert "ctx.prereq_gaps = await detect_prereq_gaps(sid, kp);" in html
+    assert "ctx.prereq_gaps" in html
+    assert "## 前置缺口" in html
+    assert "老师，要学这个我是不是得先搞懂" in html
+    assert "edge.target_id !== currentNode.id" in html
+    assert "Number(m.mastery_score || 0) / 100" in html
+
+
 def test_mobile_image_pdf_import_saves_preview_pages_for_vision_recovery():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 

@@ -9,10 +9,14 @@ from sqlalchemy.orm import Session as DbSession
 import db
 
 
+PREREQ_MASTERY_THRESHOLD = 0.5
+
+
 @dataclass
 class KGContext:
     """Retrieved graph context ready for system-prompt injection."""
     related_concepts: list[str] = field(default_factory=list)
+    prereq_gaps: list[str] = field(default_factory=list)
     historical_errors: list[str] = field(default_factory=list)
     preferences: list[str] = field(default_factory=list)
     misunderstandings: list[str] = field(default_factory=list)
@@ -22,6 +26,7 @@ class KGContext:
     def is_empty(self) -> bool:
         return not any([
             self.related_concepts,
+            self.prereq_gaps,
             self.historical_errors,
             self.preferences,
             self.misunderstandings,
@@ -37,6 +42,16 @@ class KGContext:
             lines.append("## 相关/前置概念")
             for c in self.related_concepts[:8]:
                 lines.append(f"- {c}")
+        if self.prereq_gaps:
+            lines.append("## 前置缺口")
+            for gap in self.prereq_gaps[:5]:
+                lines.append(f"- {gap}")
+            first_gap = self.prereq_gaps[0]
+            lines.append(
+                "当存在前置缺口时，AI 应先以学生身份确认/回补前置点，例如："
+                f"老师，要学这个我是不是得先搞懂 {first_gap}？我对 {first_gap} 还有点虚。"
+                "确认后再继续；不要变成老师讲解。"
+            )
         if self.historical_errors:
             lines.append("## 用户历史错因")
             for e in self.historical_errors[:5]:
@@ -58,6 +73,40 @@ class KGContext:
         return "\n".join(lines) + "\n"
 
 
+def detect_prereq_gaps(
+    db_sess: DbSession,
+    sid: str,
+    current_kp: str,
+    mastery_threshold: float = PREREQ_MASTERY_THRESHOLD,
+) -> list[str]:
+    """Return prerequisite concepts for current_kp that are not mastered enough."""
+    kp = (current_kp or "").strip()
+    if not kp:
+        return []
+
+    kp_node = db.find_kg_node(db_sess, sid, "concept", kp)
+    if not kp_node:
+        return []
+
+    masteries = {m.knowledge_point: m for m in db.list_mastery(db_sess, sid)}
+    gaps: list[str] = []
+    seen: set[str] = set()
+    prereq_edges = db.list_kg_edges(db_sess, sid, node_id=kp_node.id, relation="前置于")
+    for edge in prereq_edges:
+        if edge.target_id != kp_node.id:
+            continue
+        prereq_node = db.get_kg_node(db_sess, sid, edge.source_id)
+        if not prereq_node or prereq_node.name in seen:
+            continue
+        mastery = masteries.get(prereq_node.name)
+        level = float(mastery.level or 0.0) if mastery else 0.0
+        score_level = float(mastery.mastery_score or 0.0) / 100.0 if mastery else 0.0
+        if max(level, score_level) < mastery_threshold:
+            gaps.append(prereq_node.name)
+            seen.add(prereq_node.name)
+    return gaps
+
+
 def retrieve_kg_context(
     db_sess: DbSession,
     sid: str,
@@ -72,6 +121,7 @@ def retrieve_kg_context(
         return ctx
 
     kp_node = db.find_kg_node(db_sess, sid, "concept", kp)
+    ctx.prereq_gaps = detect_prereq_gaps(db_sess, sid, kp)
 
     all_concepts = db.list_kg_nodes(db_sess, sid, kind="concept")
     connected_ids: set[int] = set()

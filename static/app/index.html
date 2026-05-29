@@ -4534,6 +4534,7 @@ ${format_actions()}
   const REL_MASTERED = '已掌握';
   const REL_MISUNDERSTOOD = '曾误解';
   const REL_ERROR_ON = '错在';
+  const PREREQ_MASTERY_THRESHOLD = 0.5;
   const KG_DEFAULT_BLACKLIST = [
     '身份证', '手机号', '电话', '家庭住址', '住址', '银行卡', '密码',
     '工资', '收入', '病', '诊断', '抑郁', '恋爱', '感情', '分手',
@@ -4918,6 +4919,7 @@ ${format_actions()}
   function kgContextEmpty(ctx) {
     return ![
       ctx.related_concepts,
+      ctx.prereq_gaps,
       ctx.historical_errors,
       ctx.preferences,
       ctx.misunderstandings,
@@ -4932,6 +4934,12 @@ ${format_actions()}
     if (ctx.related_concepts.length) {
       lines.push('## 相关/前置概念');
       for (const c of ctx.related_concepts.slice(0, 8)) lines.push(`- ${c}`);
+    }
+    if (ctx.prereq_gaps.length) {
+      lines.push('## 前置缺口');
+      for (const gap of ctx.prereq_gaps.slice(0, 5)) lines.push(`- ${gap}`);
+      const firstGap = ctx.prereq_gaps[0];
+      lines.push(`当存在前置缺口时，AI 应先以学生身份确认/回补前置点，例如：老师，要学这个我是不是得先搞懂 ${firstGap}？我对 ${firstGap} 还有点虚。确认后再继续；不要变成老师讲解。`);
     }
     if (ctx.historical_errors.length) {
       lines.push('## 用户历史错因');
@@ -4954,9 +4962,36 @@ ${format_actions()}
     return lines.join('\n') + '\n';
   }
 
+  async function detect_prereq_gaps(sid, currentKp, masteryThreshold=PREREQ_MASTERY_THRESHOLD) {
+    const kp = String(currentKp || '').trim();
+    if (!kp) return [];
+    const currentNode = await find_kg_node(sid, KIND_CONCEPT, kp);
+    if (!currentNode) return [];
+
+    const masteries = await DB.bySid('mastery', sid);
+    const masteryByKp = new Map(masteries.map(m => [String(m.kp || m.knowledge_point || ''), m]));
+    const gaps = [];
+    const seen = new Set();
+    const prereqEdges = await list_kg_edges(sid, { nodeId: currentNode.id, relation: '前置于' });
+    for (const edge of prereqEdges) {
+      if (edge.target_id !== currentNode.id && Number(edge.target_id) !== Number(currentNode.id)) continue;
+      const prereqNode = await get_kg_node(sid, edge.source_id);
+      if (!prereqNode || seen.has(prereqNode.name)) continue;
+      const m = masteryByKp.get(prereqNode.name) || {};
+      const level = Number(m.level || 0);
+      const scoreLevel = Number(m.mastery_score || 0) / 100;
+      if (Math.max(level, scoreLevel) < masteryThreshold) {
+        gaps.push(prereqNode.name);
+        seen.add(prereqNode.name);
+      }
+    }
+    return gaps;
+  }
+
   async function retrieve_kg_context(sid, currentKp, { includePendingReview=true }={}) {
     const ctx = {
       related_concepts: [],
+      prereq_gaps: [],
       historical_errors: [],
       preferences: [],
       misunderstandings: [],
@@ -4967,6 +5002,7 @@ ${format_actions()}
     if (!kp) return ctx;
 
     const kpNode = await find_kg_node(sid, KIND_CONCEPT, kp);
+    ctx.prereq_gaps = await detect_prereq_gaps(sid, kp);
     const allConcepts = await list_kg_nodes(sid, { kind: KIND_CONCEPT });
     let connectedIds = new Set();
     if (kpNode) {

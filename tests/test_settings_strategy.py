@@ -201,4 +201,4 @@ def test_pwa_settings_panel_exposes_strategy_controls():
     assert "function normalizeStrategySettings" in html
     assert "function formatStrategySettings" in html
     assert "function saveCurrentSessionStrategySettings" in html
-    assert "build_system_prompt(session, anchors, masteries, summary_text, sourceContext)" in html
+    assert "build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText)" in html
