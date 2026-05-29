@@ -2972,8 +2972,8 @@ function safeChatHtml(content) {
 // ============== IndexedDB 封装 ==============
 const DB = (() => {
   const DB_NAME = 'reverse-tutor';
-  const DB_VERSION = 2;
-  const STORES = ['sessions', 'messages', 'anchors', 'mastery', 'error_log', 'kv'];
+  const DB_VERSION = 3;
+  const STORES = ['sessions', 'messages', 'anchors', 'mastery', 'error_log', 'kg_nodes', 'kg_edges', 'kv'];
   let _db = null;
 
   function open() {
@@ -3001,6 +3001,18 @@ const DB = (() => {
         if (!d.objectStoreNames.contains('error_log')) {
           const s = d.createObjectStore('error_log', { keyPath: 'id', autoIncrement: true });
           s.createIndex('sid', 'sid', { unique: false });
+        }
+        if (!d.objectStoreNames.contains('kg_nodes')) {
+          const s = d.createObjectStore('kg_nodes', { keyPath: 'id', autoIncrement: true });
+          s.createIndex('sid', 'sid', { unique: false });
+          s.createIndex('sid_kind_name', ['sid', 'kind', 'name'], { unique: true });
+        }
+        if (!d.objectStoreNames.contains('kg_edges')) {
+          const s = d.createObjectStore('kg_edges', { keyPath: 'id', autoIncrement: true });
+          s.createIndex('sid', 'sid', { unique: false });
+          s.createIndex('source_id', 'source_id', { unique: false });
+          s.createIndex('target_id', 'target_id', { unique: false });
+          s.createIndex('relation', 'relation', { unique: false });
         }
         if (!d.objectStoreNames.contains('kv')) {
           d.createObjectStore('kv', { keyPath: 'k' });
@@ -3055,6 +3067,8 @@ const DB = (() => {
       anchors: await all('anchors'),
       mastery: await all('mastery'),
       error_log: await all('error_log'),
+      kg_nodes: await all('kg_nodes'),
+      kg_edges: await all('kg_edges'),
       kv: await all('kv'),
     };
   }
@@ -4582,6 +4596,191 @@ ${format_actions()}
     return row;
   }
 
+  function kgNow() {
+    return new Date().toISOString();
+  }
+
+  function kgProperties(row) {
+    try {
+      return JSON.parse(row?.properties_json || '{}') || {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function kgEpisodeIds(row) {
+    let raw = [];
+    try {
+      raw = JSON.parse(row?.source_episode_ids || '[]') || [];
+    } catch (_) {
+      raw = [];
+    }
+    return raw
+      .filter(x => Number.isInteger(x) || /^\d+$/.test(String(x)))
+      .map(x => Number.parseInt(x, 10));
+  }
+
+  function kgMergeEpisode(row, episodeId) {
+    if (episodeId == null) return row;
+    const id = Number.parseInt(episodeId, 10);
+    if (!Number.isFinite(id)) return row;
+    const ids = kgEpisodeIds(row);
+    if (!ids.includes(id)) ids.push(id);
+    row.source_episode_ids = JSON.stringify(ids);
+    return row;
+  }
+
+  async function upsert_kg_node(sid, kind, name, { properties=null, episodeId=null }={}) {
+    const cleanName = String(name || '').trim() || '未命名';
+    const cleanKind = String(kind || 'concept').trim() || 'concept';
+    let row = await find_kg_node(sid, cleanKind, cleanName);
+    const now = kgNow();
+    if (!row) {
+      row = {
+        sid,
+        kind: cleanKind,
+        name: cleanName,
+        properties_json: JSON.stringify(properties || {}),
+        source_episode_ids: '[]',
+        first_seen_at: now,
+        last_seen_at: now,
+        status: 'active',
+      };
+      kgMergeEpisode(row, episodeId);
+      row.id = await DB.add('kg_nodes', row);
+      return row;
+    }
+    row.last_seen_at = now;
+    if (row.status === 'invalidated') row.status = 'active';
+    if (properties && Object.keys(properties).length) {
+      row.properties_json = JSON.stringify({ ...kgProperties(row), ...properties });
+    }
+    kgMergeEpisode(row, episodeId);
+    await DB.put('kg_nodes', row);
+    return row;
+  }
+
+  async function get_kg_node(sid, nodeId) {
+    const row = await DB.get('kg_nodes', Number(nodeId));
+    return row && row.sid === sid ? row : null;
+  }
+
+  async function find_kg_node(sid, kind, name) {
+    const cleanKind = String(kind || 'concept').trim() || 'concept';
+    const cleanName = String(name || '').trim();
+    if (!cleanName) return null;
+    const rows = await DB.bySid('kg_nodes', sid);
+    return rows.find(n => n.kind === cleanKind && n.name === cleanName) || null;
+  }
+
+  async function list_kg_nodes(sid, { kind=null, status='active' }={}) {
+    let rows = await DB.bySid('kg_nodes', sid);
+    if (kind) rows = rows.filter(n => n.kind === kind);
+    if (status) rows = rows.filter(n => n.status === status);
+    return rows.sort((a,b) => String(b.last_seen_at || '').localeCompare(String(a.last_seen_at || '')));
+  }
+
+  async function invalidate_kg_node(sid, nodeId) {
+    const row = await get_kg_node(sid, nodeId);
+    if (!row) return null;
+    row.status = 'invalidated';
+    row.last_seen_at = kgNow();
+    await DB.put('kg_nodes', row);
+    return row;
+  }
+
+  async function upsert_kg_edge(sid, sourceId, targetId, relation, { weight=1.0, properties=null, episodeId=null }={}) {
+    const rel = String(relation || '').trim() || 'related';
+    const rows = await DB.bySid('kg_edges', sid);
+    let row = rows.find(e =>
+      Number(e.source_id) === Number(sourceId)
+      && Number(e.target_id) === Number(targetId)
+      && e.relation === rel
+      && e.status === 'active'
+    );
+    const now = kgNow();
+    if (!row) {
+      row = {
+        sid,
+        source_id: Number(sourceId),
+        target_id: Number(targetId),
+        relation: rel,
+        weight: Number(weight) || 0,
+        properties_json: JSON.stringify(properties || {}),
+        source_episode_ids: '[]',
+        valid_from: now,
+        invalidated_at: null,
+        status: 'active',
+      };
+      kgMergeEpisode(row, episodeId);
+      row.id = await DB.add('kg_edges', row);
+      return row;
+    }
+    row.weight = Number(weight) || 0;
+    if (properties && Object.keys(properties).length) {
+      row.properties_json = JSON.stringify({ ...kgProperties(row), ...properties });
+    }
+    kgMergeEpisode(row, episodeId);
+    await DB.put('kg_edges', row);
+    return row;
+  }
+
+  async function get_kg_edge(sid, edgeId) {
+    const row = await DB.get('kg_edges', Number(edgeId));
+    return row && row.sid === sid ? row : null;
+  }
+
+  async function list_kg_edges(sid, { nodeId=null, relation=null, status='active' }={}) {
+    let rows = await DB.bySid('kg_edges', sid);
+    if (nodeId != null) {
+      const id = Number(nodeId);
+      rows = rows.filter(e => Number(e.source_id) === id || Number(e.target_id) === id);
+    }
+    if (relation) rows = rows.filter(e => e.relation === relation);
+    if (status) rows = rows.filter(e => e.status === status);
+    return rows.sort((a,b) => String(b.valid_from || '').localeCompare(String(a.valid_from || '')));
+  }
+
+  async function invalidate_kg_edge(sid, edgeId) {
+    const row = await get_kg_edge(sid, edgeId);
+    if (!row) return null;
+    row.status = 'invalidated';
+    row.invalidated_at = kgNow();
+    await DB.put('kg_edges', row);
+    return row;
+  }
+
+  async function supersede_kg_edge(sid, sourceId, targetId, relation, { newWeight=1.0, newProperties=null, episodeId=null }={}) {
+    const rel = String(relation || '').trim() || 'related';
+    const now = kgNow();
+    const rows = await DB.bySid('kg_edges', sid);
+    const old = rows.find(e =>
+      Number(e.source_id) === Number(sourceId)
+      && Number(e.target_id) === Number(targetId)
+      && e.relation === rel
+      && e.status === 'active'
+    );
+    if (old) {
+      old.status = 'superseded';
+      old.invalidated_at = now;
+      await DB.put('kg_edges', old);
+    }
+    const row = {
+      sid,
+      source_id: Number(sourceId),
+      target_id: Number(targetId),
+      relation: rel,
+      weight: Number(newWeight) || 0,
+      properties_json: JSON.stringify(newProperties || {}),
+      source_episode_ids: JSON.stringify(episodeId ? [Number(episodeId)] : []),
+      valid_from: now,
+      invalidated_at: null,
+      status: 'active',
+    };
+    row.id = await DB.add('kg_edges', row);
+    return row;
+  }
+
   async function add_anchor(sid, kind, content, weight=1.0, extra={}) {
     return DB.add('anchors', { sid, kind, content, weight, created_at: Date.now(), ...extra });
   }
@@ -5189,6 +5388,8 @@ function supportsBackgroundChat(cfg) {
       DB.delBySid('anchors', sid),
       DB.delBySid('mastery', sid),
       DB.delBySid('error_log', sid),
+      DB.delBySid('kg_edges', sid),
+      DB.delBySid('kg_nodes', sid),
     ]);
   }
 

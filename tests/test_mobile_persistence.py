@@ -230,6 +230,36 @@ def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records(
     assert "exampleBullets.push(c)" not in html
 
 
+def test_mobile_kg_indexeddb_stores_and_crud_helpers_are_present():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "const DB_VERSION = 3;" in html
+    assert "'kg_nodes'" in html
+    assert "'kg_edges'" in html
+    assert "createObjectStore('kg_nodes', { keyPath: 'id', autoIncrement: true })" in html
+    assert "createIndex('sid_kind_name', ['sid', 'kind', 'name'], { unique: true })" in html
+    assert "createObjectStore('kg_edges', { keyPath: 'id', autoIncrement: true })" in html
+    assert "createIndex('source_id', 'source_id', { unique: false })" in html
+    assert "createIndex('target_id', 'target_id', { unique: false })" in html
+    assert "kg_nodes: await all('kg_nodes')" in html
+    assert "kg_edges: await all('kg_edges')" in html
+    assert "DB.delBySid('kg_edges', sid)" in html
+    assert "DB.delBySid('kg_nodes', sid)" in html
+    for fn in [
+        "upsert_kg_node",
+        "get_kg_node",
+        "find_kg_node",
+        "list_kg_nodes",
+        "invalidate_kg_node",
+        "upsert_kg_edge",
+        "get_kg_edge",
+        "list_kg_edges",
+        "invalidate_kg_edge",
+        "supersede_kg_edge",
+    ]:
+        assert f"async function {fn}" in html
+
+
 def test_mobile_image_pdf_import_saves_preview_pages_for_vision_recovery():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
