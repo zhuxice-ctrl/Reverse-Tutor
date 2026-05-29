@@ -32,6 +32,7 @@ def test_frontend_update_version_matches_android_and_package_versions():
     assert f"const APP_VERSION_NAME = '{version_name}';" in html
     assert f"const APP_VERSION_CODE = {version_code};" in html
     assert f"Reverse Tutor v{version_name} · 移动 PWA" in html
+    assert "rt-mobile-v15" in (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
 
 
 def test_update_check_prefers_self_hosted_source_and_migrates_legacy_github_feed():
