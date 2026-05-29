@@ -4358,7 +4358,7 @@ const ENGINE = (() => {
     return lines.join('\n');
   }
 
-  function build_system_prompt(session, anchors, masteries, summary='', sourceContext='') {
+  function build_system_prompt(session, anchors, masteries, summary='', sourceContext='', kgContextText='') {
     const p = session.persona || {};
     const conversationMode = inferConversationMode(session);
     const coreMission = conversationMode === 'learning'
@@ -4448,6 +4448,7 @@ ${format_actions()}
 当前 mode: ${conversationMode}。如果不是学习目标，第一句不要要求用户讲课或讲知识点；请直接进入该人格关系下的目标推进、陪伴或协作。
 `;
     if (summary) s += `\n\n# 早期对话摘要（已压缩，其后附最近原文）\n${summary}\n`;
+    if (kgContextText) s += `\n\n${kgContextText}`;
     s += `
 
 # 目标适配规则（重要）
@@ -4907,6 +4908,141 @@ ${format_actions()}
     }
   }
 
+  function kgPushUnique(list, value, { prepend=false }={}) {
+    const clean = String(value || '').trim();
+    if (!clean || list.includes(clean)) return;
+    if (prepend) list.unshift(clean);
+    else list.push(clean);
+  }
+
+  function kgContextEmpty(ctx) {
+    return ![
+      ctx.related_concepts,
+      ctx.historical_errors,
+      ctx.preferences,
+      ctx.misunderstandings,
+      ctx.mastery_edges,
+      ctx.pending_review_kps,
+    ].some(x => Array.isArray(x) && x.length);
+  }
+
+  function format_for_prompt(ctx) {
+    if (!ctx || kgContextEmpty(ctx)) return '';
+    const lines = ['# 知识图谱上下文'];
+    if (ctx.related_concepts.length) {
+      lines.push('## 相关/前置概念');
+      for (const c of ctx.related_concepts.slice(0, 8)) lines.push(`- ${c}`);
+    }
+    if (ctx.historical_errors.length) {
+      lines.push('## 用户历史错因');
+      for (const e of ctx.historical_errors.slice(0, 5)) lines.push(`- ${e}`);
+      lines.push('请在策略选择时参考这些错因，避免用户再犯。');
+    }
+    if (ctx.misunderstandings.length) {
+      lines.push('## 用户曾误解');
+      for (const m of ctx.misunderstandings.slice(0, 5)) lines.push(`- ${m}`);
+      lines.push('如果当前 KP 与上述误解相关，优先澄清而非直接追问。');
+    }
+    if (ctx.preferences.length) {
+      lines.push('## 用户学习偏好');
+      for (const p of ctx.preferences.slice(0, 3)) lines.push(`- ${p}`);
+    }
+    if (ctx.pending_review_kps.length) {
+      lines.push('## 挂起待复习');
+      for (const k of ctx.pending_review_kps.slice(0, 3)) lines.push(`- ${k}（用户之前拒绝复习，可在合适时机轻量带回）`);
+    }
+    return lines.join('\n') + '\n';
+  }
+
+  async function retrieve_kg_context(sid, currentKp, { includePendingReview=true }={}) {
+    const ctx = {
+      related_concepts: [],
+      historical_errors: [],
+      preferences: [],
+      misunderstandings: [],
+      mastery_edges: [],
+      pending_review_kps: [],
+    };
+    const kp = String(currentKp || '').trim();
+    if (!kp) return ctx;
+
+    const kpNode = await find_kg_node(sid, KIND_CONCEPT, kp);
+    const allConcepts = await list_kg_nodes(sid, { kind: KIND_CONCEPT });
+    let connectedIds = new Set();
+    if (kpNode) {
+      const edges = await list_kg_edges(sid, { nodeId: kpNode.id });
+      connectedIds = new Set(edges.flatMap(e => [Number(e.source_id), Number(e.target_id)]));
+    }
+    for (const c of allConcepts) {
+      if (c.name === kp) continue;
+      if (kpNode && connectedIds.has(Number(c.id))) {
+        kgPushUnique(ctx.related_concepts, c.name);
+        continue;
+      }
+      if (kp.includes(c.name) || c.name.includes(kp)) kgPushUnique(ctx.related_concepts, c.name);
+    }
+
+    if (kpNode) {
+      const prereqEdges = await list_kg_edges(sid, { nodeId: kpNode.id, relation: '前置于' });
+      for (const e of prereqEdges) {
+        const otherId = Number(e.target_id) === Number(kpNode.id) ? e.source_id : e.target_id;
+        const prereqNode = await get_kg_node(sid, otherId);
+        if (prereqNode) kgPushUnique(ctx.related_concepts, `[前置] ${prereqNode.name}`, { prepend: true });
+      }
+    }
+
+    const userNode = await find_kg_node(sid, 'person', '用户');
+    if (userNode) {
+      const errorEdges = await list_kg_edges(sid, { nodeId: userNode.id, relation: REL_ERROR_ON });
+      for (const e of errorEdges) {
+        const errNode = await get_kg_node(sid, e.target_id);
+        if (!errNode) continue;
+        const props = kgProperties(e);
+        const errKp = String(props.kp || '');
+        if (!errKp || errKp === kp || kp.includes(errKp) || errKp.includes(kp)) {
+          kgPushUnique(ctx.historical_errors, errNode.name);
+        }
+      }
+    }
+
+    if (userNode && kpNode) {
+      const misunderstandingEdges = await list_kg_edges(sid, { nodeId: kpNode.id, relation: REL_MISUNDERSTOOD });
+      for (const e of misunderstandingEdges) {
+        const reason = String(kgProperties(e).reason || '');
+        kgPushUnique(ctx.misunderstandings, reason ? `${kp}: ${reason}` : kp);
+      }
+    }
+
+    if (userNode) {
+      const prefEdges = await list_kg_edges(sid, { nodeId: userNode.id, relation: '偏好' });
+      for (const e of prefEdges) {
+        const prefNode = await get_kg_node(sid, e.target_id);
+        if (prefNode) kgPushUnique(ctx.preferences, prefNode.name);
+      }
+    }
+
+    if (includePendingReview) {
+      const pendingEdges = await list_kg_edges(sid, { relation: '挂起复习' });
+      for (const e of pendingEdges) {
+        const target = await get_kg_node(sid, e.target_id);
+        if (target) kgPushUnique(ctx.pending_review_kps, target.name);
+      }
+    }
+
+    return ctx;
+  }
+
+  async function buildKgContextTextForPrompt(sid, session, currentKp) {
+    try {
+      if (inferConversationMode(session) !== 'learning') return '';
+      const ctx = await retrieve_kg_context(sid, String(currentKp || '').slice(0, 50));
+      return format_for_prompt(ctx);
+    } catch (e) {
+      console.warn('kg retrieval failed', e);
+      return '';
+    }
+  }
+
   async function add_anchor(sid, kind, content, weight=1.0, extra={}) {
     return DB.add('anchors', { sid, kind, content, weight, created_at: Date.now(), ...extra });
   }
@@ -4978,6 +5114,7 @@ ${format_actions()}
     const anchors = await DB.bySid('anchors', sid);
     const masteries = await DB.bySid('mastery', sid);
     const conversationMode = inferConversationMode(session);
+    const kgContextText = await buildKgContextTextForPrompt(sid, session, '');
     const openingTask = conversationMode === 'learning'
       ? `1. 用你角色的口吻自然打招呼（一句话）。
 2. 立刻提出第一个真实的知识点问题，与你的 goal 直接相关。
@@ -4987,7 +5124,7 @@ ${format_actions()}
 2. 立刻提出一个与目标、关系或场景有关的真实小请求/问题，不要强行讲课、求知识点或问心理学技巧。
 3. action.type 优先设为 "ask" 或 "probe"。
 4. action.knowledge_point 可填写目标主题，不能编成学科知识点。`;
-    const system_prompt = build_system_prompt(session, anchors, masteries) + `
+    const system_prompt = build_system_prompt(session, anchors, masteries, '', '', kgContextText) + `
 
 # 当前情境（重要）
 这是会话的**第一句话**，用户（老师）还没说话。请你作为"学生"主动开场：
@@ -5178,7 +5315,8 @@ function supportsBackgroundChat(cfg) {
       const summary_text = summary ? summary.content : '';
       const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
       const sourceContext = formatSourceContext(sourceSnippets, user_input, anchors);
-      const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
+      const kgContextText = await buildKgContextTextForPrompt(sid, session, user_input);
+      const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
       const messages = build_messages(msgs, null, skip_id);
       const quotedContext = formatQuotedReplyContext(quoted, user_input);
       if (quotedContext) messages.push({ role: 'system', content: quotedContext });
@@ -5269,6 +5407,7 @@ function supportsBackgroundChat(cfg) {
     const sourceSnippets = retrieveSourceSnippets(anchors, effectiveUserInput);
     await persistSourceMemoryHits(anchors, sourceSnippets, effectiveUserInput, userMessage ? [userMessage.id] : []);
     const sourceContext = formatSourceContext(sourceSnippets, effectiveUserInput, anchors);
+    const kgContextText = await buildKgContextTextForPrompt(sid, session, effectiveUserInput);
     if (typeof opts.onThinkingStage === 'function') {
       opts.onThinkingStage({
         stage: sourceSnippets.length ? '检索资料' : '理解问题',
@@ -5277,7 +5416,7 @@ function supportsBackgroundChat(cfg) {
     }
 
     if (opts.stream) {
-      const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
+      const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
       const messagesStream = build_messages(msgs, null, skip_id);
       const qcStream = formatQuotedReplyContext(quoted, effectiveUserInput);
       if (qcStream) messagesStream.push({ role: 'system', content: qcStream });
@@ -5370,7 +5509,7 @@ function supportsBackgroundChat(cfg) {
     }
 
     // Non-streaming path
-    const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext);
+    const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
     // 用户消息已在 msgs 内，build_messages 不再追加
     const messages = build_messages(msgs, null, skip_id);
     const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
@@ -5453,7 +5592,8 @@ function supportsBackgroundChat(cfg) {
     const skip_id = summary ? (summary.meta.summarized_until_id || 0) : 0;
     const summary_text = summary ? summary.content : '';
     const modeLabel = PROACTIVE_MODES[mode]?.label || '离线';
-    const system = build_system_prompt(session, anchors, masteries, summary_text) + `
+    const kgContextText = await buildKgContextTextForPrompt(sid, session, '');
+    const system = build_system_prompt(session, anchors, masteries, summary_text, '', kgContextText) + `
 
 # 主动对话引导
 你现在不是回复用户，而是主动发起一句自然的话。

@@ -85,7 +85,7 @@ def test_mobile_pdf_sources_are_retrieved_for_each_llm_turn():
     assert "const sourceSnippets = retrieveSourceSnippets(anchors, user_input);" in html
     assert "const sourceContext = formatSourceContext(sourceSnippets, user_input, anchors);" in html
     assert "const sourceContext = formatSourceContext(sourceSnippets, effectiveUserInput, anchors);" in html
-    assert "build_system_prompt(session, anchors, masteries, summary_text, sourceContext)" in html
+    assert "build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText)" in html
 
 
 def test_mobile_insights_graph_builds_document_outline_branches_from_full_source_text():
@@ -277,6 +277,23 @@ def test_mobile_kg_gate_and_rule_extractor_are_mounted_on_turns():
     assert "REL_MISUNDERSTOOD" in html
     assert html.count("await maybe_extract_kg_from_turn(") >= 3
     assert "kg extraction failed" in html
+
+
+def test_mobile_kg_context_retrieval_is_injected_into_system_prompt():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "async function retrieve_kg_context(sid, currentKp, { includePendingReview=true }={})" in html
+    assert "function format_for_prompt(ctx)" in html
+    assert "# 知识图谱上下文" in html
+    assert "## 相关/前置概念" in html
+    assert "## 用户历史错因" in html
+    assert "## 用户曾误解" in html
+    assert "## 用户学习偏好" in html
+    assert "## 挂起待复习" in html
+    assert "kgContextText=''" in html
+    assert "if (kgContextText) s += `\\n\\n${kgContextText}`;" in html
+    assert "async function buildKgContextTextForPrompt(sid, session, currentKp)" in html
+    assert html.count("await buildKgContextTextForPrompt(") >= 3
 
 
 def test_mobile_image_pdf_import_saves_preview_pages_for_vision_recovery():
