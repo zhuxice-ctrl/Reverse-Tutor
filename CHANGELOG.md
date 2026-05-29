@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.19.0 - 2026-05-29
+
+- 新增反例追问式纠错：识别用户把错误规则当结论讲出时，学生用 `challenge` / `confused_student` 口吻抛反例追问，避免老师式判错。
+- 移动端掌握度改为证据闸门模型：口头“懂了/明白了”不再直接涨分，只有 explanation / transfer / delayed_retrieval / correction 等有效证据通过或部分通过才更新掌握度。
+- 正式 APK 更新为 `Reverse-Tutor-v0.19.0.apk`，用于本地实机测试，未发布 GitHub Release。
+
 ## Unreleased - 2026-05-28
 
 - 板块 9A：新增嵌入式 SQLite 知识图谱数据层，包含 `KGNode` / `KGEdge` schema、CRUD helpers、episode 引用清理、会话级联删除和 memory API 暴露。
