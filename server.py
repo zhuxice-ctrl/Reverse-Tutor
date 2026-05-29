@@ -113,6 +113,10 @@ def _image_retention_days(session: db.Session) -> int:
     return max(0, min(days, 365))
 
 
+def _serialize_settings(session: db.Session) -> dict[str, Any]:
+    return engine._normalize_strategy_settings(session.settings())
+
+
 def _stored_image_path(path: Path) -> str:
     try:
         return str(path.relative_to(Path(__file__).parent))
@@ -278,7 +282,7 @@ def list_sessions(d: DbSession = Depends(get_db)) -> list[dict]:
             "title": r.title,
             "mode": r.mode,
             "core_self": r.core_self,
-            "settings": r.settings(),
+            "settings": _serialize_settings(r),
             "persona": r.persona(),
             "created_at": r.created_at.isoformat() + "Z",
             "updated_at": r.updated_at.isoformat() + "Z",
@@ -303,7 +307,7 @@ def update_session_settings(sid: str, req: SessionSettingsReq, d: DbSession = De
     if req.core_self is not None:
         s.core_self = req.core_self
     if req.settings is not None:
-        merged = {**s.settings(), **req.settings}
+        merged = engine._normalize_strategy_settings({**s.settings(), **req.settings})
         s.settings_json = json.dumps(merged, ensure_ascii=False)
     s.updated_at = datetime.utcnow()
     d.commit()
@@ -767,7 +771,7 @@ def _serialize_session(
         "title": s.title,
         "mode": s.mode,
         "core_self": s.core_self,
-        "settings": s.settings(),
+        "settings": _serialize_settings(s),
         "persona": s.persona(),
         "plan": s.plan(),
         "created_at": s.created_at.isoformat() + "Z",

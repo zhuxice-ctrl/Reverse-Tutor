@@ -436,11 +436,11 @@ def test_mobile_offline_engine_schema_matches_v1_learning_fields():
     assert "entry_status" in html
     assert "has_entry|no_entry|recall_decay" in html
     assert "student_role" in html
-    assert "probing_student|clue_student|scaffold_student|examiner|review_student" in html
+    assert "probing_student|clue_student|scaffold_student|confused_student|examiner|review_student" in html
     assert "evidence_for_mastery" in html
     assert "none|explanation|retrieval|transfer|delayed_retrieval|correction" in html
-    assert "ask|probe|clue|scaffold_example|examiner_verify|emote|persuade|next|recap" in html
-    assert "const allowed = ['ask', 'probe', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error']" in html
+    assert "ask|probe|challenge|clue|scaffold_example|examiner_verify|emote|persuade|next|recap" in html
+    assert "const allowed = ['ask', 'probe', 'challenge', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error']" in html
     assert "normalizeEvidence" in html
 
 

@@ -482,7 +482,7 @@
   .pill-onboarding { background:#0369a1; color:#bae6fd; }
   .pill-initial { background:#7e22ce; color:#e9d5ff; }
   .pill-requirement { background:#047857; color:#a7f3d0; }
-  .pill-correction { background:#b45309; color:#fde68a; }
+  .pill-correction, .pill-challenge { background:#b45309; color:#fde68a; }
   .pill-checkpoint { background:#0e7490; color:#a5f3fc; }
   .pill-constraint { background:#525252; color:#d4d4d4; }
   .pill-source { background:#155e75; color:#cffafe; }
@@ -2842,17 +2842,18 @@ function shapeReplyBubbles(text, maxBubbles=3) {
 }
 
 function normalizeAction(rawAction={}, fallbackNote='自由回复') {
-  const allowed = ['ask', 'probe', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error'];
+  const allowed = ['ask', 'probe', 'challenge', 'clue', 'scaffold_example', 'examiner_verify', 'emote', 'persuade', 'next', 'recap', 'pending', 'error'];
   const action = (rawAction && typeof rawAction === 'object') ? { ...rawAction } : {};
   if (!allowed.includes(action.type)) action.type = 'ask';
   const roleByAction = {
+    challenge: 'confused_student',
     clue: 'clue_student',
     scaffold_example: 'scaffold_student',
     examiner_verify: 'examiner',
     next: 'review_student',
     recap: 'review_student',
   };
-  const roles = ['probing_student', 'clue_student', 'scaffold_student', 'examiner', 'review_student'];
+  const roles = ['probing_student', 'clue_student', 'scaffold_student', 'confused_student', 'examiner', 'review_student'];
   if (!roles.includes(action.student_role)) action.student_role = roleByAction[action.type] || 'probing_student';
   const kp = String(action.knowledge_point || '').trim();
   if (!kp || /^(unknown|\?|模型自由回复)$/i.test(kp)) delete action.knowledge_point;
@@ -2877,6 +2878,7 @@ function cleanEvaluation(rawEvaluation={}) {
   if (!statuses.includes(ev.entry_status)) ev.entry_status = 'has_entry';
   ev.evidence_for_mastery = normalizeEvidence(ev.evidence_for_mastery || {});
   ev.error_pattern = String(ev.error_pattern || '').trim().slice(0, 12);
+  ev.misconception = String(ev.misconception || '').trim().slice(0, 20);
   const emotion = String(ev.user_emotion || '').trim();
   if (!emotion || /^(unknown|\?|未知)$/i.test(emotion)) delete ev.user_emotion;
   return ev;
@@ -3206,6 +3208,7 @@ const LLM = (() => {
       ? { type: 'explanation', status: 'passed', error_type: '', reason: '用户给出了可追问的解释' }
       : { type: 'none', status: 'none', error_type: '', reason: '本轮不提供掌握度进位证据' };
     const roleByAction = {
+      challenge: 'confused_student',
       clue: 'clue_student',
       scaffold_example: 'scaffold_student',
       examiner_verify: 'examiner',
@@ -3216,6 +3219,7 @@ const LLM = (() => {
       evaluation: { correctness: +correctness.toFixed(2), depth: +depth.toFixed(2),
                      entry_status: ['clue','scaffold_example'].includes(action_type) ? 'no_entry' : 'has_entry',
                      evidence_for_mastery: evidence,
+                     misconception: '',
                      user_emotion: emotion, new_requirements: reqs },
       action: { type: action_type, student_role: roleByAction[action_type] || 'probing_student', knowledge_point: kp,
                 difficulty: action_type==='ask' ? 0.4 : 0.6, note },
@@ -4068,6 +4072,7 @@ const ENGINE = (() => {
   const ACTION_TYPES = {
     ask: '主动提问',
     probe: '追问（让用户解释更深或把目标说清楚）',
+    challenge: '反例追问式纠错：用学生口吻抛反例/指矛盾，引导用户自己改正',
     clue: '线索型学生：没有入口时递一个方法名或第一步线索',
     scaffold_example: '脚手架：用一个具体例子引导用户观察第一步',
     examiner_verify: '考官验证：用户说懂了以后先验证',
@@ -4081,6 +4086,7 @@ const ENGINE = (() => {
     feedback_intensity: 3,
     probing_intensity: 3,
     correction_timing: 'immediate',
+    correction_persistence: 'balanced',
     review_frequency: 'normal',
     tone: 'natural',
     proactivity: 'normal',
@@ -4302,6 +4308,7 @@ const ENGINE = (() => {
     s.scaffold_intensity = clampStrategyInt(s.scaffold_intensity, 3);
     s.image_retention_days = Math.max(0, Math.min(365, parseInt(s.image_retention_days || 0, 10) || 0));
     if (!['immediate', 'summary_only'].includes(s.correction_timing)) s.correction_timing = 'immediate';
+    if (!['gentle', 'balanced', 'persistent'].includes(s.correction_persistence)) s.correction_persistence = 'balanced';
     if (!['low', 'normal', 'high'].includes(s.review_frequency)) s.review_frequency = 'normal';
     for (const key of ['tone', 'proactivity', 'privacy_level']) s[key] = String(s[key] || DEFAULT_STRATEGY_SETTINGS[key]);
     return s;
@@ -4313,6 +4320,7 @@ const ENGINE = (() => {
       `- 反馈强度：${settings.feedback_intensity}/5`,
       `- 追问强度：${settings.probing_intensity}/5`,
       `- 纠错时机：${settings.correction_timing}`,
+      `- 纠错坚持度：${settings.correction_persistence}`,
       `- 复习频率：${settings.review_frequency}`,
       `- 语气：${settings.tone}`,
       `- 主动性：${settings.proactivity}`,
@@ -4321,6 +4329,9 @@ const ENGINE = (() => {
     ];
     if (settings.probing_intensity >= 5) lines.push('- probing_intensity=5：连续 3 轮内不允许进入 small_lecture；优先选择 probe，每轮只追一个为什么。');
     if (settings.correction_timing === 'summary_only') lines.push('- correction_timing=summary_only：禁止在追问中纠错，仅 recap 时纠正。');
+    if (settings.correction_persistence === 'gentle') lines.push('- correction_persistence=gentle：只用 L1 反例，绝不使用 L3 求证提示。');
+    else if (settings.correction_persistence === 'persistent') lines.push('- correction_persistence=persistent：更快升级到 L3/L4，但仍保持学生口吻。');
+    else lines.push('- correction_persistence=balanced：L1 反例 → L2 指矛盾 → L3 求证提示。');
     if (settings.review_frequency === 'high') lines.push('- review_frequency=high：复习间隔阶梯改为 1/2/4/7。');
     if (settings.privacy_level === 'strict') lines.push('- privacy_level=strict：只记录对学习策略有必要的事实，避免扩展私人生活细节。');
     return lines.join('\n');
@@ -4368,6 +4379,20 @@ ${format_actions()}
 - 用户明显不懂专业名词、拼写不完整、只打了英文缩写或模糊词时，先解释可能含义并确认意图，不要因为术语不标准就判错。
 - 如果资料检索没有命中，也不要说“无法理解”；先根据用户文字推断最可能的概念，再说明需要更多上下文才能精确定位。
 
+# 反例追问式纠错（misconception correction）
+- 当用户用肯定语气断言一条事实性假规则时，evaluation.misconception 写入这条假规则（≤20字）；只是说得不全/不精确时留空，继续 probe/ask。
+- 当 evaluation.misconception 非空 → action.type="challenge"，student_role="confused_student"。
+- 铁律：全程学生口吻，禁止“你错了 / 不对 / 正确答案是 / 我来纠正你”。把矛盾说成你这个学生自己的发现。
+- L1 反例：现编一个最小反例，说“我试出来对不上”。例：用户说“函数值为正就是增函数” → “老师我拿 f(x)=x² 套了下，f(1)=1 是正的，可它在 x<0 明明在往下掉？这跟‘f 正就是增’好像打架了，我是不是哪理解错了？”
+- L2 指矛盾：“你前面说 X，这儿又得 Y，我对不上。”
+- L3 求证式提示：仍是提问，不是断言，如“我翻笔记好像说判断增减是看导数符号？老师你看是不是？”
+- L4 防卡死：“要不咱俩一块儿验证下这个例子？”
+- correction_persistence=gentle：只用 L1 反例，绝不使用 L3 求证提示，可软性重复，让用户自主发现。
+- correction_persistence=balanced：L1 反例 → 用户坚持错则 L2 → 仍坚持则 L3，1-3 轮内引导改对。
+- correction_persistence=persistent：更快升级到 L3/L4，紧盯到用户改对为止，但仍保持学生口吻。
+- correction_timing=immediate：立即抛反例；summary_only：只轻声表达困惑，把反例/aha 留到 recap。
+- 用户一改向正确 → 学生给明确 aha；本轮 evidence_for_mastery.type="correction"，status="passed"。
+
 # 输出格式（必须严格遵守，**只返回 JSON**，不要任何解释）
 \`\`\`json
 {
@@ -4381,12 +4406,13 @@ ${format_actions()}
       "error_type": "概念错|条件错|步骤跳跃|表达不清|迁移失败|...",
       "reason": "为什么这轮算/不算掌握度证据"
     },
+    "misconception": "用户把错的当对的讲出来的那条假规则，≤20字；没有则空字符串",
     "user_emotion": "neutral|frustrated|engaged|curious|fresh",
     "new_requirements": ["（若用户说出了新诉求/约定就抽取，否则 []）"]
   },
   "action": {
-    "type": "ask|probe|clue|scaffold_example|examiner_verify|emote|persuade|next|recap",
-    "student_role": "probing_student|clue_student|scaffold_student|examiner|review_student",
+    "type": "ask|probe|challenge|clue|scaffold_example|examiner_verify|emote|persuade|next|recap",
+    "student_role": "probing_student|clue_student|scaffold_student|confused_student|examiner|review_student",
     "knowledge_point": "本回合相关的具体知识点（短词组）",
     "related_kps": ["与本知识点在知识体系上有前置/并列/推导关系的已学知识点，最多3个，没有则[]"],
     "difficulty": 0.0,
@@ -4516,6 +4542,19 @@ ${format_actions()}
       status: 'active',
     };
     row.id = await DB.add('error_log', row);
+    return row;
+  }
+
+  async function resolve_error_pattern(sid, kp, errorPattern) {
+    const pattern = String(errorPattern || '').trim().slice(0, 12);
+    if (!pattern) return null;
+    const keyKp = String(kp || '当前焦点').trim() || '当前焦点';
+    const rows = await DB.bySid('error_log', sid);
+    const row = rows.find(e => e.kp === keyKp && e.error_pattern === pattern);
+    if (!row) return null;
+    row.status = 'resolved';
+    row.last_seen_at = Date.now();
+    await DB.put('error_log', row);
     return row;
   }
 
@@ -4941,8 +4980,14 @@ function supportsBackgroundChat(cfg) {
 
       if (ac.knowledge_point) {
         await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+        if (ev.misconception) {
+          await upsert_error_log(sid, ac.knowledge_point, ev.misconception, assistantEpisodeId);
+        }
         if (ac.type === 'examiner_verify' && (+ev.correctness || 0) < 0.5 && ev.error_pattern) {
           await upsert_error_log(sid, ac.knowledge_point, ev.error_pattern, assistantEpisodeId);
+        }
+        if (ev.evidence_for_mastery?.type === 'correction' && ev.evidence_for_mastery?.status === 'passed') {
+          await resolve_error_pattern(sid, ac.knowledge_point, ev.misconception || ev.error_pattern || ev.evidence_for_mastery?.error_type || '');
         }
       }
       for (const u of updates) {
@@ -4991,8 +5036,14 @@ function supportsBackgroundChat(cfg) {
 
     if (ac.knowledge_point) {
       await upsert_mastery(sid, ac.knowledge_point, +ev.correctness||0, +ev.depth||0);
+      if (ev.misconception) {
+        await upsert_error_log(sid, ac.knowledge_point, ev.misconception, assistantEpisodeId);
+      }
       if (ac.type === 'examiner_verify' && (+ev.correctness || 0) < 0.5 && ev.error_pattern) {
         await upsert_error_log(sid, ac.knowledge_point, ev.error_pattern, assistantEpisodeId);
+      }
+      if (ev.evidence_for_mastery?.type === 'correction' && ev.evidence_for_mastery?.status === 'passed') {
+        await resolve_error_pattern(sid, ac.knowledge_point, ev.misconception || ev.error_pattern || ev.evidence_for_mastery?.error_type || '');
       }
     }
     for (const u of updates) {
@@ -7520,6 +7571,7 @@ function strategySettingsPanelHtml(session) {
           <label class="block"><span class="text-neutral-400">追问强度</span><input id="setting-probing-intensity" data-strategy-setting="probing_intensity" type="range" min="1" max="5" value="${st.probing_intensity}" class="w-full accent-emerald-700"></label>
           <label class="block"><span class="text-neutral-400">脚手架强度</span><input id="setting-scaffold-intensity" data-strategy-setting="scaffold_intensity" type="range" min="1" max="5" value="${st.scaffold_intensity}" class="w-full accent-emerald-700"></label>
           <label class="block"><span class="text-neutral-400">纠错时机</span><select id="setting-correction-timing" data-strategy-setting="correction_timing" class="native-config-select">${strategyOption('immediate', st.correction_timing, '即时')}${strategyOption('summary_only', st.correction_timing, '只在小结')}</select></label>
+          <label class="block"><span class="text-neutral-400">纠错坚持度</span><select id="setting-correction-persistence" data-strategy-setting="correction_persistence" class="native-config-select">${strategyOption('gentle', st.correction_persistence, '温和（只给反例）')}${strategyOption('balanced', st.correction_persistence, '平衡（反例+求证提示）')}${strategyOption('persistent', st.correction_persistence, '较真（紧盯改对）')}</select></label>
           <label class="block"><span class="text-neutral-400">复习频率</span><select id="setting-review-frequency" data-strategy-setting="review_frequency" class="native-config-select">${strategyOption('low', st.review_frequency, '低')}${strategyOption('normal', st.review_frequency, '正常')}${strategyOption('high', st.review_frequency, '高')}</select></label>
           <label class="block"><span class="text-neutral-400">语气</span><select id="setting-tone" data-strategy-setting="tone" class="native-config-select">${strategyOption('natural', st.tone, '自然')}${strategyOption('calm', st.tone, '冷静')}${strategyOption('warm', st.tone, '温和')}</select></label>
           <label class="block"><span class="text-neutral-400">主动性</span><select id="setting-proactivity" data-strategy-setting="proactivity" class="native-config-select">${strategyOption('low', st.proactivity, '低')}${strategyOption('normal', st.proactivity, '正常')}${strategyOption('high', st.proactivity, '高')}</select></label>
