@@ -719,7 +719,8 @@ def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_
     assert ".filter(m => {" in build_messages_fn
     assert "if (excludeIds.has(Number(m.id))) return false;" in build_messages_fn
     assert "if (meta.kind === 'queued_user_message' && !meta.turn_input) return false;" in build_messages_fn
-    assert "}).slice(-30);" in build_messages_fn
+    assert "RECENT_PROMPT_MESSAGE_LIMIT = 12" in html
+    assert "}).slice(-RECENT_PROMPT_MESSAGE_LIMIT);" in build_messages_fn
     assert "function formatCurrentInputInstruction" in html
     assert "最后一条 user 消息是用户本轮刚发送/合并后的最新输入" in html
     assert "不要把最后一条 user 消息当作历史总结" in html

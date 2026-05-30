@@ -4683,7 +4683,6 @@ ${format_actions()}
       const meta = m.meta || {};
       if (meta.kind === 'queued_user_message' && !meta.turn_input) return false;
       return true;
-    // Legacy tests look for "}).slice(-30);"; the active prompt budget is RECENT_PROMPT_MESSAGE_LIMIT.
     }).slice(-RECENT_PROMPT_MESSAGE_LIMIT);
     for (const m of recent) {
       if (m.role === 'user' || m.role === 'assistant') {
