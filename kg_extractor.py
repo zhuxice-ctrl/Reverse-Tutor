@@ -58,9 +58,13 @@ def _rule_extract(
     error_pattern = (evaluation.get("error_pattern") or "").strip()
 
     concept = db.upsert_kg_node(db_sess, sid, KIND_CONCEPT, kp, episode_id=episode_id)
+    if concept is None:
+        return ops
     ops.append({"op": "upsert_node", "kind": KIND_CONCEPT, "name": kp})
 
     user_node = db.upsert_kg_node(db_sess, sid, "person", "用户", episode_id=episode_id)
+    if user_node is None:
+        return ops
 
     if correctness >= 0.7 and evidence.get("status") == "passed":
         db.supersede_kg_edge(
@@ -114,17 +118,18 @@ def _rule_extract(
             properties={"kp": kp, "correctness": correctness},
             episode_id=episode_id,
         )
-        db.upsert_kg_edge(
-            db_sess,
-            sid,
-            user_node.id,
-            err_node.id,
-            REL_ERROR_ON,
-            weight=1.0,
-            properties={"kp": kp},
-            episode_id=episode_id,
-        )
-        ops.append({"op": "error", "pattern": error_pattern, "kp": kp})
+        if err_node is not None:
+            db.upsert_kg_edge(
+                db_sess,
+                sid,
+                user_node.id,
+                err_node.id,
+                REL_ERROR_ON,
+                weight=1.0,
+                properties={"kp": kp},
+                episode_id=episode_id,
+            )
+            ops.append({"op": "error", "pattern": error_pattern, "kp": kp})
 
     if (
         evidence.get("status") == "passed"
@@ -204,7 +209,7 @@ async def _llm_extract(
         name = (n.get("name") or "").strip()
         if not name:
             continue
-        db.upsert_kg_node(
+        node = db.upsert_kg_node(
             db_sess,
             sid,
             kind,
@@ -212,6 +217,8 @@ async def _llm_extract(
             properties=n.get("properties"),
             episode_id=episode_id,
         )
+        if node is None:
+            continue
         ops.append({"op": "upsert_node", "kind": kind, "name": name})
 
     for e in (raw.get("edges") or [])[:5]:

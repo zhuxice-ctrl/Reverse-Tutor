@@ -322,6 +322,50 @@ class KGEdge(Base):
         return [int(x) for x in raw if isinstance(x, int) or str(x).isdigit()]
 
 
+PROCESS_KG_KINDS = {
+    "background_reply",
+    "background_generation",
+    "free_reply",
+    "model_free_reply",
+    "ordinary_message_event",
+    "normal_message_event",
+    "message_event",
+}
+SEMANTIC_KG_KINDS = {
+    "person",
+    "concept",
+    "error_pattern",
+    "preference",
+    "method",
+    "mastery_state",
+    "persona_trait",
+    "source_topic",
+    "source_memory",
+}
+PROCESS_KG_NAMES = {
+    "后台回复",
+    "后台生成",
+    "自由回复",
+    "模型自由回复",
+    "普通消息事件",
+}
+
+
+def _normalize_kg_kind(kind: str) -> str:
+    return str(kind or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def is_process_kg_node(kind: str, name: str = "") -> bool:
+    clean_kind = _normalize_kg_kind(kind)
+    clean_name = str(name or "").strip()
+    return clean_kind in PROCESS_KG_KINDS or clean_name in PROCESS_KG_NAMES
+
+
+def is_semantic_kg_node(kind: str, name: str = "") -> bool:
+    clean_kind = _normalize_kg_kind(kind)
+    return bool(str(name or "").strip()) and clean_kind in SEMANTIC_KG_KINDS and not is_process_kg_node(kind, name)
+
+
 def init_db() -> None:
     Base.metadata.create_all(engine)
     ensure_schema()
@@ -963,10 +1007,12 @@ def upsert_kg_node(
     *,
     properties: dict[str, Any] | None = None,
     episode_id: int | None = None,
-) -> KGNode:
+) -> KGNode | None:
     """Create or update a knowledge-graph node unique by session/kind/name."""
     name = (name or "").strip() or "未命名"
     kind = (kind or "concept").strip()
+    if not is_semantic_kg_node(kind, name):
+        return None
     stmt = select(KGNode).where(
         KGNode.session_id == sid,
         KGNode.kind == kind,
@@ -1031,7 +1077,7 @@ def list_kg_nodes(
     if status:
         stmt = stmt.where(KGNode.status == status)
     stmt = stmt.order_by(KGNode.last_seen_at.desc())
-    return list(db.scalars(stmt))
+    return [n for n in db.scalars(stmt) if is_semantic_kg_node(n.kind, n.name)]
 
 
 def invalidate_kg_node(db: DbSession, sid: str, node_id: int) -> KGNode | None:
