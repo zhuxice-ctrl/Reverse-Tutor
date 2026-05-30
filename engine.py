@@ -518,7 +518,7 @@ def build_messages(
 ) -> list[dict]:
     """按顺序输出 user/assistant 对话；skip_until_id 之前（含）的被压缩掉。"""
     out = []
-    for m in msgs[-30:]:  # 取最近 30 条作为滑动窗口
+    for m in msgs[-RECENT_PROMPT_MESSAGE_LIMIT:]:
         if m.id <= skip_until_id:
             continue
         if m.role in ("user", "assistant"):
@@ -526,6 +526,93 @@ def build_messages(
     if user_input is not None:
         out.append({"role": "user", "content": user_input})
     return out
+
+
+def _clip_memory_text(value: Any, limit: int = 140) -> str:
+    text = " ".join(str(value or "").split())
+    return text[: max(0, limit)].rstrip()
+
+
+def _memory_terms(value: str) -> set[str]:
+    raw = str(value or "").lower()
+    terms = {t for t in raw.replace("_", " ").replace("-", " ").split() if len(t) >= 2}
+    terms.update(ch for ch in raw if "\u4e00" <= ch <= "\u9fff")
+    return terms
+
+
+def _memory_relevant(query: str, candidate: str) -> bool:
+    q = _memory_terms(query)
+    c = _memory_terms(candidate)
+    if not q or not c:
+        return True
+    return bool(q & c) or str(candidate or "").lower() in str(query or "").lower()
+
+
+def build_runtime_memory_hint(
+    db_sess,
+    sid: str,
+    session: db.Session,
+    user_input: str,
+    *,
+    masteries: list[db.Mastery] | None = None,
+    error_logs: list[db.ErrorLog] | None = None,
+    kg_ctx: Any | None = None,
+) -> str:
+    lines: list[str] = ["# runtime_memory_hint"]
+    persona = session.persona()
+    preset_personality = _clip_memory_text(persona.get("personality", ""), 180)
+    if preset_personality:
+        lines.append(f"- preset_profile: {preset_personality}")
+
+    items = 0
+    for trait in db.list_kg_nodes(db_sess, sid, kind="persona_trait")[:8]:
+        props = trait.properties()
+        source = props.get("source", "behavior")
+        weight = float(props.get("weight", 1.0) or 1.0)
+        label = _clip_memory_text(trait.name, 120)
+        if label and _memory_relevant(user_input, label):
+            lines.append(f"- behavior_trait(w={weight:.2f}, source={source}): {label}")
+            items += 1
+            if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+                break
+
+    for pref in list(getattr(kg_ctx, "preferences", []) or [])[:5]:
+        label = _clip_memory_text(pref, 120)
+        if label and _memory_relevant(user_input, label):
+            lines.append(f"- preference: {label}")
+            items += 1
+
+    for mastery in (masteries or [])[:10]:
+        kp = _clip_memory_text(getattr(mastery, "knowledge_point", ""), 80)
+        if not kp or not _memory_relevant(user_input, kp):
+            continue
+        score = float(getattr(mastery, "mastery_score", 0.0) or (getattr(mastery, "level", 0.0) or 0.0) * 100)
+        lines.append(f"- mastery: {kp} {score:.0f}/100")
+        items += 1
+
+    for err in (error_logs or [])[:10]:
+        candidate = f"{getattr(err, 'kp', '')} {getattr(err, 'error_pattern', '')}"
+        if not _memory_relevant(user_input, candidate):
+            continue
+        lines.append(f"- error_log: {_clip_memory_text(candidate, 120)}")
+        items += 1
+
+    if kg_ctx is not None:
+        for concept in list(getattr(kg_ctx, "related_concepts", []) or [])[:5]:
+            label = _clip_memory_text(concept, 100)
+            if label:
+                lines.append(f"- kg_related: {label}")
+                items += 1
+        for gap in list(getattr(kg_ctx, "prereq_gaps", []) or [])[:3]:
+            label = _clip_memory_text(gap, 100)
+            if label:
+                lines.append(f"- kg_prereq_gap: {label}")
+                items += 1
+
+    text = "\n".join(lines)
+    if len(text) > RUNTIME_MEMORY_HINT_MAX_CHARS:
+        text = text[: RUNTIME_MEMORY_HINT_MAX_CHARS - 1].rstrip() + "…"
+    return text
 
 
 # --- V1 学习策略规范化 --------------------------------------------------------
@@ -956,6 +1043,9 @@ def create_session(
 
 SUMMARY_THRESHOLD = 30     # user+assistant 条数超过此值才压缩
 SUMMARY_KEEP_RECENT = 12   # 最近多少条保留原文
+RECENT_PROMPT_MESSAGE_LIMIT = 12
+RUNTIME_MEMORY_HINT_MAX_CHARS = 1600
+RUNTIME_MEMORY_HINT_MAX_ITEMS = 16
 SUMMARY_SYSTEM = (
     "你是一个教学对话摘要器。请把以下反转家教对话压缩为 6-12 条要点，严格保留以下信息：\n"
     "  1. 用户表现出的强项、弱项知识点\n"
@@ -1157,12 +1247,22 @@ async def run_turn(
         summary_text = summary.content
 
     kg_context_text = ""
+    kg_ctx = None
     if mode == "study":
         try:
             kg_ctx = retrieve_kg_context(db_sess, sid, user_input[:50])
             kg_context_text = kg_ctx.format_for_prompt()
         except Exception:
             pass
+    runtime_memory_hint = build_runtime_memory_hint(
+        db_sess,
+        sid,
+        session,
+        user_input,
+        masteries=masteries,
+        error_logs=error_logs,
+        kg_ctx=kg_ctx,
+    )
 
     system = build_system_prompt(
         session,
@@ -1173,6 +1273,8 @@ async def run_turn(
         error_logs=error_logs,
         kg_context_text=kg_context_text,
     )
+    if runtime_memory_hint:
+        system += "\n\n" + runtime_memory_hint
     retrieval_attempted = False
     injected_chunk_ids: set[int] = set()
     active_retriever = retriever or make_default_retriever(db_sess)

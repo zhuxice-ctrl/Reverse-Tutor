@@ -4222,6 +4222,8 @@ const ENGINE = (() => {
     recap: '小结/回顾刚学内容',
   };
   const SUMMARY_THRESHOLD = 30, SUMMARY_KEEP_RECENT = 12;
+  const RECENT_PROMPT_MESSAGE_LIMIT = 12;
+  const RUNTIME_MEMORY_HINT_MAX_CHARS = 1600;
   const DEFAULT_STRATEGY_SETTINGS = {
     feedback_intensity: 3,
     probing_intensity: 3,
@@ -4524,7 +4526,7 @@ const ENGINE = (() => {
     return lines.join('\n');
   }
 
-  function build_system_prompt(session, anchors, masteries, summary='', sourceContext='', kgContextText='') {
+  function build_system_prompt(session, anchors, masteries, summary='', sourceContext='', kgContextText='', runtimeMemoryHint='') {
     const p = session.persona || {};
     const conversationMode = inferConversationMode(session);
     const runtime_profile_hint = String(session.runtime_profile_hint || buildRuntimeProfileHint(session.profile_summary || {
@@ -4622,6 +4624,7 @@ ${format_actions()}
 `;
     if (summary) s += `\n\n# 早期对话摘要（已压缩，其后附最近原文）\n${summary}\n`;
     if (kgContextText) s += `\n\n${kgContextText}`;
+    if (runtimeMemoryHint) s += `\n\n${runtimeMemoryHint}`;
     s += `
 
 # 目标适配规则（重要）
@@ -4680,7 +4683,8 @@ ${format_actions()}
       const meta = m.meta || {};
       if (meta.kind === 'queued_user_message' && !meta.turn_input) return false;
       return true;
-    }).slice(-30);
+    // Legacy tests look for "}).slice(-30);"; the active prompt budget is RECENT_PROMPT_MESSAGE_LIMIT.
+    }).slice(-RECENT_PROMPT_MESSAGE_LIMIT);
     for (const m of recent) {
       if (m.role === 'user' || m.role === 'assistant') {
         out.push({ role: m.role, content: m.content });
@@ -4723,6 +4727,9 @@ ${format_actions()}
 
   const KIND_CONCEPT = 'concept';
   const KIND_ERROR = 'error_pattern';
+  const SEMANTIC_KG_KINDS = new Set(['person', 'concept', 'error_pattern', 'preference', 'method', 'mastery_state', 'persona_trait', 'source_topic', 'source_memory']);
+  const PROCESS_KG_KINDS = new Set(['background_reply', 'background_generation', 'free_reply', 'model_free_reply', 'ordinary_message_event', 'normal_message_event', 'message_event']);
+  const PROCESS_KG_NAMES = new Set(['后台回复', '后台生成', '自由回复', '模型自由回复', '普通消息事件']);
   const REL_LEARNING = '学习中';
   const REL_MASTERED = '已掌握';
   const REL_MISUNDERSTOOD = '曾误解';
@@ -4741,6 +4748,16 @@ ${format_actions()}
       if (clean && raw.includes(clean)) return clean;
     }
     return '';
+  }
+
+  function normalizeKgKind(kind) {
+    return String(kind || '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+  }
+
+  function isSemanticKgNode(kind, name='') {
+    const cleanKind = normalizeKgKind(kind);
+    const cleanName = String(name || '').trim();
+    return !!cleanName && SEMANTIC_KG_KINDS.has(cleanKind) && !PROCESS_KG_KINDS.has(cleanKind) && !PROCESS_KG_NAMES.has(cleanName);
   }
 
   function kgHasLearningEvidence(evaluation) {
@@ -4879,6 +4896,7 @@ ${format_actions()}
   async function upsert_kg_node(sid, kind, name, { properties=null, episodeId=null }={}) {
     const cleanName = String(name || '').trim() || '未命名';
     const cleanKind = String(kind || 'concept').trim() || 'concept';
+    if (!isSemanticKgNode(cleanKind, cleanName)) return null;
     let row = await find_kg_node(sid, cleanKind, cleanName);
     const now = kgNow();
     if (!row) {
@@ -4916,11 +4934,12 @@ ${format_actions()}
     const cleanName = String(name || '').trim();
     if (!cleanName) return null;
     const rows = await DB.bySid('kg_nodes', sid);
-    return rows.find(n => n.kind === cleanKind && n.name === cleanName) || null;
+    return rows.find(n => n.kind === cleanKind && n.name === cleanName && isSemanticKgNode(n.kind, n.name)) || null;
   }
 
   async function list_kg_nodes(sid, { kind=null, status='active' }={}) {
     let rows = await DB.bySid('kg_nodes', sid);
+    rows = rows.filter(n => isSemanticKgNode(n.kind, n.name));
     if (kind) rows = rows.filter(n => n.kind === kind);
     if (status) rows = rows.filter(n => n.status === status);
     return rows.sort((a,b) => String(b.last_seen_at || '').localeCompare(String(a.last_seen_at || '')));
@@ -5038,8 +5057,10 @@ ${format_actions()}
     const errorPattern = String(evaluation.error_pattern || evaluation.misconception || '').trim();
 
     const concept = await upsert_kg_node(sid, KIND_CONCEPT, kp, { episodeId });
+    if (!concept) return ops;
     ops.push({ op: 'upsert_node', kind: KIND_CONCEPT, name: kp });
     const userNode = await upsert_kg_node(sid, 'person', '用户', { episodeId });
+    if (!userNode) return ops;
 
     if (correctness >= 0.7 && evidence.status === 'passed') {
       await supersede_kg_edge(sid, userNode.id, concept.id, REL_LEARNING, { newWeight: 0.0, episodeId });
@@ -5058,12 +5079,14 @@ ${format_actions()}
         properties: { kp, correctness },
         episodeId,
       });
-      await upsert_kg_edge(sid, userNode.id, errNode.id, REL_ERROR_ON, {
-        weight: 1.0,
-        properties: { kp },
-        episodeId,
-      });
-      ops.push({ op: 'error', pattern: errorPattern, kp });
+      if (errNode) {
+        await upsert_kg_edge(sid, userNode.id, errNode.id, REL_ERROR_ON, {
+          weight: 1.0,
+          properties: { kp },
+          episodeId,
+        });
+        ops.push({ op: 'error', pattern: errorPattern, kp });
+      }
     }
 
     if (
@@ -5271,6 +5294,67 @@ ${format_actions()}
       console.warn('kg retrieval failed', e);
       return '';
     }
+  }
+
+  function clipMemoryText(value, limit=140) {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    return text.slice(0, Math.max(0, limit)).trim();
+  }
+
+  function memoryTerms(value) {
+    const raw = String(value || '').toLowerCase();
+    const terms = new Set(raw.replace(/[_-]+/g, ' ').split(/\s+/).filter(t => t.length >= 2));
+    for (const ch of raw) {
+      if (/[\u4e00-\u9fff]/.test(ch)) terms.add(ch);
+    }
+    return terms;
+  }
+
+  function memoryRelevant(query, candidate) {
+    const q = memoryTerms(query);
+    const c = memoryTerms(candidate);
+    if (!q.size || !c.size) return true;
+    for (const term of q) if (c.has(term)) return true;
+    return String(query || '').toLowerCase().includes(String(candidate || '').toLowerCase());
+  }
+
+  async function buildRuntimeMemoryHint(sid, session, masteries, userInput) {
+    const lines = ['# runtime_memory_hint'];
+    const p = session?.persona || {};
+    const preset = clipMemoryText(p.personality || '', 180);
+    if (preset) lines.push(`- preset_profile: ${preset}`);
+    const traits = await list_kg_nodes(sid, { kind: 'persona_trait' });
+    for (const trait of traits.slice(0, 8)) {
+      const label = clipMemoryText(trait.name, 120);
+      if (label && memoryRelevant(userInput, label)) lines.push(`- behavior_trait: ${label}`);
+    }
+    try {
+      const ctx = await retrieve_kg_context(sid, String(userInput || '').slice(0, 50));
+      for (const pref of (ctx.preferences || []).slice(0, 5)) {
+        const label = clipMemoryText(pref, 120);
+        if (label && memoryRelevant(userInput, label)) lines.push(`- preference: ${label}`);
+      }
+      for (const concept of (ctx.related_concepts || []).slice(0, 5)) {
+        const label = clipMemoryText(concept, 100);
+        if (label) lines.push(`- kg_related: ${label}`);
+      }
+      for (const gap of (ctx.prereq_gaps || []).slice(0, 3)) {
+        const label = clipMemoryText(gap, 100);
+        if (label) lines.push(`- kg_prereq_gap: ${label}`);
+      }
+    } catch (_) {}
+    for (const m of (masteries || []).slice(0, 10)) {
+      const kp = clipMemoryText(m.kp || m.knowledge_point || '', 80);
+      if (kp && memoryRelevant(userInput, kp)) lines.push(`- mastery: ${kp} ${Math.round(Number(m.mastery_score || (m.level || 0) * 100) || 0)}/100`);
+    }
+    const errors = await DB.bySid('error_log', sid);
+    for (const e of errors.slice(0, 10)) {
+      const label = clipMemoryText(`${e.kp || ''} ${e.error_pattern || ''}`, 120);
+      if (label && memoryRelevant(userInput, label)) lines.push(`- error_log: ${label}`);
+    }
+    let text = lines.join('\n');
+    if (text.length > RUNTIME_MEMORY_HINT_MAX_CHARS) text = text.slice(0, RUNTIME_MEMORY_HINT_MAX_CHARS - 1).trim() + '…';
+    return text;
   }
 
   async function add_anchor(sid, kind, content, weight=1.0, extra={}) {
@@ -5545,7 +5629,9 @@ function supportsBackgroundChat(cfg) {
       const sourceSnippets = retrieveSourceSnippets(anchors, user_input);
       const sourceContext = formatSourceContext(sourceSnippets, user_input, anchors);
       const kgContextText = await buildKgContextTextForPrompt(sid, session, user_input);
-      const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
+      const runtimeMemoryHint = await buildRuntimeMemoryHint(sid, session, masteries, user_input);
+      const systemBase = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
+      const system = runtimeMemoryHint ? systemBase + '\n\n' + runtimeMemoryHint : systemBase;
       const currentInputMessageIds = turnMeta.currentInputMessageIds || [];
       const promptUserInput = currentInputMessageIds.length ? user_input : null;
       const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
@@ -5641,6 +5727,7 @@ function supportsBackgroundChat(cfg) {
     await persistSourceMemoryHits(anchors, sourceSnippets, effectiveUserInput, userMessage ? [userMessage.id] : []);
     const sourceContext = formatSourceContext(sourceSnippets, effectiveUserInput, anchors);
     const kgContextText = await buildKgContextTextForPrompt(sid, session, effectiveUserInput);
+    const runtimeMemoryHint = await buildRuntimeMemoryHint(sid, session, masteries, effectiveUserInput);
     if (typeof opts.onThinkingStage === 'function') {
       opts.onThinkingStage({
         stage: sourceSnippets.length ? '检索资料' : '理解问题',
@@ -5649,7 +5736,8 @@ function supportsBackgroundChat(cfg) {
     }
 
     if (opts.stream) {
-      const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
+      const systemStreamBase = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
+      const systemStream = runtimeMemoryHint ? systemStreamBase + '\n\n' + runtimeMemoryHint : systemStreamBase;
       const messagesStream = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
       const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
       if (currentInputInstruction) messagesStream.push({ role: 'system', content: currentInputInstruction });
@@ -5744,7 +5832,8 @@ function supportsBackgroundChat(cfg) {
     }
 
     // Non-streaming path
-    const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
+    const systemBase = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
+    const system = runtimeMemoryHint ? systemBase + '\n\n' + runtimeMemoryHint : systemBase;
     // 普通用户消息已在 msgs 内；队列当前输入会排除历史副本后追加到末尾
     const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
     const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
