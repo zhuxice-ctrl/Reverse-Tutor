@@ -1319,28 +1319,37 @@
 
 <!-- ============== 顶栏 ============== -->
 <header class="safe-top bg-neutral-950 border-b border-neutral-800 flex items-center px-3 py-2 gap-2">
-  <button id="drawer-open" class="icon-only text-neutral-400 px-2" aria-label="打开会话抽屉"><i data-lucide="menu">菜单</i></button>
+  <button id="global-sidebar-open" class="icon-only text-neutral-400 px-2" aria-label="打开全局侧边栏"><i data-lucide="ellipsis">··</i></button>
+  <div id="header-mode" class="text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60">mock</div>
+  <button id="drawer-open" class="hidden icon-only text-neutral-400 px-2" aria-label="返回"><i data-lucide="chevron-left">返回</i></button>
   <div class="flex-1 min-w-0">
     <div id="header-title" class="text-sm font-semibold truncate">Reverse Tutor</div>
     <div id="header-sub" class="text-[10px] text-neutral-500 truncate"></div>
   </div>
   <button id="learning-context-open" class="hidden text-xs px-3 py-1.5 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">脉络</button>
-  <div id="header-mode" class="text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60">mock</div>
+  <button id="header-new-session" class="icon-only text-neutral-100 bg-emerald-700 active:bg-emerald-800 px-2" aria-label="新建会话"><i data-lucide="plus">+</i></button>
 </header>
 
 <div id="session-drawer" class="drawer-overlay">
   <aside class="drawer-panel safe-top flex flex-col" onclick="event.stopPropagation()">
     <div class="p-3 border-b border-neutral-800 flex items-center justify-between gap-2">
       <div>
-        <div class="text-sm font-semibold">会话</div>
-        <div class="text-[10px] text-neutral-500">右滑打开会话记录</div>
+        <div class="text-sm font-semibold">全局侧边栏</div>
+        <div class="text-[10px] text-neutral-500">主题、头像显示和当前状态</div>
       </div>
       <button id="drawer-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
     </div>
-    <div class="p-3 border-b border-neutral-800">
-      <button id="drawer-new" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"><i class="button-icon" data-lucide="plus"></i><span>新建会话</span></button>
+    <div class="p-3 border-b border-neutral-800 space-y-3">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">主题</div>
+        <div id="global-sidebar-theme-grid" class="theme-grid grid gap-2"></div>
+      </div>
+      <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+        <span>显示会话头像</span>
+        <input id="global-avatar-visible" type="checkbox" class="accent-emerald-700">
+      </label>
     </div>
-    <div id="drawer-sess-list" class="flex-1 scroll-y p-3 space-y-2"></div>
+    <div id="global-sidebar-status" class="flex-1 scroll-y p-3 space-y-2 text-xs text-neutral-400"></div>
   </aside>
 </div>
 
@@ -1418,15 +1427,15 @@
   <section data-view="settings" class="view flex-1 min-h-0 hidden scroll-y">
     <div class="p-3 space-y-4 text-sm">
 
-      <div>
+      <div id="settings-system-section">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">外观</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
           <div id="theme-grid" class="theme-grid grid gap-2"></div>
-          <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+          <label class="hidden items-center justify-between gap-3 text-xs text-neutral-400">
             <span>AI 主动消息时弹出提示</span>
             <input id="popup-enabled" type="checkbox" class="accent-emerald-700">
           </label>
-          <div class="pt-2 border-t border-neutral-800 space-y-2">
+          <div class="hidden pt-2 border-t border-neutral-800 space-y-2">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="text-xs text-neutral-300">后台回复通知</div>
@@ -1438,7 +1447,12 @@
         </div>
       </div>
 
-      <div>
+      <details id="settings-transient-section" class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs text-neutral-400">
+        <summary class="cursor-pointer text-neutral-300">临时与会话级选项</summary>
+        <div class="mt-2 leading-relaxed text-neutral-500">通知弹窗、安装提示、会话头像和会话级主动对话已移到会话或系统上下文中，默认不作为长期配置展示。</div>
+      </details>
+
+      <div class="hidden">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">主动对话</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
           <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
@@ -1458,12 +1472,12 @@
         </div>
       </div>
 
-      <div>
+      <div class="hidden">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话</div>
         <div id="sess-list" class="space-y-1.5"></div>
       </div>
 
-      <div>
+      <div id="settings-api-section">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">LLM 配置</div>
         <div class="llm-config-card bg-neutral-900 border border-neutral-800 rounded-lg space-y-3">
           <div class="llm-help text-[11px] text-neutral-400 leading-relaxed">
@@ -1541,7 +1555,7 @@
         </div>
       </div>
 
-      <div>
+      <div id="settings-update-section">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">软件更新</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
           <div class="text-[11px] text-neutral-400 leading-relaxed">
@@ -1564,7 +1578,7 @@
         </div>
       </div>
 
-      <div>
+      <div id="settings-data-section">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">数据</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
           <button id="data-export-session" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2"><i class="button-icon" data-lucide="message-square-share"></i><span>分享当前聊天窗口（聊天 + 脉络）</span></button>
@@ -1579,7 +1593,7 @@
         </div>
       </div>
 
-      <div>
+      <div class="hidden">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">安装到主屏</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
           <button id="pwa-install" class="hidden w-full text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white items-center justify-center gap-2"><i class="button-icon" data-lucide="smartphone"></i><span>安装到主屏</span></button>
@@ -1681,11 +1695,34 @@
       <div class="text-sm font-semibold">新建会话</div>
       <button onclick="closeNew()" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
     </div>
-    <div class="scroll-y flex-1 space-y-3">
+    <div id="new-quick-panel" class="scroll-y flex-1 space-y-3">
+      <div class="grid grid-cols-3 gap-2">
+        <button type="button" data-new-mode="custom" class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-3 text-left">
+          <div class="text-xs font-semibold">自定义</div>
+          <div class="text-[10px] text-neutral-500 mt-1">完整画像</div>
+        </button>
+        <label class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-3 text-left cursor-pointer">
+          <div class="text-xs font-semibold">导入预设</div>
+          <div class="text-[10px] text-neutral-500 mt-1">JSON 预览</div>
+          <input id="preset-import-file" type="file" accept=".json,application/json" class="hidden">
+        </label>
+        <button type="button" data-new-mode="builtin" class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-3 text-left">
+          <div class="text-xs font-semibold">内置预设</div>
+          <div class="text-[10px] text-neutral-500 mt-1">快速开始</div>
+        </button>
+      </div>
+      <div id="preset-preview" class="hidden bg-neutral-950 border border-neutral-800 rounded-lg p-3 space-y-2 text-xs"></div>
       <div>
-        <div class="text-xs text-neutral-500 mb-2">预设场景</div>
+        <div class="text-xs text-neutral-500 mb-2">内置预设</div>
         <div id="tpl-grid" class="grid grid-cols-2 gap-2"></div>
       </div>
+    </div>
+    <div id="new-custom-panel" class="hidden scroll-y flex-1 space-y-3">
+      <button type="button" id="new-custom-back" class="text-xs px-2 py-1 rounded border border-neutral-700">返回快捷新建</button>
+      <label class="block">
+        <span class="text-xs text-neutral-400">会话名称</span>
+        <input id="new-title" maxlength="20" placeholder="例如：高三函数冲刺" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+      </label>
       <label class="block">
         <span class="text-xs text-neutral-400">学生角色 *</span>
         <input id="new-role" placeholder="高三理科生 / Python 小白 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
@@ -1699,8 +1736,25 @@
         <input id="new-deadline" placeholder="2026 高考 / 3 个月内 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
       </label>
       <label class="block">
-        <span class="text-xs text-neutral-400">性格</span>
-        <input id="new-pers" placeholder="好奇但易焦虑 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+        <span class="text-xs text-neutral-400">tag 画像系统</span>
+        <div id="profile-tag-bank" class="mt-1 grid grid-cols-2 gap-2"></div>
+        <div id="profile-selected-tags" class="mt-2 flex flex-wrap gap-1.5 text-xs"></div>
+        <div class="mt-2 flex gap-2">
+          <input id="profile-custom-tag" maxlength="20" placeholder="自定义 tag" class="flex-1 bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
+          <button id="profile-custom-add" type="button" class="text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">添加</button>
+        </div>
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">画像描述（最多 1000 字）</span>
+        <textarea id="profile-description" maxlength="1000" rows="3" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none" placeholder="稳定的教学偏好、常见反应、需要避开的方式"></textarea>
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">长文本补充（最多 5000 字）</span>
+        <textarea id="profile-long-text" maxlength="5000" rows="4" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none" placeholder="可贴更多背景，只保存结构化摘要，运行时只注入短提示"></textarea>
+      </label>
+      <label class="block">
+        <span class="text-xs text-neutral-400">策略调音台</span>
+        <textarea id="new-pers" rows="2" placeholder="语气、追问强度、纠错时机等偏好" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
       </label>
       <label class="block">
         <span class="text-xs text-neutral-400">初始诉求（一行一条）</span>
@@ -1719,9 +1773,20 @@
         </div>
       </div>
       <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
-        <span>创建后让学生 AI 主动开场提问</span>
+        <span>主动状态：创建后让学生 AI 主动开场提问</span>
         <input id="new-auto-opening" type="checkbox" checked class="accent-emerald-700">
       </label>
+      <div class="bg-neutral-800/60 border border-neutral-700 rounded-lg p-3 space-y-2">
+        <div class="text-xs font-semibold text-neutral-300">外观 / 头像</div>
+        <div class="flex items-center justify-between gap-2 text-xs text-neutral-400">
+          <button id="new-avatar-choose" type="button" class="px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">选择头像</button>
+          <label class="flex items-center gap-2">
+            <input id="new-avatar-hidden" type="checkbox" class="accent-emerald-700">
+            <span>隐藏头像</span>
+          </label>
+        </div>
+        <div id="new-avatar-status" class="text-[11px] text-neutral-500">未选择头像</div>
+      </div>
     </div>
     <button id="new-create" class="bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium mt-3">创建会话 + 学生开场</button>
   </div>
@@ -1774,6 +1839,8 @@
 
 <div id="session-card-popover" class="message-action-popover hidden">
   <button data-session-action="pin"><i data-lucide="pin"></i><span>置顶</span></button>
+  <button data-session-action="rename"><i data-lucide="pencil"></i><span>重命名</span></button>
+  <button data-session-action="preset-export"><i data-lucide="download"></i><span>导出预设</span></button>
   <button data-session-action="avatar"><i data-lucide="image-plus"></i><span>头像</span></button>
   <button data-session-action="avatar-clear"><i data-lucide="trash-2"></i><span>清除头像</span></button>
 </div>
@@ -1841,6 +1908,9 @@ const state = {
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
+  newProfileTags: [],
+  newAvatarImage: '',
+  importedPreset: null,
   messageQueue: [],
   isGenerating: false,
   queueProcessing: false,
@@ -1884,6 +1954,8 @@ const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
 const LLM_CONFIG_PROFILES_OPEN_KEY = 'rt-mobile-llm-config-profiles-open';
 const PROACTIVE_CONFIG_KEY = 'rt-mobile-proactive-config';
 const SESSION_PINNED_KEY = 'rt-mobile-pinned-sessions';
+const GLOBAL_AVATARS_VISIBLE_KEY = 'rt-mobile-global-avatars-visible';
+const SESSION_PRESETS_KEY = 'rt-mobile-session-presets';
 const THEME_OPTIONS = [
   { id:'ink', label:'柔和黑色', detail:'默认低亮深色', metaColor:'#252927', swatches:['#252927','#303631','#78a084'] },
   { id:'warm', label:'暖灰浅色', detail:'纸感浅色阅读', metaColor:'#c9c0b3', swatches:['#c9c0b3','#e4ddd4','#567663'] },
@@ -2808,10 +2880,10 @@ function normalizeThemeId(theme) {
 }
 
 function renderThemeChoices(activeTheme=normalizeThemeId(localStorage.getItem('rt-mobile-theme'))) {
-  const grid = $('#theme-grid');
-  if (!grid) return;
+  const grids = ['#theme-grid', '#global-sidebar-theme-grid'].map(sel => $(sel)).filter(Boolean);
+  if (!grids.length) return;
   const current = normalizeThemeId(activeTheme);
-  grid.innerHTML = THEME_OPTIONS.map(theme => `
+  const html = THEME_OPTIONS.map(theme => `
     <button type="button" class="theme-choice ${theme.id === current ? 'active' : ''}" data-theme-choice="${esc(theme.id)}" aria-pressed="${theme.id === current ? 'true' : 'false'}">
       <div>
         <div class="theme-choice-title">${esc(theme.label)}</div>
@@ -2822,8 +2894,11 @@ function renderThemeChoices(activeTheme=normalizeThemeId(localStorage.getItem('r
       </div>
     </button>
   `).join('');
-  grid.querySelectorAll('[data-theme-choice]').forEach(btn => {
-    btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice));
+  grids.forEach(grid => {
+    grid.innerHTML = html;
+    grid.querySelectorAll('[data-theme-choice]').forEach(btn => {
+      btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice));
+    });
   });
 }
 
@@ -4162,6 +4237,48 @@ const ENGINE = (() => {
     kg_extraction_enabled: true,
     kg_blacklist: [],
   };
+  const PROFILE_TAG_CATEGORIES = {
+    weakness: { label: '学习弱点', tags: ['基础断层', '公式会背不会用', '审题跳步', '迁移困难'] },
+    reaction: { label: '性格反应', tags: ['容易焦虑', '被否定会退缩', '好胜心强', '需要及时肯定'] },
+    preference: { label: '教学偏好', tags: ['先例题再抽象', '多追问少讲解', '喜欢步骤清单', '需要反例'] },
+    resistance: { label: '抗拒行为', tags: ['逃避难题', '急着要答案', '不愿复盘', '分心拖延'] },
+  };
+
+  function normalizeProfileTags(tags=[]) {
+    return (Array.isArray(tags) ? tags : [])
+      .map(tag => ({
+        category: String(tag?.category || 'custom').slice(0, 24),
+        label: String(tag?.label || tag || '').trim().slice(0, 20),
+      }))
+      .filter(tag => tag.label)
+      .slice(0, 24);
+  }
+
+  function buildStructuredProfileSummary(profile={}) {
+    const tags = normalizeProfileTags(profile.tags || profile.profile_tags || []);
+    const description = String(profile.description || profile.profile_description || '').trim().slice(0, 1000);
+    const longText = String(profile.long_text || profile.profile_long_text || '').trim().slice(0, 5000);
+    const byCategory = {};
+    tags.forEach(tag => {
+      const key = tag.category || 'custom';
+      if (!byCategory[key]) byCategory[key] = [];
+      byCategory[key].push(tag.label);
+    });
+    return {
+      schema: 'profile_summary_v1',
+      tags,
+      by_category: byCategory,
+      description,
+      long_text_summary: longText ? longText.replace(/\s+/g, ' ').slice(0, 360) : '',
+    };
+  }
+
+  function buildRuntimeProfileHint(profile={}) {
+    const summary = profile.schema === 'profile_summary_v1' ? profile : buildStructuredProfileSummary(profile);
+    const tags = normalizeProfileTags(summary.tags || []).slice(0, 8).map(tag => tag.label).join('、');
+    const desc = String(summary.description || summary.long_text_summary || '').replace(/\s+/g, ' ').slice(0, 160);
+    return [tags ? `tags=${tags}` : '', desc ? `note=${desc}` : ''].filter(Boolean).join('；').slice(0, 240);
+  }
 
   function inferConversationMode(session) {
     const p = session.persona || {};
@@ -4410,6 +4527,10 @@ const ENGINE = (() => {
   function build_system_prompt(session, anchors, masteries, summary='', sourceContext='', kgContextText='') {
     const p = session.persona || {};
     const conversationMode = inferConversationMode(session);
+    const runtime_profile_hint = String(session.runtime_profile_hint || buildRuntimeProfileHint(session.profile_summary || {
+      tags: session.profile_tags || [],
+      description: session.profile_description || '',
+    })).trim();
     const coreMission = conversationMode === 'learning'
       ? `你是 "反转家教 AI" 中的"学生"角色。你的核心使命：通过向用户（老师）请教问题，让用户在教你的过程中加深理解。`
       : `你是 "反转家教 AI" 中的"学生 AI"角色。你的核心使命：稳定扮演用户设定的人格，围绕目标推进关系、协作或陪伴；必要时可以请用户帮忙，但不要把普通目标都改造成学习任务。`;
@@ -4423,6 +4544,9 @@ const ENGINE = (() => {
 
 # 核心自述
 ${session.core_self || '（未设置）'}
+
+# runtime_profile_hint（短画像提示，只注入公开策略链需要的摘要）
+${runtime_profile_hint || '（无）'}
 
 # 策略设置
 ${formatStrategySettings(session.settings || {})}
@@ -5746,16 +5870,25 @@ function supportsBackgroundChat(cfg) {
     return { reply, action: ac, evaluation: ev, proactive_mode: mode };
   }
 
-  async function create_session({ title, role, goal, deadline='', personality='', reqs=[], core_self='', settings={} }) {
+  async function create_session({ title, role, goal, deadline='', personality='', reqs=[], core_self='', settings={}, profile_tags=[], profile_description='', profile_long_text='', avatar_image='', avatar_hidden=false }) {
     const sid = uuid();
+    const profile_summary = buildStructuredProfileSummary({
+      tags: profile_tags,
+      description: profile_description,
+      long_text: profile_long_text,
+    });
     const session = {
       id: sid,
       title: title || `${role} · ${goal}`,
       persona: { role, goal, deadline, personality: personality || '好奇、有点贪玩、容易丧气但能被鼓励' },
       core_self: core_self || '',
       settings: normalizeStrategySettings(settings || {}),
-      avatar_image: '',
-      avatar_hidden: false,
+      profile_tags: normalizeProfileTags(profile_tags),
+      profile_description: String(profile_description || '').slice(0, 1000),
+      profile_summary,
+      runtime_profile_hint: buildRuntimeProfileHint(profile_summary),
+      avatar_image: String(avatar_image || ''),
+      avatar_hidden: !!avatar_hidden,
       last_read_at: Date.now(),
       created_at: Date.now(), updated_at: Date.now(),
     };
@@ -5779,7 +5912,7 @@ function supportsBackgroundChat(cfg) {
     ]);
   }
 
-  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, queue_pending_user_message, normalizeStrategySettings, formatStrategySettings, ACTION_TYPES };
+  return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, queue_pending_user_message, normalizeStrategySettings, formatStrategySettings, buildStructuredProfileSummary, buildRuntimeProfileHint, PROFILE_TAG_CATEGORIES, ACTION_TYPES };
 })();
 </script>
 
@@ -5800,6 +5933,141 @@ const TEMPLATES = [
     deadline:'2025 年 12 月', personality:'毅力强但词汇底子薄',
     reqs:['每天 30 个核心词汇','阅读以真题为主']},
 ];
+
+function renderProfileTags() {
+  const bank = $('#profile-tag-bank');
+  const selected = $('#profile-selected-tags');
+  if (!bank || !selected) return;
+  const categories = ENGINE.PROFILE_TAG_CATEGORIES || {};
+  bank.innerHTML = Object.entries(categories).map(([category, meta]) => `
+    <div class="bg-neutral-800/70 border border-neutral-700 rounded-lg p-2">
+      <div class="text-[11px] text-neutral-400 mb-1">${esc(meta.label || category)}</div>
+      <div class="flex flex-wrap gap-1">
+        ${(meta.tags || []).map(label => `<button type="button" data-profile-tag="${esc(label)}" data-profile-category="${esc(category)}" class="text-[11px] px-2 py-1 rounded bg-neutral-900 border border-neutral-700 active:bg-neutral-700">${esc(label)}</button>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  selected.innerHTML = state.newProfileTags.length
+    ? state.newProfileTags.map((tag, idx) => `<button type="button" data-remove-profile-tag="${idx}" class="px-2 py-1 rounded-full bg-emerald-900/40 border border-emerald-800 text-emerald-100">${esc(tag.label)}</button>`).join('')
+    : '<span class="text-neutral-500">未选择 tag</span>';
+  bank.querySelectorAll('[data-profile-tag]').forEach(btn => btn.addEventListener('click', () => {
+    addProfileTag(btn.dataset.profileTag, btn.dataset.profileCategory);
+  }));
+  selected.querySelectorAll('[data-remove-profile-tag]').forEach(btn => btn.addEventListener('click', () => {
+    state.newProfileTags.splice(Number(btn.dataset.removeProfileTag), 1);
+    renderProfileTags();
+  }));
+}
+
+function addProfileTag(label, category='custom') {
+  const text = String(label || '').trim().slice(0, 20);
+  if (!text) return;
+  if (!state.newProfileTags.some(tag => tag.label === text && tag.category === category)) {
+    state.newProfileTags.push({ category, label: text });
+  }
+  renderProfileTags();
+}
+
+function sessionPresets() {
+  try { return JSON.parse(localStorage.getItem(SESSION_PRESETS_KEY) || '[]'); }
+  catch (_) { return []; }
+}
+
+function saveSessionPreset(preset) {
+  const next = [preset, ...sessionPresets().filter(p => p.id !== preset.id)].slice(0, 24);
+  localStorage.setItem(SESSION_PRESETS_KEY, JSON.stringify(next));
+}
+
+function buildLightweightPreset(session) {
+  const p = session?.persona || {};
+  return {
+    schema: 'reverse_tutor_preset_v1',
+    id: 'preset_' + uuid(),
+    title: session?.title || p.goal || '未命名预设',
+    role: p.role || '',
+    goal: p.goal || '',
+    deadline: p.deadline || '',
+    personality: p.personality || '',
+    settings: ENGINE.normalizeStrategySettings(session?.settings || {}),
+    profile_tags: session?.profile_tags || [],
+    profile_summary: session?.profile_summary || null,
+    runtime_profile_hint: session?.runtime_profile_hint || '',
+    external_resources: Array.isArray(session?.external_resources) ? session.external_resources : [],
+    note: 'external_resources are links only and are not automatically downloaded',
+  };
+}
+
+function sanitizeImportedPreset(raw={}) {
+  const safe = { ...(raw || {}) };
+  delete safe.api_key;
+  delete safe.apiKey;
+  delete safe.messages;
+  delete safe.chat_history;
+  delete safe.full_source_text;
+  delete safe.source_text;
+  delete safe.files;
+  delete safe.images;
+  delete safe.base64;
+  delete safe.large_base64;
+  safe.external_resources = Array.isArray(safe.external_resources)
+    ? safe.external_resources.map(x => ({ title: String(x?.title || '').slice(0, 80), url: String(x?.url || x || '').slice(0, 500) })).filter(x => x.url)
+    : [];
+  safe.title = String(safe.title || '').slice(0, 20);
+  safe.role = String(safe.role || safe.persona?.role || '').slice(0, 80);
+  safe.goal = String(safe.goal || safe.persona?.goal || '').slice(0, 120);
+  safe.deadline = String(safe.deadline || safe.persona?.deadline || '').slice(0, 80);
+  safe.personality = String(safe.personality || safe.persona?.personality || '').slice(0, 500);
+  safe.profile_tags = Array.isArray(safe.profile_tags) ? safe.profile_tags.slice(0, 24) : [];
+  return safe;
+}
+
+function applyPresetToCustomForm(preset={}) {
+  $('#new-title').value = preset.title || '';
+  $('#new-role').value = preset.role || '';
+  $('#new-goal').value = preset.goal || '';
+  $('#new-deadline').value = preset.deadline || '';
+  $('#new-pers').value = preset.personality || '';
+  state.newProfileTags = Array.isArray(preset.profile_tags) ? preset.profile_tags.map(t => ({ category: t.category || 'custom', label: t.label || String(t).slice(0, 20) })) : [];
+  $('#profile-description').value = preset.profile_summary?.description || preset.profile_description || '';
+  renderProfileTags();
+}
+
+function renderPresetPreview(preset) {
+  const box = $('#preset-preview');
+  if (!box) return;
+  state.importedPreset = sanitizeImportedPreset(preset || {});
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="font-semibold text-neutral-200">${esc(state.importedPreset.title || state.importedPreset.goal || '导入预设')}</div>
+    <div class="text-neutral-500">${esc(state.importedPreset.role || '未填角色')} / ${esc(state.importedPreset.goal || '未填目标')}</div>
+    <div class="flex gap-2 pt-1">
+      <button type="button" data-preset-action="save" class="flex-1 px-2 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">仅保存预设</button>
+      <button type="button" data-preset-action="create" class="flex-1 px-2 py-1.5 rounded bg-emerald-700 active:bg-emerald-800 text-white">保存并创建会话</button>
+      <button type="button" data-preset-action="customize" class="flex-1 px-2 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">继续自定义</button>
+    </div>`;
+  box.querySelectorAll('[data-preset-action]').forEach(btn => btn.addEventListener('click', () => handlePresetAction(btn.dataset.presetAction)));
+}
+
+async function handlePresetAction(action) {
+  const preset = state.importedPreset;
+  if (!preset) return;
+  saveSessionPreset({ ...preset, id: preset.id || ('preset_' + uuid()) });
+  if (action === 'save') { toast('预设已保存'); return; }
+  applyPresetToCustomForm(preset);
+  if (action === 'customize') { openNewCustomPanel(); return; }
+  await createSessionFromForm();
+}
+
+function openNewCustomPanel() {
+  $('#new-quick-panel')?.classList.add('hidden');
+  $('#new-custom-panel')?.classList.remove('hidden');
+  renderProfileTags();
+}
+
+function openNewQuickPanel() {
+  $('#new-custom-panel')?.classList.add('hidden');
+  $('#new-quick-panel')?.classList.remove('hidden');
+}
 
 let chatInputComposing = false;
 let keyboardLayoutTimer = null;
@@ -5935,6 +6203,16 @@ function togglePinnedSession(sid) {
   return !pinned;
 }
 
+function globalAvatarsVisible() {
+  return localStorage.getItem(GLOBAL_AVATARS_VISIBLE_KEY) !== 'false';
+}
+
+function setGlobalAvatarsVisible(visible) {
+  localStorage.setItem(GLOBAL_AVATARS_VISIBLE_KEY, visible ? 'true' : 'false');
+  renderSessionHome();
+  renderSessionDrawer();
+}
+
 function scheduleSessionHomeRender(delay=90) {
   if (state.sessionSearchRenderTimer) clearTimeout(state.sessionSearchRenderTimer);
   state.sessionSearchRenderTimer = setTimeout(() => {
@@ -5987,7 +6265,7 @@ function sessionAvatarTone(session, index=0) {
 }
 
 function sessionAvatarHtml(session, index=0) {
-  if (session?.avatar_hidden) return '';
+  if (session?.avatar_hidden || !globalAvatarsVisible()) return '';
   const image = String(session?.avatar_image || '').trim();
   if (image) {
     return `<div class="session-avatar custom"><img src="${esc(image)}" alt=""></div>`;
@@ -6041,6 +6319,22 @@ async function updateSessionAvatar(sid, patch) {
   if (state.sid === sid) await refreshHeader();
   await renderSessionHome();
   if (state.currentTab === 'settings') await renderSettings();
+}
+
+async function renameSession(sid) {
+  const session = await DB.get('sessions', sid);
+  if (!session) return;
+  let title = prompt('会话名称', session.title || '');
+  if (title === null) return;
+  title = title.trim().slice(0, 20);
+  if (!title) { toast('会话名称不能为空'); return; }
+  session.title = title;
+  session.updated_at = Date.now();
+  await DB.put('sessions', session);
+  if (state.sid === sid) await refreshHeader();
+  await renderSessionHome();
+  await renderSessionDrawer();
+  toast('会话已重命名');
 }
 
 function chooseSessionAvatar(sid) {
@@ -6107,7 +6401,7 @@ async function renderSessionHome() {
   const activeSid = state.sid;
   const sessionCardHtml = ({ session:s, meta }, idx, pinned=false, visualIndex=idx) => {
     const active = activeSid === s.id ? 'active' : '';
-    const avatarHidden = s.avatar_hidden ? 'avatar-hidden' : '';
+    const avatarHidden = (s.avatar_hidden || !globalAvatarsVisible()) ? 'avatar-hidden' : '';
     const live = pinned ? '<span class="session-tag live">置顶</span>' : (idx === 0 ? '<span class="session-tag live">最近</span>' : '');
     const sourceTag = meta.sources ? `<span class="session-tag">资料 ${meta.sources}</span>` : '';
     const noteTag = meta.notes ? `<span class="session-tag">随笔 ${meta.notes}</span>` : '';
@@ -6262,12 +6556,15 @@ async function refreshHeader() {
     : 'text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60';
   const contextBtn = $('#learning-context-open');
   const drawerBtn = $('#drawer-open');
+  const newBtn = $('#header-new-session');
   const inThread = state.currentTab === 'chat' && state.chatScreen === 'thread' && !!state.sid;
   const inContext = state.currentTab === 'chat' && state.chatScreen === 'context' && !!state.sid;
   const inSessionPage = inThread || inContext;
   contextBtn?.classList.toggle('hidden', !inThread);
-  $('#header-mode')?.classList.toggle('hidden', inSessionPage);
+  $('#header-mode')?.classList.remove('hidden');
+  newBtn?.classList.toggle('hidden', inContext);
   if (drawerBtn) {
+    drawerBtn.classList.toggle('hidden', !inSessionPage);
     drawerBtn.innerHTML = inSessionPage ? '<i data-lucide="chevron-left">返回</i>' : '<i data-lucide="menu">菜单</i>';
     drawerBtn.setAttribute('aria-label', inContext ? '返回聊天' : (inThread ? '返回会话列表' : '打开会话抽屉'));
   }
@@ -6327,11 +6624,11 @@ function getOrCreateStreamingBubble() {
     bubble.id = 'streaming-bubble';
     bubble.className = 'flex justify-start';
     bubble.innerHTML = `<div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
-      <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">● 思考中<span class="thinking-dots"></span></span></div>
+      <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">thinking...<span class="thinking-dots"></span></span></div>
       <details class="thinking-panel text-[11px] text-neutral-500 mb-2" open>
-        <summary class="cursor-pointer select-none text-neutral-400">思考摘要</summary>
-        <div class="thinking-safe-note">公开思考摘要，不展示模型隐藏推理链。</div>
-        <div class="thinking-stage mt-1">理解问题…</div>
+        <summary class="cursor-pointer select-none text-neutral-400">思考链</summary>
+        <div class="thinking-safe-note">公开策略链，只展示检索、策略和下一步，不展示隐藏推理。</div>
+        <div class="thinking-stage mt-1">thinking... 理解问题</div>
       </details>
       <div class="md text-sm stream-content"></div></div>`;
     $('#chat').appendChild(bubble);
@@ -6344,7 +6641,7 @@ function updateThinkingStage(stage, detail='') {
   const wasNearBottom = isChatNearBottom();
   const { container } = getOrCreateStreamingBubble();
   const stageEl = container.querySelector('.thinking-stage');
-  if (stageEl) stageEl.textContent = detail ? `${stage}：${detail}` : `${stage}…`;
+  if (stageEl) stageEl.textContent = detail ? `thinking... ${stage}：${detail}` : `thinking... ${stage}`;
   keepChatTailVisible(0, { wasNearBottom });
 }
 
@@ -6438,8 +6735,8 @@ function renderProcessSummary(meta={}, action={}, evaluation={}) {
   const next = a.note || (a.type === 'probe' ? '继续追问用户的解释' : '根据用户下一句再调整');
   return `
     <details class="process-summary">
-      <summary>思考摘要</summary>
-      <div class="thinking-safe-note">公开思考摘要，不展示模型隐藏推理链。</div>
+      <summary>思考链</summary>
+      <div class="thinking-safe-note">公开策略链，只展示检索、策略和下一步，不展示隐藏推理。</div>
       <dl>
         <dt>判断</dt><dd>${esc(meta.process_summary || ev.entry_status || '未记录')}</dd>
         <dt>依据</dt><dd>${esc(basis)}</dd>
@@ -10115,6 +10412,10 @@ $('#session-card-popover').addEventListener('click', e => {
     const pinned = togglePinnedSession(sid);
     toast(pinned ? '已置顶会话' : '已取消置顶');
     setTimeout(renderSessionHome, 30);
+  } else if (btn.dataset.sessionAction === 'rename') {
+    renameSession(sid);
+  } else if (btn.dataset.sessionAction === 'preset-export') {
+    exportSessionPreset(sid);
   } else if (btn.dataset.sessionAction === 'avatar') {
     chooseSessionAvatar(sid);
   } else if (btn.dataset.sessionAction === 'avatar-clear') {
@@ -10240,35 +10541,31 @@ $('#graph-editor-save').addEventListener('click', saveGraphNodeEdit);
 // 数据导入导出
 
 async function renderSessionDrawer() {
-  const list = $('#drawer-sess-list');
+  const list = $('#global-sidebar-status');
+  renderThemeChoices();
+  const avatarToggle = $('#global-avatar-visible');
+  if (avatarToggle) {
+    avatarToggle.checked = globalAvatarsVisible();
+    avatarToggle.onchange = e => setGlobalAvatarsVisible(e.target.checked);
+  }
   state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
-  list.innerHTML = state.sessions.length ? state.sessions.map(s => {
-    const active = state.sid === s.id ? 'text-emerald-400' : '';
-    return '<div class="flex items-center bg-neutral-900 border border-neutral-800 rounded-lg p-2 gap-2">'
-      + '<button data-drawer-open="' + s.id + '" class="flex-1 text-left min-w-0">'
-      + '<div class="text-sm truncate ' + active + '">' + esc(s.title) + '</div>'
-      + '<div class="text-[10px] text-neutral-500 truncate">' + esc(s.persona.role) + ' / ' + esc(s.persona.goal) + '</div>'
-      + '</button>'
-      + '<button data-drawer-del="' + s.id + '" class="text-neutral-500 active:text-red-400 px-2 icon-only" aria-label="删除会话"><i data-lucide="x"></i></button>'
-      + '</div>';
-  }).join('') : '<div class="text-xs text-neutral-500 text-center py-8">暂无会话，先新建一个</div>';
-  list.querySelectorAll('[data-drawer-open]').forEach(b => b.addEventListener('click', async () => {
-    closeDrawer();
-    await openSessionWindow(b.dataset.drawerOpen);
-  }));
-  list.querySelectorAll('[data-drawer-del]').forEach(b => b.addEventListener('click', async e => {
-    e.stopPropagation();
-    if (!confirm('删除这个会话？')) return;
-    const sid = b.dataset.drawerDel;
-    await ENGINE.delete_session(sid);
-    if (state.sid === sid) {
-      state.sid = null;
-      await DB.kvSet('current_sid', null);
-      await refreshHeader();
-      await renderChat();
-    }
-    renderSessionDrawer();
-  }));
+  const cfg = LLM.get_config();
+  const current = state.sid ? await DB.get('sessions', state.sid) : null;
+  list.innerHTML = `
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
+      <div class="text-[11px] text-neutral-500">API 状态</div>
+      <div class="text-sm text-neutral-200">${esc(cfg.mode === 'live' ? `live / ${cfg.model}` : 'mock')}</div>
+    </div>
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
+      <div class="text-[11px] text-neutral-500">当前会话</div>
+      <div class="text-sm text-neutral-200 truncate">${esc(current?.title || '未打开会话')}</div>
+      <div class="text-[11px] text-neutral-500 truncate">${esc(current?.persona?.goal || '')}</div>
+    </div>
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
+      <div class="text-[11px] text-neutral-500">全局状态</div>
+      <div>会话 ${state.sessions.length} 个</div>
+      <div>头像显示：${globalAvatarsVisible() ? '开启' : '关闭'}</div>
+    </div>`;
   refreshIcons();
 }
 
@@ -10368,6 +10665,8 @@ window.addEventListener('popstate', e => {
   }, 0);
 });
 
+$('#global-sidebar-open').addEventListener('click', openDrawer);
+$('#header-new-session').addEventListener('click', openNew);
 $('#drawer-open').addEventListener('click', () => {
   if (state.currentTab === 'chat' && state.chatScreen !== 'list') {
     navigateBackInApp({ source: 'header' });
@@ -10377,7 +10676,7 @@ $('#drawer-open').addEventListener('click', () => {
 });
 $('#drawer-close').addEventListener('click', closeDrawer);
 $('#session-drawer').addEventListener('click', closeDrawer);
-$('#drawer-new').addEventListener('click', () => {
+$('#drawer-new')?.addEventListener('click', () => {
   closeDrawer();
   openNew();
 });
@@ -10557,6 +10856,15 @@ async function shareExportPayload(buildPayload) {
   }
 }
 
+async function exportSessionPreset(sid) {
+  const session = await DB.get('sessions', sid || state.sid);
+  if (!session) { toast('先打开一个会话'); return; }
+  const preset = buildLightweightPreset(session);
+  const jsonStr = JSON.stringify(preset, null, 2);
+  const fileName = `reverse-tutor-preset-${exportSlug(preset.title, sid)}-${exportDateStamp()}.json`;
+  await shareExportPayload(async () => ({ jsonStr, fileName, title: 'Reverse Tutor preset' }));
+}
+
 $('#data-export-session').addEventListener('click', () => shareExportPayload(buildSessionExportPayload));
 $('#data-export-graph').addEventListener('click', () => shareExportPayload(buildGlobalGraphExportPayload));
 $('#data-export').addEventListener('click', () => shareExportPayload(buildDataExportPayload));
@@ -10608,6 +10916,12 @@ $('#data-wipe').addEventListener('click', async () => {
 // --- 新会话 modal ---
 function openNew() {
   $('#new-modal').classList.remove('hidden'); $('#new-modal').classList.add('flex');
+  openNewQuickPanel();
+  state.newProfileTags = [];
+  state.newAvatarImage = '';
+  state.importedPreset = null;
+  $('#preset-preview')?.classList.add('hidden');
+  $('#new-avatar-status').textContent = '未选择头像';
   // 渲染模板
   $('#tpl-grid').innerHTML = TEMPLATES.map((t,i) => `
     <button data-tpl="${i}" class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-2 text-left">
@@ -10619,7 +10933,10 @@ function openNew() {
     $('#new-role').value = t.role; $('#new-goal').value = t.goal;
     $('#new-deadline').value = t.deadline; $('#new-pers').value = t.personality;
     $('#new-reqs').value = t.reqs.join('\n');
+    $('#new-title').value = t.goal ? String(t.goal).slice(0, 20) : '';
+    openNewCustomPanel();
   }));
+  renderProfileTags();
 }
 function closeNew() {
   $('#new-modal').classList.add('hidden'); $('#new-modal').classList.remove('flex');
@@ -10633,16 +10950,22 @@ $('#new-source-files').addEventListener('change', e => {
     : '可多选导入 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB';
 });
 
-$('#new-create').addEventListener('click', async () => {
+async function createSessionFromForm() {
   const role = $('#new-role').value.trim();
   const goal = $('#new-goal').value.trim();
   if (!role || !goal) { toast('请至少填 角色 + 目标'); return; }
   const pendingSourceFiles = Array.from($('#new-source-files')?.files || []);
   const s = await ENGINE.create_session({
+    title: $('#new-title').value.trim(),
     role, goal,
     deadline: $('#new-deadline').value.trim(),
     personality: $('#new-pers').value.trim(),
     reqs: $('#new-reqs').value.split('\n').map(r=>r.trim()).filter(Boolean),
+    profile_tags: state.newProfileTags,
+    profile_description: $('#profile-description').value.trim(),
+    profile_long_text: $('#profile-long-text').value.trim(),
+    avatar_image: state.newAvatarImage,
+    avatar_hidden: $('#new-avatar-hidden').checked,
   });
   state.sid = s.id;
   state.chatScreen = 'thread';
@@ -10659,6 +10982,48 @@ $('#new-create').addEventListener('click', async () => {
     await renderChat();
   }
   renderSettings();
+}
+
+$('#new-create').addEventListener('click', createSessionFromForm);
+$$('[data-new-mode="custom"]').forEach(btn => btn.addEventListener('click', openNewCustomPanel));
+$$('[data-new-mode="builtin"]').forEach(btn => btn.addEventListener('click', () => {
+  $('#tpl-grid')?.scrollIntoView({ block: 'nearest' });
+}));
+$('#new-custom-back')?.addEventListener('click', openNewQuickPanel);
+$('#profile-custom-add')?.addEventListener('click', () => {
+  addProfileTag($('#profile-custom-tag').value, 'custom');
+  $('#profile-custom-tag').value = '';
+});
+$('#preset-import-file')?.addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    renderPresetPreview(JSON.parse(await f.text()));
+  } catch (err) {
+    toast('预设解析失败: ' + (err.message || err), 3000);
+  } finally {
+    e.target.value = '';
+  }
+});
+$('#new-avatar-choose')?.addEventListener('click', () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      state.newAvatarImage = await fileToAvatarDataUrl(file);
+      $('#new-avatar-status').textContent = '已选择头像';
+      $('#new-avatar-hidden').checked = false;
+    } catch (err) {
+      toast(err?.message || '头像读取失败');
+    } finally {
+      input.remove();
+    }
+  }, { once: true });
+  document.body.appendChild(input);
+  input.click();
 });
 
 // --- Service Worker + PWA 安装 ---

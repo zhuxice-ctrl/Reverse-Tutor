@@ -527,8 +527,8 @@ def test_mobile_chat_handles_topic_drift_fuzzy_retrieval_and_visible_thinking_st
     assert "v.length >= 4 ? 10 : 4" in html
     assert "broadIntent && idx === 0" in html
     assert "资料里暂时没检到直接定义" in html
-    assert "思考摘要" in html
-    assert "公开思考摘要" in html
+    assert "思考链" in html
+    assert "公开策略链" in html
     assert ".thinking-dots::after" in html
     assert "function updateThinkingStage" in html
     assert "onThinkingStage" in html
@@ -735,9 +735,9 @@ def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_
     assert "const batch = state.messageQueue.splice(0)" in process_queue_fn
     assert "if (state.messageQueue.length > 0)" in process_queue_fn
     assert "scheduleMessageQueueProcessing(0)" in process_queue_fn
-    assert "思考中" in html
-    assert "思考摘要" in html
-    assert "公开思考摘要" in html
+    assert "thinking..." in html
+    assert "思考链" in html
+    assert "公开策略链" in html
     assert ".thinking-dots::after" in html
     assert "@keyframes thinkingDots" in html
     assert "msg.content || msg.reasoning_content" not in html
