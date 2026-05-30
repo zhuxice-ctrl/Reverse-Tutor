@@ -49,6 +49,6 @@ def test_desktop_chat_bubble_has_collapsible_process_summary():
 def test_pwa_chat_bubble_has_collapsible_process_summary():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    for label in ("本轮判断", "依据", "策略", "下一步", "证据 episodes"):
+    for label in ("思考摘要", "公开思考摘要", "判断", "依据", "策略", "下一步", "证据 episodes"):
         assert label in html
     assert "renderProcessSummary" in html

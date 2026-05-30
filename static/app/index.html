@@ -321,6 +321,12 @@
     color: var(--muted);
     list-style-position: inside;
   }
+  .thinking-safe-note {
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--muted);
+    font-style: italic;
+  }
   .process-summary dl {
     display: grid;
     grid-template-columns: 64px minmax(0, 1fr);
@@ -331,6 +337,22 @@
   .process-summary dd {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+  .thinking-panel summary {
+    cursor: pointer;
+    list-style-position: inside;
+  }
+  .thinking-dots::after {
+    content: '';
+    display: inline-block;
+    width: 1.2em;
+    animation: thinkingDots 1.2s steps(4, end) infinite;
+  }
+  @keyframes thinkingDots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75%, 100% { content: '...'; }
   }
   .cited-sources {
     margin-top: 8px;
@@ -749,6 +771,26 @@
     cursor: grab;
   }
   .knowledge-graph canvas:active { cursor: grabbing; }
+  .knowledge-graph-fullscreen {
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+    border: 0 !important;
+  }
+  .insights-graph-page {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .insights-graph-canvas,
+  .context-graph-body {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    padding: 0 !important;
+  }
   .insight-kb-strip {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1364,17 +1406,11 @@
   </section>
 
   <!-- 洞察 view -->
-  <section data-view="insights" class="view flex-1 min-h-0 hidden scroll-y">
-    <div class="p-3 space-y-3">
-      <div id="insights-summary" class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-1"></div>
-      <div>
-        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">记忆图谱</div>
-        <div id="insights-mastery" class="space-y-2"></div>
-      </div>
-      <div>
-        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">动作分布（近 12 轮）</div>
-        <div id="insights-actions" class="flex flex-wrap gap-1.5"></div>
-      </div>
+  <section data-view="insights" class="view flex-1 min-h-0 hidden">
+    <div class="insights-graph-page">
+      <div id="insights-summary" class="hidden"></div>
+      <div id="insights-mastery" class="insights-graph-canvas"></div>
+      <div id="insights-actions" class="hidden"></div>
     </div>
   </section>
 
@@ -1561,7 +1597,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.19.0 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.19.1-test.1 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -1823,8 +1859,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 38;
-const APP_VERSION_NAME = '0.19.0';
+const APP_VERSION_CODE = 39;
+const APP_VERSION_NAME = '0.19.1-test.1';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -2810,6 +2846,19 @@ function createTurnId() {
   return `turn_${uuid()}`;
 }
 
+const GRAPH_PROCESS_KP_NAMES = new Set([
+  '后台回复', '后台生成', '后台生成中', '后台回复生成中',
+  '自由回复', '模型自由回复', '当前聊天', '当前窗口', '未知', '?',
+]);
+
+function isLogicalGraphKp(kp) {
+  const text = String(kp || '').replace(/\s+/g, ' ').trim();
+  if (!text) return false;
+  if (GRAPH_PROCESS_KP_NAMES.has(text)) return false;
+  if (/^(background_|native_background|foreground_llm|pending|error)$/i.test(text)) return false;
+  return true;
+}
+
 function shapeReplyBubbles(text, maxBubbles=3) {
   const raw = String(text || '').replace(/\r\n/g, '\n').trim();
   if (!raw) return [];
@@ -2858,7 +2907,7 @@ function normalizeAction(rawAction={}, fallbackNote='自由回复') {
   const roles = ['probing_student', 'clue_student', 'scaffold_student', 'confused_student', 'examiner', 'review_student'];
   if (!roles.includes(action.student_role)) action.student_role = roleByAction[action.type] || 'probing_student';
   const kp = String(action.knowledge_point || '').trim();
-  if (!kp || /^(unknown|\?|模型自由回复)$/i.test(kp)) delete action.knowledge_point;
+  if (!kp || /^(unknown|\?)$/i.test(kp) || !isLogicalGraphKp(kp)) delete action.knowledge_point;
   if (!action.note) action.note = fallbackNote;
   return action;
 }
@@ -3502,7 +3551,7 @@ const LLM = (() => {
     const choice = data.choices && data.choices[0];
     const msg = choice && choice.message;
     if (!msg) throw new Error(`LLM response shape unexpected: ${JSON.stringify(data).slice(0, 200)}`);
-    const raw = msg.content || msg.reasoning_content || '';
+    const raw = msg.content || '';
     if (!String(raw).trim()) {
       const finish = choice.finish_reason || 'unknown';
       const usage = data.usage ? JSON.stringify(data.usage) : '{}';
@@ -4485,6 +4534,10 @@ ${format_actions()}
 
   function conversationSortValue(m) {
     const meta = m.meta || {};
+    if (meta.kind === 'queued_user_message') {
+      const queued = Number(meta.queued_at || m.created_at || m.id || 0);
+      if (Number.isFinite(queued) && queued > 0) return queued;
+    }
     const logical = Number(meta.logical_created_at || 0);
     if (Number.isFinite(logical) && logical > 0) return logical;
     return Number(m.created_at || m.id || 0);
@@ -4494,17 +4547,33 @@ ${format_actions()}
     return conversationSortValue(a) - conversationSortValue(b) || (a.id || 0) - (b.id || 0);
   }
 
-  function build_messages(msgs, user_input, skip_until_id=0) {
+  function build_messages(msgs, user_input, skip_until_id=0, opts={}) {
     const out = [];
-    const recent = [...msgs].sort(compareConversationMessages).slice(-30);
+    const excludeIds = new Set((opts.exclude_ids || []).map(id => Number(id)).filter(Number.isFinite));
+    const recent = [...msgs].sort(compareConversationMessages).filter(m => {
+      if (m.id <= skip_until_id) return false;
+      if (excludeIds.has(Number(m.id))) return false;
+      const meta = m.meta || {};
+      if (meta.kind === 'queued_user_message' && !meta.turn_input) return false;
+      return true;
+    }).slice(-30);
     for (const m of recent) {
-      if (m.id <= skip_until_id) continue;
       if (m.role === 'user' || m.role === 'assistant') {
         out.push({ role: m.role, content: m.content });
       }
     }
     if (user_input != null) out.push({ role:'user', content: user_input });
     return out;
+  }
+
+  function formatCurrentInputInstruction(userInput) {
+    if (!String(userInput || '').trim()) return '';
+    return [
+      '# 当前输入处理',
+      '最后一条 user 消息是用户本轮刚发送/合并后的最新输入。',
+      '请优先直接回应最后一条 user 消息，同时结合前面的对话上下文和你上一条回复调整。',
+      '不要把最后一条 user 消息当作历史总结或背景材料，也不要忽略它。'
+    ].join('\n');
   }
 
   function formatQuotedReplyContext(quote, userInput) {
@@ -4576,6 +4645,7 @@ ${format_actions()}
 
   async function upsert_mastery(sid, kp, correctness, depth, evidenceType='none', verificationStatus='none') {
     if (!kp) return;
+    if (!isLogicalGraphKp(kp)) return;
     const all = await DB.bySid('mastery', sid);
     let row = all.find(m => m.kp === kp);
     const alpha = 0.35;
@@ -5109,7 +5179,6 @@ ${format_actions()}
       status: 'pending',
       retry_text: content,
       queued_at: Date.now(),
-      logical_created_at: Date.now() + 86400000,
       quoted_message_id: quoted?.id || null,
       quoted_role: quoted?.role || null,
       quoted_preview: quoted ? String(quoted.content || '').replace(/\s+/g, ' ').trim().slice(0, 180) : '',
@@ -5353,7 +5422,11 @@ function supportsBackgroundChat(cfg) {
       const sourceContext = formatSourceContext(sourceSnippets, user_input, anchors);
       const kgContextText = await buildKgContextTextForPrompt(sid, session, user_input);
       const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
-      const messages = build_messages(msgs, null, skip_id);
+      const currentInputMessageIds = turnMeta.currentInputMessageIds || [];
+      const promptUserInput = currentInputMessageIds.length ? user_input : null;
+      const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
+      const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
+      if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
       const quotedContext = formatQuotedReplyContext(quoted, user_input);
       if (quotedContext) messages.push({ role: 'system', content: quotedContext });
       messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
@@ -5384,7 +5457,6 @@ function supportsBackgroundChat(cfg) {
       try { await onUserAdded(); } catch(e){}
     }
     async function markQueuedUserMessages(status, extra={}) {
-      const logicalBase = status === 'processing' ? Date.now() : null;
       for (let i = 0; i < queuedUserMessages.length; i++) {
         const msg = queuedUserMessages[i];
         if (!msg || !msg.id) continue;
@@ -5396,7 +5468,6 @@ function supportsBackgroundChat(cfg) {
           turn_id: msg.turn_id || (msg.meta || {}).turn_id || turnId,
           client_msg_id: msg.client_msg_id || (msg.meta || {}).client_msg_id || `queued_${msg.id}`,
           queued_user_message: true,
-          ...(logicalBase ? { logical_created_at: logicalBase + i } : {}),
           ...extra,
         };
         msg.turn_id = msg.meta.turn_id;
@@ -5424,7 +5495,9 @@ function supportsBackgroundChat(cfg) {
     }
     try {
     const sourceMessage = userMessage || opts.sourceMessage || null;
-    const nativeQueued = await tryQueueNativeTurnEarly(sid, effectiveUserInput, sourceMessage, quoted, { turnId, clientMsgId });
+    const currentInputMessageIds = queuedUserMessages.map(m => Number(m.id)).filter(Number.isFinite);
+    const promptUserInput = currentInputMessageIds.length ? effectiveUserInput : null;
+    const nativeQueued = await tryQueueNativeTurnEarly(sid, effectiveUserInput, sourceMessage, quoted, { turnId, clientMsgId, currentInputMessageIds });
     if (nativeQueued) {
       await markQueuedUserMessages('completed', { completed_at: Date.now(), native_background: true });
       await renderUserOnce();
@@ -5453,7 +5526,9 @@ function supportsBackgroundChat(cfg) {
 
     if (opts.stream) {
       const systemStream = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
-      const messagesStream = build_messages(msgs, null, skip_id);
+      const messagesStream = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
+      const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
+      if (currentInputInstruction) messagesStream.push({ role: 'system', content: currentInputInstruction });
       const qcStream = formatQuotedReplyContext(quoted, effectiveUserInput);
       if (qcStream) messagesStream.push({ role: 'system', content: qcStream });
       messagesStream.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
@@ -5546,8 +5621,10 @@ function supportsBackgroundChat(cfg) {
 
     // Non-streaming path
     const system = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
-    // 用户消息已在 msgs 内，build_messages 不再追加
-    const messages = build_messages(msgs, null, skip_id);
+    // 普通用户消息已在 msgs 内；队列当前输入会排除历史副本后追加到末尾
+    const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
+    const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
+    if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
     const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
     if (quotedContext) messages.push({ role: 'system', content: quotedContext });
     messages.push({ role: 'system', content: finalReplyInstruction(session, 'turn') });
@@ -6235,6 +6312,14 @@ async function refreshHeader() {
 
 // --- Streaming Bubble ---
 
+function moveStreamingBubbleToTail() {
+  const chat = $('#chat');
+  const bubble = $('#streaming-bubble');
+  if (chat && bubble && bubble.parentElement === chat && chat.lastElementChild !== bubble) {
+    chat.appendChild(bubble);
+  }
+}
+
 function getOrCreateStreamingBubble() {
   let bubble = $('#streaming-bubble');
   if (!bubble) {
@@ -6242,14 +6327,16 @@ function getOrCreateStreamingBubble() {
     bubble.id = 'streaming-bubble';
     bubble.className = 'flex justify-start';
     bubble.innerHTML = `<div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
-      <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">● 生成中</span></div>
+      <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">● 思考中<span class="thinking-dots"></span></span></div>
       <details class="thinking-panel text-[11px] text-neutral-500 mb-2" open>
-        <summary class="cursor-pointer select-none text-neutral-400">思考模式（状态）</summary>
+        <summary class="cursor-pointer select-none text-neutral-400">思考摘要</summary>
+        <div class="thinking-safe-note">公开思考摘要，不展示模型隐藏推理链。</div>
         <div class="thinking-stage mt-1">理解问题…</div>
       </details>
       <div class="md text-sm stream-content"></div></div>`;
     $('#chat').appendChild(bubble);
   }
+  moveStreamingBubbleToTail();
   return { container: bubble, content: bubble.querySelector('.stream-content'), indicator: bubble.querySelector('.streaming-indicator') };
 }
 
@@ -6286,6 +6373,10 @@ function removeStreamingBubble() {
 
 function chatSortValue(m) {
   const meta = m?.meta || {};
+  if (meta.kind === 'queued_user_message') {
+    const queued = Number(meta.queued_at || m?.created_at || m?.id || 0);
+    if (Number.isFinite(queued) && queued > 0) return queued;
+  }
   const logical = Number(meta.logical_created_at || 0);
   if (Number.isFinite(logical) && logical > 0) return logical;
   return Number(m?.created_at || m?.id || 0);
@@ -6327,6 +6418,7 @@ function appendQueuedUserMessageBubble(message) {
       ${statusBlock}
     </div>`;
   chat.appendChild(row);
+  moveStreamingBubbleToTail();
   keepChatTailVisible(0, { wasNearBottom });
 }
 
@@ -6346,9 +6438,10 @@ function renderProcessSummary(meta={}, action={}, evaluation={}) {
   const next = a.note || (a.type === 'probe' ? '继续追问用户的解释' : '根据用户下一句再调整');
   return `
     <details class="process-summary">
-      <summary>本轮判断</summary>
+      <summary>思考摘要</summary>
+      <div class="thinking-safe-note">公开思考摘要，不展示模型隐藏推理链。</div>
       <dl>
-        <dt>本轮判断</dt><dd>${esc(meta.process_summary || ev.entry_status || '未记录')}</dd>
+        <dt>判断</dt><dd>${esc(meta.process_summary || ev.entry_status || '未记录')}</dd>
         <dt>依据</dt><dd>${esc(basis)}</dd>
         <dt>策略</dt><dd>${esc(strategy)}</dd>
         <dt>下一步</dt><dd>${esc(next)}</dd>
@@ -7802,6 +7895,7 @@ function closeLearningContext() {
 
 async function renderLearningContext() {
   $$('.context-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.contextTab === state.contextTab));
+  $('#learning-context-body')?.classList.toggle('context-graph-body', state.contextTab === 'graph');
   if (state.contextTab === 'anchors') return renderContextAnchors();
   if (state.contextTab === 'notes') return renderContextNotes();
   if (state.contextTab === 'errors') return renderContextErrors();
@@ -7820,20 +7914,13 @@ async function renderContextGraph() {
     DB.bySid('anchors', state.sid),
   ]);
   const ai = msgs.filter(m => m.role === 'assistant');
-  const sources = anchors.filter(a => a.kind === 'source').length;
-  const notes = anchors.filter(a => a.kind === 'note').length;
   if (!masteries.length && !anchors.length) {
     ForceGraph.destroy();
     body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">当前窗口还没有图谱节点。聊天、锚点和随笔都会按正常逻辑沉淀到这里。</div>';
     return;
   }
   body.innerHTML = `
-    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-1 mb-3">
-      <div class="flex justify-between"><span class="text-neutral-500">知识点</span><span>${masteries.length}</span></div>
-      <div class="flex justify-between"><span class="text-neutral-500">资料</span><span>${sources}</span></div>
-      <div class="flex justify-between"><span class="text-neutral-500">随笔</span><span>${notes}</span></div>
-    </div>
-    <div id="context-knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点回顾来源</div></div>`;
+    <div id="context-knowledge-graph" class="knowledge-graph knowledge-graph-fullscreen"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点回顾来源</div></div>`;
   const { nodes, links } = buildGraphData(masteries, ai, anchors);
   nodes.forEach(n => { n.sid = state.sid; });
   ForceGraph.init($('#context-knowledge-graph'), node => {
@@ -8387,6 +8474,7 @@ function buildKpMemoryDigests(ai, byKp) {
     const action = meta.action || {};
     const ev = meta.evaluation || {};
     const kp = String(action.knowledge_point || '').trim();
+    if (!isLogicalGraphKp(kp)) continue;
     if (!kp || !byKp.has(kp)) continue;
     const row = grouped.get(kp) || {
       kp,
@@ -8838,12 +8926,13 @@ const ForceGraph = (() => {
 })();
 
 function buildGraphData(masteries, ai, anchors=[]) {
-  const kpRows = masteries.slice(0,18);
+  const kpRows = masteries.filter(m => isLogicalGraphKp(m.kp || m.knowledge_point)).slice(0,18);
   const nodes = [], byKp = new Map(), byNorm = new Map();
   kpRows.forEach((m,i,arr) => {
-    nodes.push({ ...m, key:`kp-${i}`, nodeType:'kp' });
-    byKp.set(m.kp, nodes[nodes.length-1]);
-    byNorm.set(normalizeGraphTopic(m.kp), nodes[nodes.length-1]);
+    const kp = m.kp || m.knowledge_point;
+    nodes.push({ ...m, kp, key:`kp-${i}`, nodeType:'kp' });
+    byKp.set(kp, nodes[nodes.length-1]);
+    byNorm.set(normalizeGraphTopic(kp), nodes[nodes.length-1]);
   });
   const links = [];
   const sources = anchors.filter(a => a.kind === 'source');
@@ -9376,7 +9465,7 @@ async function renderInsights() {
     mastDiv.innerHTML = '<div class="text-xs text-neutral-500">尚无全局图谱节点。开始对话、导入资料或保存随笔后会出现在这里。</div>';
   } else {
     if (!mastDiv.querySelector('.knowledge-graph')) {
-      mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph border border-neutral-800 rounded-lg"><div class="graph-hint">全局只读 · 点击节点回顾来源聊天</div></div>';
+      mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph knowledge-graph-fullscreen"><div class="graph-hint">全局只读 · 点击节点回顾来源聊天</div></div>';
     }
     const container = $('#knowledge-graph');
     ForceGraph.init(container, node => {

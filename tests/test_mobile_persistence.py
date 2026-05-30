@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -526,7 +527,9 @@ def test_mobile_chat_handles_topic_drift_fuzzy_retrieval_and_visible_thinking_st
     assert "v.length >= 4 ? 10 : 4" in html
     assert "broadIntent && idx === 0" in html
     assert "资料里暂时没检到直接定义" in html
-    assert "思考模式（状态）" in html
+    assert "思考摘要" in html
+    assert "公开思考摘要" in html
+    assert ".thinking-dots::after" in html
     assert "function updateThinkingStage" in html
     assert "onThinkingStage" in html
     assert "检索资料" in html
@@ -694,6 +697,75 @@ def test_mobile_regular_sends_are_debounced_into_one_queued_turn():
     assert "await queueForNextTurn({ notifyBusy: pendingNative });" in html
     assert "scheduleMessageQueueProcessing();" in html
     assert "await submitChatText(txt);" not in html
+
+
+def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_summary():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    streaming_fn = html.split("function getOrCreateStreamingBubble", 1)[1].split("function updateThinkingStage", 1)[0]
+    queued_fn = html.split("function appendQueuedUserMessageBubble", 1)[1].split("function renderProcessSummary", 1)[0]
+    build_messages_fn = html.split("function build_messages", 1)[1].split("function formatQuotedReplyContext", 1)[0]
+    process_queue_fn = html.split("async function processMessageQueue", 1)[1].split("function renderQueueIndicator", 1)[0]
+    native_queue_fn = html.split("async function tryQueueNativeTurnEarly", 1)[1].split("async function run_turn", 1)[0]
+    run_turn_fn = html.split("async function run_turn", 1)[1].split("async function run_proactive_turn", 1)[0]
+
+    assert "function moveStreamingBubbleToTail" in html
+    assert "moveStreamingBubbleToTail();" in streaming_fn
+    assert "moveStreamingBubbleToTail();" in queued_fn
+    assert "appendQueuedUserMessageBubble(queuedMessage);" in html
+    assert "if (meta.kind === 'queued_user_message')" in html
+    assert "meta.queued_at || m.created_at || m.id || 0" in html
+    assert "function build_messages(msgs, user_input, skip_until_id=0, opts={})" in html
+    assert "const excludeIds = new Set((opts.exclude_ids || [])" in build_messages_fn
+    assert ".filter(m => {" in build_messages_fn
+    assert "if (excludeIds.has(Number(m.id))) return false;" in build_messages_fn
+    assert "if (meta.kind === 'queued_user_message' && !meta.turn_input) return false;" in build_messages_fn
+    assert "}).slice(-30);" in build_messages_fn
+    assert "function formatCurrentInputInstruction" in html
+    assert "最后一条 user 消息是用户本轮刚发送/合并后的最新输入" in html
+    assert "不要把最后一条 user 消息当作历史总结" in html
+    assert "const currentInputMessageIds = queuedUserMessages.map" in run_turn_fn
+    assert "const promptUserInput = currentInputMessageIds.length ? effectiveUserInput : null;" in run_turn_fn
+    assert "build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds })" in run_turn_fn
+    assert "formatCurrentInputInstruction(promptUserInput)" in run_turn_fn
+    assert "const currentInputMessageIds = turnMeta.currentInputMessageIds || [];" in native_queue_fn
+    assert "build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds })" in native_queue_fn
+    assert "formatCurrentInputInstruction(promptUserInput)" in native_queue_fn
+    assert "logical_created_at: Date.now() + 86400000" not in html
+    assert "logicalBase" not in html
+    assert "const batch = state.messageQueue.splice(0)" in process_queue_fn
+    assert "if (state.messageQueue.length > 0)" in process_queue_fn
+    assert "scheduleMessageQueueProcessing(0)" in process_queue_fn
+    assert "思考中" in html
+    assert "思考摘要" in html
+    assert "公开思考摘要" in html
+    assert ".thinking-dots::after" in html
+    assert "@keyframes thinkingDots" in html
+    assert "msg.content || msg.reasoning_content" not in html
+    process_summary = html.split("function renderProcessSummary", 1)[1].split("function renderCitedSources", 1)[0]
+    assert "<summary>本轮判断</summary>" not in process_summary
+
+
+def test_mobile_graph_view_is_fullscreen_and_filters_process_nodes():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    insights_section = html.split('data-view="insights"', 1)[1].split("<!-- 设置 view -->", 1)[0]
+    build_graph_fn = html.split("function buildGraphData", 1)[1].split("function memoryStatusLabel", 1)[0]
+    digest_fn = html.split("function buildKpMemoryDigests", 1)[1].split("function cleanOutlineTitle", 1)[0]
+    normalize_action_fn = html.split("function normalizeAction", 1)[1].split("function normalizeEvidence", 1)[0]
+    upsert_mastery_fn = html.split("async function upsert_mastery", 1)[1].split("async function upsert_error_log", 1)[0]
+
+    assert "insights-graph-page" in html
+    assert "记忆图谱" not in insights_section
+    assert "动作分布（近 12 轮）" not in insights_section
+    assert "function isLogicalGraphKp" in html
+    assert "GRAPH_PROCESS_KP_NAMES" in html
+    for process_kp in ["后台回复", "后台生成", "自由回复", "模型自由回复", "后台生成中", "后台回复生成中"]:
+        assert process_kp in html
+    assert "!isLogicalGraphKp(kp)" in normalize_action_fn
+    assert "if (!isLogicalGraphKp(kp)) return;" in upsert_mastery_fn
+    assert "masteries.filter(m => isLogicalGraphKp(m.kp || m.knowledge_point))" in build_graph_fn
+    assert "if (!isLogicalGraphKp(kp)) continue;" in digest_fn
+    assert re.search(r'id="knowledge-graph" class="[^"]*knowledge-graph[^"]*knowledge-graph-fullscreen', html)
+    assert re.search(r'id="context-knowledge-graph" class="[^"]*knowledge-graph[^"]*knowledge-graph-fullscreen', html)
 
 
 def test_mobile_import_accepts_reader_friendly_document_formats():
