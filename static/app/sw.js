@@ -5,7 +5,7 @@
  *   - LLM API 请求始终 network-only（不缓存）
  *   - 缓存版本随发布更新
  */
-const VERSION = 'rt-mobile-v0.19.1-test.1-39-pwa-ui2';
+const VERSION = 'rt-mobile-v0.19.1-test.1-39-pwa-new-session-page';
 const SHELL = [
   './',
   './index.html',

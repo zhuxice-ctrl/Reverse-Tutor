@@ -271,9 +271,13 @@
   .tab-icon { height: 26px; display: flex; align-items: center; justify-content: center; }
   .tab-icon svg { width: 22px; height: 22px; stroke-width: 1.9; }
   body.session-focus .bottom-nav { display: none !important; }
+  body.new-session-focus .bottom-nav { display: none !important; }
   body.session-focus #global-sidebar-open,
   body.session-focus #header-mode,
-  body.session-focus #header-new-session { display: none !important; }
+  body.session-focus #header-new-session,
+  body.new-session-focus #global-sidebar-open,
+  body.new-session-focus #header-mode,
+  body.new-session-focus #header-new-session { display: none !important; }
   body.keyboard-open .bottom-nav { display: none !important; }
   body.keyboard-open #chat {
     padding-bottom: calc(0.75rem + var(--keyboard-bottom));
@@ -1602,6 +1606,106 @@
     </div>
   </section>
 
+  <!-- 新建会话 page -->
+  <section data-view="new-session" id="new-session-page" class="view flex-1 min-h-0 hidden flex flex-col">
+    <div class="new-session-page flex-1 min-h-0 scroll-y px-3 py-3 space-y-4">
+      <div id="new-quick-panel" class="space-y-4">
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" data-new-mode="custom" class="bg-neutral-900 active:bg-neutral-800 border border-neutral-800 rounded-lg p-3 text-left">
+            <div class="text-xs font-semibold">自定义</div>
+            <div class="text-[10px] text-neutral-500 mt-1">完整画像</div>
+          </button>
+          <label class="bg-neutral-900 active:bg-neutral-800 border border-neutral-800 rounded-lg p-3 text-left cursor-pointer">
+            <div class="text-xs font-semibold">导入预设</div>
+            <div class="text-[10px] text-neutral-500 mt-1">JSON 预览</div>
+            <input id="preset-import-file" type="file" accept=".json,application/json" class="hidden">
+          </label>
+          <button type="button" data-new-mode="builtin" class="bg-neutral-900 active:bg-neutral-800 border border-neutral-800 rounded-lg p-3 text-left">
+            <div class="text-xs font-semibold">内置预设</div>
+            <div class="text-[10px] text-neutral-500 mt-1">快速开始</div>
+          </button>
+        </div>
+        <div id="preset-preview" class="hidden bg-neutral-950 border border-neutral-800 rounded-lg p-3 space-y-2 text-xs"></div>
+        <div>
+          <div class="text-xs text-neutral-500 mb-2">内置预设</div>
+          <div id="tpl-grid" class="grid grid-cols-2 gap-2"></div>
+        </div>
+      </div>
+      <div id="new-custom-panel" class="hidden space-y-3">
+        <button type="button" id="new-custom-back" class="text-xs px-2 py-1 rounded border border-neutral-700">返回快捷新建</button>
+        <label class="block">
+          <span class="text-xs text-neutral-400">会话名称</span>
+          <input id="new-title" maxlength="20" placeholder="例如：高三函数冲刺" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">学生角色 *</span>
+          <input id="new-role" placeholder="高三理科生 / Python 小白 ..." class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">目标 *</span>
+          <input id="new-goal" placeholder="一年内数学冲 130 分 ..." class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">截止时间</span>
+          <input id="new-deadline" placeholder="2026 高考 / 3 个月内 ..." class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">tag 画像系统</span>
+          <div id="profile-tag-bank" class="mt-1 grid grid-cols-2 gap-2"></div>
+          <div id="profile-selected-tags" class="mt-2 flex flex-wrap gap-1.5 text-xs"></div>
+          <div class="mt-2 flex gap-2">
+            <input id="profile-custom-tag" maxlength="20" placeholder="自定义 tag" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+            <button id="profile-custom-add" type="button" class="text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">添加</button>
+          </div>
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">画像描述（最多 1000 字）</span>
+          <textarea id="profile-description" maxlength="1000" rows="3" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" placeholder="稳定的教学偏好、常见反应、需要避开的方式"></textarea>
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">长文本补充（最多 5000 字）</span>
+          <textarea id="profile-long-text" maxlength="5000" rows="4" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" placeholder="可贴更多背景，只保存结构化摘要，运行时只注入短提示"></textarea>
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">策略调音台</span>
+          <textarea id="new-pers" rows="2" placeholder="语气、追问强度、纠错时机等偏好" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+        </label>
+        <label class="block">
+          <span class="text-xs text-neutral-400">初始诉求（一行一条）</span>
+          <textarea id="new-reqs" rows="3" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+        </label>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-neutral-300">可选基础文档</div>
+              <div id="new-source-status" class="text-[11px] text-neutral-500 mt-1 truncate">可多选导入 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB</div>
+            </div>
+            <label class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer whitespace-nowrap">
+              选择多个文件
+              <input id="new-source-files" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
+            </label>
+          </div>
+        </div>
+        <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
+          <span>主动状态：创建后让学生 AI 主动开场提问</span>
+          <input id="new-auto-opening" type="checkbox" checked class="accent-emerald-700">
+        </label>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2">
+          <div class="text-xs font-semibold text-neutral-300">外观 / 头像</div>
+          <div class="flex items-center justify-between gap-2 text-xs text-neutral-400">
+            <button id="new-avatar-choose" type="button" class="px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">选择头像</button>
+            <label class="flex items-center gap-2">
+              <input id="new-avatar-hidden" type="checkbox" class="accent-emerald-700">
+              <span>隐藏头像</span>
+            </label>
+          </div>
+          <div id="new-avatar-status" class="text-[11px] text-neutral-500">未选择头像</div>
+        </div>
+      </div>
+      <button id="new-create" class="sticky bottom-3 w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium shadow-lg">创建会话 + 学生开场</button>
+    </div>
+  </section>
+
 </main>
 
 <!-- ============== 知识图谱节点详情底部弹窗 ============== -->
@@ -1670,110 +1774,6 @@
       <button id="llm-diagnostic-copy" class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">复制错误</button>
       <button id="llm-diagnostic-close" class="flex-1 text-xs px-3 py-2 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">知道了</button>
     </div>
-  </div>
-</div>
-
-<!-- ============== 新会话 modal ============== -->
-<div id="new-modal" class="fixed inset-0 bg-black/80 hidden items-end justify-center z-50" onclick="if(event.target===this)closeNew()">
-  <div class="bg-neutral-900 border border-neutral-800 rounded-t-2xl w-full max-h-[90vh] p-4 safe-bottom flex flex-col">
-    <div class="flex justify-between items-center mb-3">
-      <div class="text-sm font-semibold">新建会话</div>
-      <button onclick="closeNew()" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
-    </div>
-    <div id="new-quick-panel" class="scroll-y flex-1 space-y-3">
-      <div class="grid grid-cols-3 gap-2">
-        <button type="button" data-new-mode="custom" class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-3 text-left">
-          <div class="text-xs font-semibold">自定义</div>
-          <div class="text-[10px] text-neutral-500 mt-1">完整画像</div>
-        </button>
-        <label class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-3 text-left cursor-pointer">
-          <div class="text-xs font-semibold">导入预设</div>
-          <div class="text-[10px] text-neutral-500 mt-1">JSON 预览</div>
-          <input id="preset-import-file" type="file" accept=".json,application/json" class="hidden">
-        </label>
-        <button type="button" data-new-mode="builtin" class="bg-neutral-800 active:bg-neutral-700 border border-neutral-700 rounded p-3 text-left">
-          <div class="text-xs font-semibold">内置预设</div>
-          <div class="text-[10px] text-neutral-500 mt-1">快速开始</div>
-        </button>
-      </div>
-      <div id="preset-preview" class="hidden bg-neutral-950 border border-neutral-800 rounded-lg p-3 space-y-2 text-xs"></div>
-      <div>
-        <div class="text-xs text-neutral-500 mb-2">内置预设</div>
-        <div id="tpl-grid" class="grid grid-cols-2 gap-2"></div>
-      </div>
-    </div>
-    <div id="new-custom-panel" class="hidden scroll-y flex-1 space-y-3">
-      <button type="button" id="new-custom-back" class="text-xs px-2 py-1 rounded border border-neutral-700">返回快捷新建</button>
-      <label class="block">
-        <span class="text-xs text-neutral-400">会话名称</span>
-        <input id="new-title" maxlength="20" placeholder="例如：高三函数冲刺" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">学生角色 *</span>
-        <input id="new-role" placeholder="高三理科生 / Python 小白 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">目标 *</span>
-        <input id="new-goal" placeholder="一年内数学冲 130 分 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">截止时间</span>
-        <input id="new-deadline" placeholder="2026 高考 / 3 个月内 ..." class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">tag 画像系统</span>
-        <div id="profile-tag-bank" class="mt-1 grid grid-cols-2 gap-2"></div>
-        <div id="profile-selected-tags" class="mt-2 flex flex-wrap gap-1.5 text-xs"></div>
-        <div class="mt-2 flex gap-2">
-          <input id="profile-custom-tag" maxlength="20" placeholder="自定义 tag" class="flex-1 bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm">
-          <button id="profile-custom-add" type="button" class="text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">添加</button>
-        </div>
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">画像描述（最多 1000 字）</span>
-        <textarea id="profile-description" maxlength="1000" rows="3" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none" placeholder="稳定的教学偏好、常见反应、需要避开的方式"></textarea>
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">长文本补充（最多 5000 字）</span>
-        <textarea id="profile-long-text" maxlength="5000" rows="4" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none" placeholder="可贴更多背景，只保存结构化摘要，运行时只注入短提示"></textarea>
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">策略调音台</span>
-        <textarea id="new-pers" rows="2" placeholder="语气、追问强度、纠错时机等偏好" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
-      </label>
-      <label class="block">
-        <span class="text-xs text-neutral-400">初始诉求（一行一条）</span>
-        <textarea id="new-reqs" rows="3" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-2 text-sm resize-none"></textarea>
-      </label>
-      <div class="bg-neutral-800/60 border border-neutral-700 rounded-lg p-3 space-y-2">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="text-xs font-semibold text-neutral-300">可选基础文档</div>
-            <div id="new-source-status" class="text-[11px] text-neutral-500 mt-1 truncate">可多选导入 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB</div>
-          </div>
-          <label class="text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer whitespace-nowrap">
-            选择多个文件
-            <input id="new-source-files" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
-          </label>
-        </div>
-      </div>
-      <label class="flex items-center justify-between gap-3 text-xs text-neutral-400">
-        <span>主动状态：创建后让学生 AI 主动开场提问</span>
-        <input id="new-auto-opening" type="checkbox" checked class="accent-emerald-700">
-      </label>
-      <div class="bg-neutral-800/60 border border-neutral-700 rounded-lg p-3 space-y-2">
-        <div class="text-xs font-semibold text-neutral-300">外观 / 头像</div>
-        <div class="flex items-center justify-between gap-2 text-xs text-neutral-400">
-          <button id="new-avatar-choose" type="button" class="px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">选择头像</button>
-          <label class="flex items-center gap-2">
-            <input id="new-avatar-hidden" type="checkbox" class="accent-emerald-700">
-            <span>隐藏头像</span>
-          </label>
-        </div>
-        <div id="new-avatar-status" class="text-[11px] text-neutral-500">未选择头像</div>
-      </div>
-    </div>
-    <button id="new-create" class="bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium mt-3">创建会话 + 学生开场</button>
   </div>
 </div>
 
@@ -1896,6 +1896,7 @@ const state = {
   newProfileTags: [],
   newAvatarImage: '',
   importedPreset: null,
+  newReturnRoute: null,
   messageQueue: [],
   isGenerating: false,
   queueProcessing: false,
@@ -6721,16 +6722,24 @@ async function refreshHeader() {
   const newBtn = $('#header-new-session');
   const inThread = state.currentTab === 'chat' && state.chatScreen === 'thread' && !!state.sid;
   const inContext = state.currentTab === 'chat' && state.chatScreen === 'context' && !!state.sid;
+  const inNewPage = state.currentTab === 'new-session';
   const inSessionPage = inThread || inContext;
   document.body.classList.toggle('session-focus', inSessionPage);
+  document.body.classList.toggle('new-session-focus', inNewPage);
   contextBtn?.classList.toggle('hidden', !inThread);
-  globalBtn?.classList.toggle('hidden', inSessionPage);
-  $('#header-mode')?.classList.toggle('hidden', inSessionPage);
-  newBtn?.classList.toggle('hidden', inSessionPage);
+  globalBtn?.classList.toggle('hidden', inSessionPage || inNewPage);
+  $('#header-mode')?.classList.toggle('hidden', inSessionPage || inNewPage);
+  newBtn?.classList.toggle('hidden', inSessionPage || inNewPage);
   if (drawerBtn) {
-    drawerBtn.classList.toggle('hidden', !inSessionPage);
-    drawerBtn.innerHTML = inSessionPage ? '<i data-lucide="chevron-left">返回</i>' : '<i data-lucide="menu">菜单</i>';
-    drawerBtn.setAttribute('aria-label', inContext ? '返回聊天' : (inThread ? '返回会话列表' : '打开会话抽屉'));
+    drawerBtn.classList.toggle('hidden', !(inSessionPage || inNewPage));
+    drawerBtn.innerHTML = inSessionPage ? '<i data-lucide="chevron-left">返回</i>' : '<i data-lucide="chevron-left">返回</i>';
+    drawerBtn.setAttribute('aria-label', inNewPage ? '返回上一页' : (inContext ? '返回聊天' : (inThread ? '返回会话列表' : '打开会话抽屉')));
+  }
+  if (inNewPage) {
+    $('#header-title').textContent = '新建会话';
+    $('#header-sub').textContent = '选择模板、导入预设或完整画像';
+    refreshIcons();
+    return;
   }
   if (inContext) {
     const s = await DB.get('sessions', state.sid);
@@ -10838,7 +10847,6 @@ function closeTopLayerForBack() {
   if (pop && !pop.classList.contains('hidden')) { closeMessageActionPopover(); return true; }
   const sPop = $('#session-card-popover');
   if (sPop && !sPop.classList.contains('hidden')) { sPop.classList.add('hidden'); return true; }
-  if (isOpenByHiddenClass('#new-modal')) { closeNew(); return true; }
   if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
   if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
   if (isOpenByHiddenClass('#graph-source-node-editor')) { closeGraphNodeEditor(); return true; }
@@ -10853,6 +10861,10 @@ function closeTopLayerForBack() {
 
 function navigateBackInApp(opts={}) {
   if (closeTopLayerForBack()) return true;
+  if (state.currentTab === 'new-session') {
+    closeNew();
+    return true;
+  }
   if (state.currentTab === 'chat' && state.chatScreen === 'context') {
     closeLearningContext();
     return true;
@@ -10883,6 +10895,10 @@ window.addEventListener('popstate', e => {
 $('#global-sidebar-open').addEventListener('click', openDrawer);
 $('#header-new-session').addEventListener('click', openNew);
 $('#drawer-open').addEventListener('click', () => {
+  if (state.currentTab === 'new-session') {
+    closeNew();
+    return;
+  }
   if (state.currentTab === 'chat' && state.chatScreen !== 'list') {
     navigateBackInApp({ source: 'header' });
     return;
@@ -11128,9 +11144,11 @@ $('#data-wipe').addEventListener('click', async () => {
   setTimeout(()=>location.reload(), 800);
 });
 
-// --- 新会话 modal ---
+// --- 新会话 page ---
 function openNew() {
-  $('#new-modal').classList.remove('hidden'); $('#new-modal').classList.add('flex');
+  state.newReturnRoute = { tab: state.currentTab, chatScreen: state.chatScreen, sid: state.sid };
+  closeDrawer();
+  switchTab('new-session');
   openNewQuickPanel();
   state.newProfileTags = [];
   state.newAvatarImage = '';
@@ -11153,8 +11171,17 @@ function openNew() {
   }));
   renderProfileTags();
 }
-function closeNew() {
-  $('#new-modal').classList.add('hidden'); $('#new-modal').classList.remove('flex');
+function closeNew(options={}) {
+  const restore = options.restore !== false;
+  const route = state.newReturnRoute || { tab: 'chat', chatScreen: 'list', sid: state.sid };
+  const targetTab = route.tab || 'chat';
+  state.newReturnRoute = null;
+  if (!restore) return;
+  if (route.tab === 'chat') {
+    state.chatScreen = route.chatScreen || 'list';
+    state.sid = route.sid || state.sid;
+  }
+  switchTab(targetTab);
 }
 window.closeNew = closeNew;  // 给 inline onclick 用
 
@@ -11188,7 +11215,7 @@ async function createSessionFromForm() {
   if (pendingSourceFiles.length) {
     await importAnchorFiles(pendingSourceFiles, { statusEl: $('#new-source-status'), render: false });
   }
-  closeNew();
+  closeNew({ restore: false });
   switchTab('chat');
   await refreshHeader();
   if ($('#new-auto-opening').checked) {

@@ -43,9 +43,11 @@ def test_mobile_session_thread_is_immersive_without_global_navigation():
     assert "body.session-focus #global-sidebar-open" in html
     assert "body.session-focus #header-mode" in html
     assert "body.session-focus #header-new-session" in html
+    assert "body.new-session-focus .bottom-nav" in html
     assert "document.body.classList.toggle('session-focus', inSessionPage)" in header_fn
-    assert "globalBtn?.classList.toggle('hidden', inSessionPage)" in header_fn
-    assert "newBtn?.classList.toggle('hidden', inSessionPage)" in header_fn
+    assert "document.body.classList.toggle('new-session-focus', inNewPage)" in header_fn
+    assert "globalBtn?.classList.toggle('hidden', inSessionPage || inNewPage)" in header_fn
+    assert "newBtn?.classList.toggle('hidden', inSessionPage || inNewPage)" in header_fn
     assert "contextBtn?.classList.toggle('hidden', !inThread)" in header_fn
     assert "drawerBtn.innerHTML = inSessionPage ? '<i data-lucide=\"chevron-left\">返回</i>'" in header_fn
     assert "脉络" in html
@@ -83,9 +85,16 @@ def test_mobile_sessions_can_be_renamed_and_created_with_custom_title():
     assert "title || `${role}" in html
 
 
-def test_mobile_new_session_modal_is_quick_sheet_with_custom_preset_import_and_full_custom_page():
+def test_mobile_new_session_is_child_page_with_custom_preset_import_and_full_custom_page():
     html = mobile_html()
+    new_page = html.split('id="new-session-page"', 1)[1].split("</section>", 1)[0]
+    open_new_fn = html.split("function openNew", 1)[1].split("function closeNew", 1)[0]
+    close_new_fn = html.split("function closeNew", 1)[1].split("window.closeNew", 1)[0]
 
+    assert 'data-view="new-session"' in html
+    assert 'id="new-session-page"' in html
+    assert 'id="new-modal"' not in html
+    assert "fixed inset-0 bg-black/80 hidden items-end" not in html
     assert 'id="new-quick-panel"' in html
     assert 'id="new-custom-panel"' in html
     assert 'data-new-mode="custom"' in html
@@ -96,6 +105,10 @@ def test_mobile_new_session_modal_is_quick_sheet_with_custom_preset_import_and_f
     assert 'data-preset-action="create"' in html
     assert 'data-preset-action="customize"' in html
     assert "function openNewCustomPanel" in html
+    assert 'id="new-create"' in new_page
+    assert "switchTab('new-session')" in open_new_fn
+    assert "const targetTab = route.tab || 'chat'" in close_new_fn
+    assert "switchTab(targetTab)" in close_new_fn
 
 
 def test_mobile_custom_profile_tags_and_runtime_hint_are_present():

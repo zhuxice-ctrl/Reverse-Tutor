@@ -635,7 +635,8 @@ def test_mobile_uses_lucide_icons_and_custom_proactive_segments():
     assert "function refreshIcons" in html
     assert 'data-lucide="message-circle"' in html
     assert 'data-lucide="network"' in html
-    assert 'data-lucide="menu"' in html
+    assert 'data-lucide="ellipsis"' in html
+    assert 'data-lucide="chevron-left"' in html
     assert 'data-lucide="plus"' in html
     assert 'data-lucide="share-2"' in html
     assert 'data-lucide="folder-down"' in html
