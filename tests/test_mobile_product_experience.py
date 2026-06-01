@@ -161,6 +161,10 @@ def test_mobile_profile_tags_use_large_dialog_with_sectioned_hash_tags():
     category_blocks = re.findall(r"\{\s*label: '[^']+', tags: \[([^\]]+)\]\s*\}", categories_src)
     assert len(category_blocks) == 4
     assert all(block.count("'") // 2 == 8 for block in category_blocks)
+    assert "<details" in render_fn
+    assert "<summary" in render_fn
+    assert "category === 'weakness' || query ? 'open' : ''" in render_fn
+    assert "data-profile-fold-icon" in render_fn
     assert 'tagHash(label)' in render_fn
     assert 'tagHash(tag.label)' in render_fn
     assert "addProfileTag($('#profile-custom-tag').value, 'custom')" in html

@@ -6091,15 +6091,21 @@ function renderProfileTags() {
   if (!bank || !selected) return;
   const categories = ENGINE.PROFILE_TAG_CATEGORIES || {};
   const query = String(state.profileTagSearch || '').trim().toLowerCase();
-  bank.innerHTML = Object.entries(categories).map(([category, meta]) => `
-    <section data-profile-category-panel="${esc(category)}" class="space-y-2">
-      <div class="flex items-center justify-between gap-3">
-        <div class="text-sm font-semibold text-neutral-200">${esc(meta.label || category)}</div>
-        <div class="text-[11px] text-neutral-500">${(meta.tags || []).length} 个 tag</div>
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        ${(meta.tags || [])
-          .filter(label => !query || String(label).toLowerCase().includes(query) || String(meta.label || category).toLowerCase().includes(query))
+  bank.innerHTML = Object.entries(categories).map(([category, meta]) => {
+    const matchedTags = (meta.tags || [])
+      .filter(label => !query || String(label).toLowerCase().includes(query) || String(meta.label || category).toLowerCase().includes(query));
+    const openAttr = category === 'weakness' || query ? 'open' : '';
+    return `
+    <details data-profile-category-panel="${esc(category)}" class="group rounded-xl border border-neutral-800 bg-neutral-950/30" ${openAttr}>
+      <summary class="list-none cursor-pointer select-none px-3 py-3 flex items-center justify-between gap-3">
+        <span class="text-sm font-semibold text-neutral-200">${esc(meta.label || category)}</span>
+        <span class="flex items-center gap-2 text-[11px] text-neutral-500">
+          <span>${matchedTags.length} / ${(meta.tags || []).length} 个 tag</span>
+          <span data-profile-fold-icon class="text-neutral-500 transition-transform group-open:rotate-90">›</span>
+        </span>
+      </summary>
+      <div class="grid grid-cols-2 gap-2 px-3 pb-3">
+        ${matchedTags
           .map(label => {
             const selected = isProfileTagSelected(label, category);
             const cls = selected
@@ -6111,8 +6117,9 @@ function renderProfileTags() {
             </button>`;
           }).join('')}
       </div>
-    </section>
-  `).join('');
+    </details>
+  `;
+  }).join('');
   if (!bank.textContent.trim()) {
     bank.innerHTML = '<div class="text-xs text-neutral-500 py-8 text-center">没有匹配的 tag</div>';
   }
