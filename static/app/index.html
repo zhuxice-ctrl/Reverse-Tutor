@@ -1730,8 +1730,11 @@
         <input id="profile-tag-search" maxlength="20" placeholder="搜索 tag" class="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-sm">
       </label>
     </div>
-    <div class="flex-1 min-h-0 scroll-y px-4 py-3 space-y-4">
-      <div id="profile-tag-bank" class="space-y-4"></div>
+    <div class="px-4 py-3 border-b border-neutral-900">
+      <div id="profile-tag-category-buttons" class="grid grid-cols-2 gap-2"></div>
+    </div>
+    <div class="flex-1 min-h-0 scroll-y px-4 py-3">
+      <div id="profile-tag-bank" class="space-y-3"></div>
     </div>
     <div class="px-4 py-3 border-t border-neutral-800 bg-neutral-950 space-y-2">
       <div class="text-xs text-neutral-400">自定义 tag</div>
@@ -1929,6 +1932,8 @@ const state = {
   selectedActionMessage: null,
   quotedMessage: null,
   newProfileTags: [],
+  activeProfileTagCategory: 'weakness',
+  profileTagExpanded: false,
   profileTagSearch: '',
   newAvatarImage: '',
   importedPreset: null,
@@ -4271,10 +4276,11 @@ const ENGINE = (() => {
     kg_blacklist: [],
   };
   const PROFILE_TAG_CATEGORIES = {
-    weakness: { label: '学习弱点', tags: ['基础断层', '公式会背不会用', '审题跳步', '迁移困难', '概念混淆', '计算粗心', '步骤漏写', '知识点串不起来'] },
-    reaction: { label: '性格反应', tags: ['容易焦虑', '被否定会退缩', '好胜心强', '需要及时肯定', '容易急躁', '害怕暴露不会', '喜欢被挑战', '遇难题沉默'] },
-    preference: { label: '学习偏好', tags: ['先例题再抽象', '多追问少讲解', '喜欢步骤清单', '需要反例', '先复盘再推进', '图示更容易懂', '短回合高频反馈', '先给提示不揭答案'] },
-    resistance: { label: '抗拒行为', tags: ['逃避难题', '急着要答案', '不愿复盘', '分心拖延', '容易放弃', '跳过基础检查', '只想刷题不总结', '被催促会抵触'] },
+    weakness: { label: '学习弱点', tags: ['基础断层', '公式会背不会用', '审题跳步', '迁移困难', '概念混淆', '计算粗心', '步骤漏写', '知识点串不起来', '旧错反复犯', '应用题无从下手', '推理链容易断', '复习后遗忘快'] },
+    reaction: { label: '性格反应', tags: ['容易焦虑', '被否定会退缩', '好胜心强', '需要及时肯定', '容易急躁', '害怕暴露不会', '喜欢被挑战', '遇难题沉默', '被追问会紧张', '答对后松懈', '压力越大越乱', '需要先安抚'] },
+    preference: { label: '学习偏好', tags: ['先例题再抽象', '多追问少讲解', '喜欢步骤清单', '需要反例', '先复盘再推进', '图示更容易懂', '短回合高频反馈', '先给提示不揭答案', '偏好口语化解释', '喜欢类比', '需要错题对照', '适合分层任务'] },
+    resistance: { label: '抗拒行为', tags: ['逃避难题', '急着要答案', '不愿复盘', '分心拖延', '容易放弃', '跳过基础检查', '只想刷题不总结', '被催促会抵触', '嫌步骤麻烦', '回避暴露短板', '不爱写过程', '容易装懂'] },
+    strategy: { label: '策略调音台', tags: ['追问更强', '提示更少', '先鼓励再纠错', '先纠错再鼓励', '降低挫败感', '提高挑战感', '多用苏格拉底式', '多做阶段小结', '慢节奏拆解', '快节奏推进', '错因优先', '考试导向'] },
   };
 
   function normalizeProfileTags(tags=[]) {
@@ -6085,41 +6091,57 @@ function isProfileTagSelected(label, category='custom') {
 
 function renderProfileTags() {
   const bank = $('#profile-tag-bank');
+  const categoryButtons = $('#profile-tag-category-buttons');
   const selected = $('#profile-selected-tags');
   const dialogSelected = $('#profile-dialog-selected-tags');
   const count = $('#profile-tag-count');
   if (!bank || !selected) return;
   const categories = ENGINE.PROFILE_TAG_CATEGORIES || {};
+  const entries = Object.entries(categories);
+  if (!entries.some(([category]) => category === state.activeProfileTagCategory)) {
+    state.activeProfileTagCategory = entries[0]?.[0] || 'weakness';
+  }
+  const activeCategory = state.activeProfileTagCategory;
+  const activeMeta = categories[activeCategory] || entries[0]?.[1] || { label: '画像 tag', tags: [] };
   const query = String(state.profileTagSearch || '').trim().toLowerCase();
-  bank.innerHTML = Object.entries(categories).map(([category, meta]) => {
-    const matchedTags = (meta.tags || [])
-      .filter(label => !query || String(label).toLowerCase().includes(query) || String(meta.label || category).toLowerCase().includes(query));
-    const openAttr = category === 'weakness' || query ? 'open' : '';
-    return `
-    <details data-profile-category-panel="${esc(category)}" class="group rounded-xl border border-neutral-800 bg-neutral-950/30" ${openAttr}>
-      <summary class="list-none cursor-pointer select-none px-3 py-3 flex items-center justify-between gap-3">
-        <span class="text-sm font-semibold text-neutral-200">${esc(meta.label || category)}</span>
-        <span class="flex items-center gap-2 text-[11px] text-neutral-500">
-          <span>${matchedTags.length} / ${(meta.tags || []).length} 个 tag</span>
-          <span data-profile-fold-icon class="text-neutral-500 transition-transform group-open:rotate-90">›</span>
-        </span>
-      </summary>
-      <div class="grid grid-cols-2 gap-2 px-3 pb-3">
-        ${matchedTags
-          .map(label => {
-            const selected = isProfileTagSelected(label, category);
-            const cls = selected
-              ? 'bg-emerald-950/60 border-emerald-800 text-emerald-100'
-              : 'bg-neutral-900 border-neutral-800 text-neutral-300';
-            return `<button type="button" data-profile-tag="${esc(label)}" data-profile-category="${esc(category)}" class="min-h-[44px] text-left text-xs px-3 py-2 rounded-lg border active:bg-neutral-800 flex items-center justify-between gap-2 ${cls}">
-              <span class="truncate">${esc(tagHash(label))}</span>
-              <span class="text-neutral-600">›</span>
-            </button>`;
-          }).join('')}
+  if (categoryButtons) {
+    categoryButtons.innerHTML = entries.map(([category, meta]) => {
+      const active = category === activeCategory;
+      const selectedCount = state.newProfileTags.filter(tag => (tag.category || 'custom') === category).length;
+      const cls = active
+        ? 'bg-emerald-950/60 border-emerald-800 text-emerald-100'
+        : 'bg-neutral-900 border-neutral-800 text-neutral-300';
+      return `<button type="button" data-profile-category-button="${esc(category)}" class="min-h-[48px] rounded-lg border px-3 py-2 text-left ${cls}">
+        <span class="block text-xs font-semibold">${esc(meta.label || category)}</span>
+        <span class="block text-[10px] text-neutral-500 mt-0.5">${selectedCount ? `已选 ${selectedCount}` : `${(meta.tags || []).length} 个 tag`}</span>
+      </button>`;
+    }).join('');
+  }
+  const matchedTags = (activeMeta.tags || [])
+    .filter(label => !query || String(label).toLowerCase().includes(query) || String(activeMeta.label || activeCategory).toLowerCase().includes(query));
+  const shouldFold = !query && matchedTags.length > 8;
+  const visibleTags = shouldFold && !state.profileTagExpanded ? matchedTags.slice(0, 8) : matchedTags;
+  bank.innerHTML = `
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <div class="text-sm font-semibold text-neutral-200">${esc(activeMeta.label || activeCategory)}</div>
+        <div class="text-[11px] text-neutral-500 mt-0.5">${query ? `匹配 ${matchedTags.length} 个 tag` : `默认显示 ${Math.min(8, matchedTags.length)} / ${matchedTags.length} 个 tag`}</div>
       </div>
-    </details>
+      ${shouldFold ? `<button type="button" data-profile-tag-toggle class="text-xs px-2 py-1 rounded border border-neutral-700 active:bg-neutral-800">${state.profileTagExpanded ? '收起' : '展开全部'}</button>` : ''}
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      ${visibleTags.map(label => {
+        const selected = isProfileTagSelected(label, activeCategory);
+        const cls = selected
+          ? 'bg-emerald-950/60 border-emerald-800 text-emerald-100'
+          : 'bg-neutral-900 border-neutral-800 text-neutral-300';
+        return `<button type="button" data-profile-tag="${esc(label)}" data-profile-category="${esc(activeCategory)}" class="min-h-[44px] text-left text-xs px-3 py-2 rounded-lg border active:bg-neutral-800 flex items-center justify-between gap-2 ${cls}">
+          <span class="truncate">${esc(tagHash(label))}</span>
+          <span class="text-neutral-600">›</span>
+        </button>`;
+      }).join('')}
+    </div>
   `;
-  }).join('');
   if (!bank.textContent.trim()) {
     bank.innerHTML = '<div class="text-xs text-neutral-500 py-8 text-center">没有匹配的 tag</div>';
   }
@@ -6129,6 +6151,15 @@ function renderProfileTags() {
   selected.innerHTML = selectedHtml;
   if (dialogSelected) dialogSelected.innerHTML = selectedHtml;
   if (count) count.textContent = state.newProfileTags.length ? `已选择 ${state.newProfileTags.length} 个 tag` : '未选择 tag';
+  categoryButtons?.querySelectorAll('[data-profile-category-button]').forEach(btn => btn.addEventListener('click', () => {
+    state.activeProfileTagCategory = btn.dataset.profileCategoryButton || 'weakness';
+    state.profileTagExpanded = false;
+    renderProfileTags();
+  }));
+  bank.querySelector('[data-profile-tag-toggle]')?.addEventListener('click', () => {
+    state.profileTagExpanded = !state.profileTagExpanded;
+    renderProfileTags();
+  });
   bank.querySelectorAll('[data-profile-tag]').forEach(btn => btn.addEventListener('click', () => {
     addProfileTag(btn.dataset.profileTag, btn.dataset.profileCategory);
   }));
@@ -6152,6 +6183,8 @@ function addProfileTag(label, category='custom') {
 function openProfileTagDialog() {
   const dialog = $('#profile-tag-dialog');
   if (!dialog) return;
+  state.activeProfileTagCategory = 'weakness';
+  state.profileTagExpanded = false;
   state.profileTagSearch = '';
   $('#profile-tag-search').value = '';
   renderProfileTags();

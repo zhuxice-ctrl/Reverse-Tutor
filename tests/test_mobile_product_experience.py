@@ -140,8 +140,9 @@ def test_mobile_profile_tags_use_large_dialog_with_sectioned_hash_tags():
     assert 'id="profile-tag-dialog"' in html
     assert 'max-h-[88vh]' in dialog or 'h-[88vh]' in dialog
     assert 'id="profile-tag-bank"' not in custom_panel
+    assert 'id="profile-tag-category-buttons"' in dialog
 
-    for label in ["学习弱点", "性格反应", "学习偏好", "抗拒行为"]:
+    for label in ["学习弱点", "性格反应", "学习偏好", "抗拒行为", "策略调音台"]:
         assert f"label: '{label}'" in categories_src
 
     for tag in [
@@ -159,12 +160,15 @@ def test_mobile_profile_tags_use_large_dialog_with_sectioned_hash_tags():
         assert f"#{tag}" not in categories_src
 
     category_blocks = re.findall(r"\{\s*label: '[^']+', tags: \[([^\]]+)\]\s*\}", categories_src)
-    assert len(category_blocks) == 4
-    assert all(block.count("'") // 2 == 8 for block in category_blocks)
-    assert "<details" in render_fn
-    assert "<summary" in render_fn
-    assert "category === 'weakness' || query ? 'open' : ''" in render_fn
-    assert "data-profile-fold-icon" in render_fn
+    assert len(category_blocks) == 5
+    tag_counts = [block.count("'") // 2 for block in category_blocks]
+    assert all(count >= 8 for count in tag_counts)
+    assert any(count > 8 for count in tag_counts)
+    assert 'data-profile-category-button' in render_fn
+    assert 'state.activeProfileTagCategory' in render_fn
+    assert 'state.profileTagExpanded' in render_fn
+    assert '.slice(0, 8)' in render_fn
+    assert 'data-profile-tag-toggle' in render_fn
     assert 'tagHash(label)' in render_fn
     assert 'tagHash(tag.label)' in render_fn
     assert "addProfileTag($('#profile-custom-tag').value, 'custom')" in html
