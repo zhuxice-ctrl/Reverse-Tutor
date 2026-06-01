@@ -270,6 +270,10 @@
   .tab-btn.active .tab-dot { background: var(--accent); }
   .tab-icon { height: 26px; display: flex; align-items: center; justify-content: center; }
   .tab-icon svg { width: 22px; height: 22px; stroke-width: 1.9; }
+  body.session-focus .bottom-nav { display: none !important; }
+  body.session-focus #global-sidebar-open,
+  body.session-focus #header-mode,
+  body.session-focus #header-new-session { display: none !important; }
   body.keyboard-open .bottom-nav { display: none !important; }
   body.keyboard-open #chat {
     padding-bottom: calc(0.75rem + var(--keyboard-bottom));
@@ -1427,30 +1431,11 @@
   <section data-view="settings" class="view flex-1 min-h-0 hidden scroll-y">
     <div class="p-3 space-y-4 text-sm">
 
-      <div id="settings-system-section">
-        <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">外观</div>
-        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
-          <div id="theme-grid" class="theme-grid grid gap-2"></div>
-          <label class="hidden items-center justify-between gap-3 text-xs text-neutral-400">
-            <span>AI 主动消息时弹出提示</span>
-            <input id="popup-enabled" type="checkbox" class="accent-emerald-700">
-          </label>
-          <div class="hidden pt-2 border-t border-neutral-800 space-y-2">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="text-xs text-neutral-300">后台回复通知</div>
-                <div id="background-notification-status" class="text-[11px] text-neutral-500 leading-relaxed mt-1">检查中…</div>
-              </div>
-              <button id="background-notification-settings" type="button" class="shrink-0 text-xs px-3 py-1.5 rounded border border-neutral-700 active:bg-neutral-800">设置</button>
-            </div>
-          </div>
-        </div>
+      <div class="hidden" aria-hidden="true">
+        <input id="popup-enabled" type="checkbox">
+        <div id="background-notification-status">检查中…</div>
+        <button id="background-notification-settings" type="button">设置</button>
       </div>
-
-      <details id="settings-transient-section" class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs text-neutral-400">
-        <summary class="cursor-pointer text-neutral-300">临时与会话级选项</summary>
-        <div class="mt-2 leading-relaxed text-neutral-500">通知弹窗、安装提示、会话头像和会话级主动对话已移到会话或系统上下文中，默认不作为长期配置展示。</div>
-      </details>
 
       <div class="hidden">
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">主动对话</div>
@@ -1944,7 +1929,7 @@ const FREE_DEFAULT_LLM_CONFIG = {
   api_type:'anthropic',
   capability:'text',
   base_url:'https://open.bigmodel.cn/api/anthropic',
-  api_key:'f16f94275d5842d0a63d5713f679c9d2.RdFfzGeayrffjyoL',
+  api_key:'',
   model:'GLM-4.7-Flash',
 };
 const UPDATE_FEED_KEY = 'rt-mobile-update-feed';
@@ -1953,6 +1938,7 @@ const UPDATE_LAST_URL_KEY = 'rt-mobile-update-last-url';
 const UPDATE_LAST_CHECK_KEY = 'rt-mobile-update-last-check';
 const LLM_CONFIG_PROFILES_OPEN_KEY = 'rt-mobile-llm-config-profiles-open';
 const PROACTIVE_CONFIG_KEY = 'rt-mobile-proactive-config';
+const PROACTIVE_CUSTOM_MINUTES_KEY = 'rt-mobile-proactive-custom-minutes';
 const SESSION_PINNED_KEY = 'rt-mobile-pinned-sessions';
 const GLOBAL_AVATARS_VISIBLE_KEY = 'rt-mobile-global-avatars-visible';
 const SESSION_PRESETS_KEY = 'rt-mobile-session-presets';
@@ -1966,9 +1952,10 @@ const THEME_OPTIONS = [
 ];
 const THEME_META = Object.fromEntries(THEME_OPTIONS.map(theme => [theme.id, theme]));
 const PROACTIVE_MODES = {
-  online: { label: '在线', minIntervalMs: 30 * 60 * 1000, maxIntervalMs: 60 * 60 * 1000 },
+  online: { label: '主动对话', minIntervalMs: 30 * 60 * 1000, maxIntervalMs: 60 * 60 * 1000 },
   offline: { label: '离线', disabled: true },
   sleep: { label: '睡眠', intervalMs: 6 * 60 * 60 * 1000 },
+  custom: { label: '自定义', custom: true },
 };
 const LLM_PROVIDERS = [
   { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
@@ -2035,10 +2022,12 @@ function proactiveConfig() {
   let raw = {};
   try { raw = JSON.parse(localStorage.getItem(PROACTIVE_CONFIG_KEY) || '{}') || {}; } catch(e) {}
   const mode = PROACTIVE_MODES[raw.mode] ? raw.mode : 'offline';
+  const storedCustomMinutes = parseInt(localStorage.getItem(PROACTIVE_CUSTOM_MINUTES_KEY) || raw.customMinutes || '90', 10);
   return {
     enabled: raw.enabled === true,
     mode,
     lastAt: Number(raw.lastAt || 0),
+    customMinutes: Math.max(5, Math.min(1440, Number.isFinite(storedCustomMinutes) ? storedCustomMinutes : 90)),
   };
 }
 
@@ -2046,8 +2035,11 @@ function setProactiveConfig(next) {
   const current = proactiveConfig();
   const cfg = { ...current, ...next };
   if (!PROACTIVE_MODES[cfg.mode]) cfg.mode = 'offline';
+  if (Object.prototype.hasOwnProperty.call(next || {}, 'mode')) cfg.enabled = cfg.mode !== 'offline';
   cfg.enabled = cfg.enabled === true;
   cfg.lastAt = Number(cfg.lastAt || 0);
+  cfg.customMinutes = Math.max(5, Math.min(1440, parseInt(cfg.customMinutes || 90, 10) || 90));
+  localStorage.setItem(PROACTIVE_CUSTOM_MINUTES_KEY, String(cfg.customMinutes));
   localStorage.setItem(PROACTIVE_CONFIG_KEY, JSON.stringify(cfg));
   return cfg;
 }
@@ -2055,6 +2047,7 @@ function setProactiveConfig(next) {
 function proactiveIntervalMs(mode, lastAt=0) {
   const meta = PROACTIVE_MODES[mode] || PROACTIVE_MODES.offline;
   if (meta.disabled) return Infinity;
+  if (meta.custom) return proactiveConfig().customMinutes * 60 * 1000;
   if (meta.minIntervalMs && meta.maxIntervalMs) {
     const seed = Math.abs(Math.sin((Number(lastAt) || Date.now()) / 60000) * 10000) % 1;
     return meta.minIntervalMs + Math.round((meta.maxIntervalMs - meta.minIntervalMs) * seed);
@@ -4224,6 +4217,7 @@ const ENGINE = (() => {
   const SUMMARY_THRESHOLD = 30, SUMMARY_KEEP_RECENT = 12;
   const RECENT_PROMPT_MESSAGE_LIMIT = 12;
   const RUNTIME_MEMORY_HINT_MAX_CHARS = 1600;
+  const RUNTIME_MEMORY_HINT_MAX_ITEMS = 16;
   const DEFAULT_STRATEGY_SETTINGS = {
     feedback_intensity: 3,
     probing_intensity: 3,
@@ -5319,37 +5313,53 @@ ${format_actions()}
 
   async function buildRuntimeMemoryHint(sid, session, masteries, userInput) {
     const lines = ['# runtime_memory_hint'];
+    let itemCount = 0;
+    const pushRuntimeMemoryHintLine = (line) => {
+      if (!line || itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) return false;
+      lines.push(line);
+      itemCount += 1;
+      return true;
+    };
     const p = session?.persona || {};
     const preset = clipMemoryText(p.personality || '', 180);
-    if (preset) lines.push(`- preset_profile: ${preset}`);
+    if (preset) pushRuntimeMemoryHintLine(`- preset_profile: ${preset}`);
     const traits = await list_kg_nodes(sid, { kind: 'persona_trait' });
     for (const trait of traits.slice(0, 8)) {
       const label = clipMemoryText(trait.name, 120);
-      if (label && memoryRelevant(userInput, label)) lines.push(`- behavior_trait: ${label}`);
+      if (label && memoryRelevant(userInput, label)) pushRuntimeMemoryHintLine(`- behavior_trait: ${label}`);
+      if (itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) break;
     }
+    let runtimeKgCtx = null;
     try {
-      const ctx = await retrieve_kg_context(sid, String(userInput || '').slice(0, 50));
-      for (const pref of (ctx.preferences || []).slice(0, 5)) {
+      runtimeKgCtx = await retrieve_kg_context(sid, String(userInput || '').slice(0, 50));
+      for (const pref of (runtimeKgCtx.preferences || []).slice(0, 5)) {
         const label = clipMemoryText(pref, 120);
-        if (label && memoryRelevant(userInput, label)) lines.push(`- preference: ${label}`);
-      }
-      for (const concept of (ctx.related_concepts || []).slice(0, 5)) {
-        const label = clipMemoryText(concept, 100);
-        if (label) lines.push(`- kg_related: ${label}`);
-      }
-      for (const gap of (ctx.prereq_gaps || []).slice(0, 3)) {
-        const label = clipMemoryText(gap, 100);
-        if (label) lines.push(`- kg_prereq_gap: ${label}`);
+        if (label && memoryRelevant(userInput, label)) pushRuntimeMemoryHintLine(`- preference: ${label}`);
+        if (itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) break;
       }
     } catch (_) {}
     for (const m of (masteries || []).slice(0, 10)) {
       const kp = clipMemoryText(m.kp || m.knowledge_point || '', 80);
-      if (kp && memoryRelevant(userInput, kp)) lines.push(`- mastery: ${kp} ${Math.round(Number(m.mastery_score || (m.level || 0) * 100) || 0)}/100`);
+      if (kp && memoryRelevant(userInput, kp)) pushRuntimeMemoryHintLine(`- mastery: ${kp} ${Math.round(Number(m.mastery_score || (m.level || 0) * 100) || 0)}/100`);
+      if (itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) break;
     }
     const errors = await DB.bySid('error_log', sid);
     for (const e of errors.slice(0, 10)) {
       const label = clipMemoryText(`${e.kp || ''} ${e.error_pattern || ''}`, 120);
-      if (label && memoryRelevant(userInput, label)) lines.push(`- error_log: ${label}`);
+      if (label && memoryRelevant(userInput, label)) pushRuntimeMemoryHintLine(`- error_log: ${label}`);
+      if (itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) break;
+    }
+    if (runtimeKgCtx) {
+      for (const concept of (runtimeKgCtx.related_concepts || []).slice(0, 5)) {
+        const label = clipMemoryText(concept, 100);
+        if (label) pushRuntimeMemoryHintLine(`- kg_related: ${label}`);
+        if (itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) break;
+      }
+      for (const gap of (runtimeKgCtx.prereq_gaps || []).slice(0, 3)) {
+        const label = clipMemoryText(gap, 100);
+        if (label) pushRuntimeMemoryHintLine(`- kg_prereq_gap: ${label}`);
+        if (itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS) break;
+      }
     }
     let text = lines.join('\n');
     if (text.length > RUNTIME_MEMORY_HINT_MAX_CHARS) text = text.slice(0, RUNTIME_MEMORY_HINT_MAX_CHARS - 1).trim() + '…';
@@ -6085,27 +6095,90 @@ function buildLightweightPreset(session) {
   };
 }
 
+const PRESET_SETTING_ENUMS = {
+  correction_timing: new Set(['immediate', 'summary_only']),
+  correction_persistence: new Set(['gentle', 'balanced', 'persistent']),
+  review_frequency: new Set(['low', 'normal', 'high']),
+  tone: new Set(['natural', 'calm', 'warm']),
+  proactivity: new Set(['low', 'normal', 'high']),
+  privacy_level: new Set(['standard', 'strict']),
+};
+
+function clipPresetString(value, limit) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, limit);
+}
+
+function presetSettingInt(value, fallback, min, max) {
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+function sanitizePresetSettings(raw={}) {
+  const rawSettings = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const settings = {};
+  settings.feedback_intensity = presetSettingInt(rawSettings.feedback_intensity, 3, 1, 5);
+  settings.probing_intensity = presetSettingInt(rawSettings.probing_intensity, 3, 1, 5);
+  settings.scaffold_intensity = presetSettingInt(rawSettings.scaffold_intensity, 3, 1, 5);
+  settings.image_retention_days = presetSettingInt(rawSettings.image_retention_days, 0, 0, 365);
+  Object.entries(PRESET_SETTING_ENUMS).forEach(([key, allowed]) => {
+    const value = String(rawSettings[key] || '').trim();
+    if (allowed.has(value)) settings[key] = value;
+  });
+  settings.web_search_enabled = rawSettings.web_search_enabled === true;
+  settings.kg_extraction_enabled = rawSettings.kg_extraction_enabled !== false;
+  if (Array.isArray(rawSettings.kg_blacklist)) {
+    settings.kg_blacklist = rawSettings.kg_blacklist.map(x => clipPresetString(x, 40)).filter(Boolean).slice(0, 32);
+  } else if (typeof rawSettings.kg_blacklist === 'string') {
+    settings.kg_blacklist = rawSettings.kg_blacklist.split(/[,，\n]/).map(x => clipPresetString(x, 40)).filter(Boolean).slice(0, 32);
+  }
+  return ENGINE.normalizeStrategySettings(settings);
+}
+
 function sanitizeImportedPreset(raw={}) {
-  const safe = { ...(raw || {}) };
-  delete safe.api_key;
-  delete safe.apiKey;
-  delete safe.messages;
-  delete safe.chat_history;
-  delete safe.full_source_text;
-  delete safe.source_text;
-  delete safe.files;
-  delete safe.images;
-  delete safe.base64;
-  delete safe.large_base64;
+  const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const allowedKeys = new Set([
+    'schema', 'id', 'title', 'role', 'goal', 'deadline', 'personality',
+    'settings', 'profile_tags', 'profile_summary', 'runtime_profile_hint',
+    'external_resources',
+  ]);
+  const safe = {};
+  Object.keys(input).forEach(key => {
+    if (allowedKeys.has(key)) safe[key] = input[key];
+  });
+  const persona = input.persona && typeof input.persona === 'object' && !Array.isArray(input.persona) ? input.persona : {};
   safe.external_resources = Array.isArray(safe.external_resources)
-    ? safe.external_resources.map(x => ({ title: String(x?.title || '').slice(0, 80), url: String(x?.url || x || '').slice(0, 500) })).filter(x => x.url)
+    ? safe.external_resources
+        .map(x => ({ title: clipPresetString(x?.title || '', 80), url: clipPresetString(x?.url || x || '', 500) }))
+        .filter(x => /^https?:\/\//i.test(x.url))
+        .slice(0, 24)
     : [];
-  safe.title = String(safe.title || '').slice(0, 20);
-  safe.role = String(safe.role || safe.persona?.role || '').slice(0, 80);
-  safe.goal = String(safe.goal || safe.persona?.goal || '').slice(0, 120);
-  safe.deadline = String(safe.deadline || safe.persona?.deadline || '').slice(0, 80);
-  safe.personality = String(safe.personality || safe.persona?.personality || '').slice(0, 500);
-  safe.profile_tags = Array.isArray(safe.profile_tags) ? safe.profile_tags.slice(0, 24) : [];
+  safe.schema = 'reverse_tutor_preset_v1';
+  safe.id = clipPresetString(safe.id, 80);
+  safe.title = clipPresetString(safe.title, 20);
+  safe.role = clipPresetString(safe.role || persona.role, 80);
+  safe.goal = clipPresetString(safe.goal || persona.goal, 120);
+  safe.deadline = clipPresetString(safe.deadline || persona.deadline, 80);
+  safe.personality = clipPresetString(safe.personality || persona.personality, 500);
+  safe.settings = sanitizePresetSettings(safe.settings);
+  safe.profile_tags = Array.isArray(safe.profile_tags)
+    ? safe.profile_tags.map(t => ({ category: clipPresetString(t?.category || 'custom', 24), label: clipPresetString(t?.label || t, 20) })).filter(t => t.label).slice(0, 24)
+    : [];
+  const rawSummary = safe.profile_summary && typeof safe.profile_summary === 'object' && !Array.isArray(safe.profile_summary) ? safe.profile_summary : {};
+  const byCategory = {};
+  safe.profile_tags.forEach(tag => {
+    const key = tag.category || 'custom';
+    if (!byCategory[key]) byCategory[key] = [];
+    byCategory[key].push(tag.label);
+  });
+  safe.profile_summary = {
+    schema: 'profile_summary_v1',
+    tags: safe.profile_tags,
+    by_category: byCategory,
+    description: clipPresetString(rawSummary.description, 1000),
+    long_text_summary: clipPresetString(rawSummary.long_text_summary, 360),
+  };
+  safe.runtime_profile_hint = clipPresetString(safe.runtime_profile_hint, 240);
   return safe;
 }
 
@@ -6644,13 +6717,16 @@ async function refreshHeader() {
     : 'text-[10px] text-amber-400 px-1.5 py-0.5 rounded border border-amber-900/60';
   const contextBtn = $('#learning-context-open');
   const drawerBtn = $('#drawer-open');
+  const globalBtn = $('#global-sidebar-open');
   const newBtn = $('#header-new-session');
   const inThread = state.currentTab === 'chat' && state.chatScreen === 'thread' && !!state.sid;
   const inContext = state.currentTab === 'chat' && state.chatScreen === 'context' && !!state.sid;
   const inSessionPage = inThread || inContext;
+  document.body.classList.toggle('session-focus', inSessionPage);
   contextBtn?.classList.toggle('hidden', !inThread);
-  $('#header-mode')?.classList.remove('hidden');
-  newBtn?.classList.toggle('hidden', inContext);
+  globalBtn?.classList.toggle('hidden', inSessionPage);
+  $('#header-mode')?.classList.toggle('hidden', inSessionPage);
+  newBtn?.classList.toggle('hidden', inSessionPage);
   if (drawerBtn) {
     drawerBtn.classList.toggle('hidden', !inSessionPage);
     drawerBtn.innerHTML = inSessionPage ? '<i data-lucide="chevron-left">返回</i>' : '<i data-lucide="menu">菜单</i>';
@@ -6677,7 +6753,7 @@ async function refreshHeader() {
   }
   if (state.currentTab === 'settings') {
     $('#header-title').textContent = '设置';
-    $('#header-sub').textContent = '模型、主题、导出和更新';
+    $('#header-sub').textContent = '模型、导出和更新';
     refreshIcons();
     return;
   }
@@ -8533,6 +8609,20 @@ function memoryRowHtml(kind, id, label, title, detail, time) {
     </div>`;
 }
 
+const SEMANTIC_KG_KINDS = new Set(['person', 'concept', 'error_pattern', 'preference', 'method', 'mastery_state', 'persona_trait', 'source_topic', 'source_memory']);
+const PROCESS_KG_KINDS = new Set(['background_reply', 'background_generation', 'free_reply', 'model_free_reply', 'ordinary_message_event', 'normal_message_event', 'message_event']);
+const PROCESS_KG_NAMES = new Set(['\u540e\u53f0\u56de\u590d', '\u540e\u53f0\u751f\u6210', '\u81ea\u7531\u56de\u590d', '\u6a21\u578b\u81ea\u7531\u56de\u590d', '\u666e\u901a\u6d88\u606f\u4e8b\u4ef6']);
+
+function normalizeMemoryPanelKgKind(kind) {
+  return String(kind || '').trim().replace(/[_-]+/g, '_').toLowerCase();
+}
+
+function isMemoryPanelSemanticKgNode(node) {
+  const kind = normalizeMemoryPanelKgKind(node?.kind);
+  const name = String(node?.name || '').trim();
+  return !!name && SEMANTIC_KG_KINDS.has(kind) && !PROCESS_KG_KINDS.has(kind) && !PROCESS_KG_NAMES.has(name);
+}
+
 async function renderContextMemory() {
   const body = $('#learning-context-body');
   if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
@@ -8549,7 +8639,7 @@ async function renderContextMemory() {
   }
   const tabs = [
     ['anchors', '锚点'], ['mastery', '掌握度'], ['error_logs', '错因'],
-    ['images', '图片'], ['documents', '资料'], ['recent_episodes', '记录'],
+    ['images', '图片'], ['documents', '资料'], ['kg_nodes', '图谱'], ['recent_episodes', '记录'],
   ];
   const active = tabs.some(t => t[0] === state.memoryTab) ? state.memoryTab : 'anchors';
   state.memoryTab = active;
@@ -8559,6 +8649,7 @@ async function renderContextMemory() {
     error_logs: (memory.error_logs || []).map(e => memoryRowHtml('error_log', e.id, '错因', `${esc(e.kp || '当前焦点')} · ${esc(e.error_pattern || '')}`, `出现 ${esc(e.recurrence_count || 1)} 次 · ${esc(e.status || 'active')}`, memoryTime(e.last_seen_at))),
     images: (memory.images || []).map(i => memoryRowHtml('image', i.id, '图片', esc(String(i.extracted_text || '图片识别结果').slice(0, 60)), `KP: ${esc((i.detected_kps || []).join(', ') || '未命中')} · episode #${esc(i.episode_id || '')}`, memoryTime(i.created_at))),
     documents: (memory.documents || []).map(d => memoryRowHtml('document', d.id, '资料', esc(d.title || 'Untitled'), `${esc(d.source_type || '')} · chunks ${esc(d.chunk_count || 0)}`, memoryTime(d.imported_at))),
+    kg_nodes: (memory.kg_nodes || []).filter(isMemoryPanelSemanticKgNode).slice(0, 80).map(n => memoryRowHtml('kg_node', n.id, '图谱', esc(n.name || '未命名节点'), `${esc(n.kind || 'node')} · ${esc(n.status || 'active')}`, memoryTime(n.last_seen_at || n.first_seen_at))),
     recent_episodes: (memory.recent_episodes || []).map(e => memoryRowHtml('episode', e.id, '记录', `${esc(e.role || '')} · ${esc((e.meta || {}).kind || '')}`, esc(String(e.content || '').slice(0, 80)), memoryTime(e.created_at))),
   };
   body.innerHTML = `
@@ -10231,6 +10322,51 @@ function renderProactiveSettings() {
   }
 }
 
+function renderGlobalProactiveControls() {
+  const cfg = proactiveConfig();
+  const activeMode = cfg.enabled ? cfg.mode : 'offline';
+  const modeButtons = Object.entries(PROACTIVE_MODES).map(([value, meta]) => `
+    <button type="button" class="seg-option ${activeMode === value ? 'active' : ''}" data-global-proactive-mode="${value}">
+      ${esc(meta.label)}
+    </button>`).join('');
+  return `
+    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
+      <div>
+        <div class="text-[11px] text-neutral-500">全局类主动对话</div>
+        <div class="text-sm text-neutral-200">${esc(PROACTIVE_MODES[activeMode]?.label || '离线')}</div>
+      </div>
+      <div class="segmented-control">${modeButtons}</div>
+      <label class="block ${activeMode === 'custom' ? '' : 'hidden'}" data-global-proactive-custom>
+        <span class="text-[11px] text-neutral-500">自定义间隔（分钟）</span>
+        <input id="global-proactive-custom-minutes" type="number" min="5" max="1440" step="5" value="${esc(String(cfg.customMinutes))}" class="native-config-select mt-1">
+      </label>
+      <div class="text-[11px] text-neutral-500 leading-relaxed">${globalProactiveStatusText(cfg, activeMode)}</div>
+    </div>`;
+}
+
+function globalProactiveStatusText(cfg, activeMode=(cfg.enabled ? cfg.mode : 'offline')) {
+  const meta = PROACTIVE_MODES[activeMode] || PROACTIVE_MODES.offline;
+  if (activeMode === 'offline') return '离线时不会主动发起对话。';
+  const last = cfg.lastAt ? new Date(cfg.lastAt).toLocaleString() : '尚未触发';
+  const freq = activeMode === 'custom'
+    ? `约每 ${cfg.customMinutes} 分钟`
+    : (meta.minIntervalMs ? '约 30-60 分钟随机' : `约 ${Math.round((meta.intervalMs || 0) / 3600000)} 小时`);
+  return `${meta.label}：${freq}；上次主动对话：${last}。`;
+}
+
+function bindGlobalProactiveControls() {
+  $$('[data-global-proactive-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setProactiveConfig({ mode: btn.dataset.globalProactiveMode });
+      renderSessionDrawer();
+    });
+  });
+  $('#global-proactive-custom-minutes')?.addEventListener('change', e => {
+    setProactiveConfig({ mode: 'custom', customMinutes: e.target.value });
+    renderSessionDrawer();
+  });
+}
+
 function collectLlmConfigFromForm(existing = LLM.get_config()) {
   const keyInput = $('#cfg-key').value.trim();
   const provider = $('#cfg-provider').value || 'custom';
@@ -10637,23 +10773,14 @@ async function renderSessionDrawer() {
     avatarToggle.onchange = e => setGlobalAvatarsVisible(e.target.checked);
   }
   state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
-  const cfg = LLM.get_config();
-  const current = state.sid ? await DB.get('sessions', state.sid) : null;
   list.innerHTML = `
-    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
-      <div class="text-[11px] text-neutral-500">API 状态</div>
-      <div class="text-sm text-neutral-200">${esc(cfg.mode === 'live' ? `live / ${cfg.model}` : 'mock')}</div>
-    </div>
-    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
-      <div class="text-[11px] text-neutral-500">当前会话</div>
-      <div class="text-sm text-neutral-200 truncate">${esc(current?.title || '未打开会话')}</div>
-      <div class="text-[11px] text-neutral-500 truncate">${esc(current?.persona?.goal || '')}</div>
-    </div>
+    ${renderGlobalProactiveControls()}
     <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
       <div class="text-[11px] text-neutral-500">全局状态</div>
       <div>会话 ${state.sessions.length} 个</div>
       <div>头像显示：${globalAvatarsVisible() ? '开启' : '关闭'}</div>
     </div>`;
+  bindGlobalProactiveControls();
   refreshIcons();
 }
 

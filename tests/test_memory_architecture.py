@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -129,6 +130,51 @@ async def test_runtime_memory_hint_is_bounded_and_uses_behavior_profile(db_sess,
     assert "needs diagram-first hints" in hint
     assert "diagram-first explanation" in hint
     assert db.get_session(db_sess, s.id).persona()["personality"] == "preset anxious but persistent"
+
+
+def test_runtime_memory_hint_applies_global_item_limit(db_sess):
+    s = _session(db_sess, personality="chain rule profile")
+    user = db.upsert_kg_node(db_sess, s.id, "person", "user")
+    for i in range(20):
+        trait = db.upsert_kg_node(
+            db_sess,
+            s.id,
+            "persona_trait",
+            f"chain rule trait {i}",
+            properties={"source": "behavior", "weight": 0.9},
+        )
+        db.upsert_kg_edge(db_sess, s.id, user.id, trait.id, "profile_trait", weight=0.9)
+        db.upsert_mastery(
+            db_sess,
+            s.id,
+            f"chain rule mastery {i}",
+            correctness=0.8,
+            depth=0.8,
+            evidence_type="retrieval",
+            verification_status="passed",
+        )
+        db.upsert_error_log(db_sess, s.id, f"chain rule kp {i}", f"chain rule error {i}", evidence_episode_id=None)
+    db_sess.commit()
+
+    kg_ctx = SimpleNamespace(
+        preferences=[f"chain rule preference {i}" for i in range(20)],
+        related_concepts=[f"chain rule concept {i}" for i in range(20)],
+        prereq_gaps=[f"chain rule gap {i}" for i in range(20)],
+    )
+
+    hint = engine.build_runtime_memory_hint(
+        db_sess,
+        s.id,
+        s,
+        "chain rule",
+        masteries=db.list_mastery(db_sess, s.id),
+        error_logs=db.list_error_logs(db_sess, s.id),
+        kg_ctx=kg_ctx,
+    )
+
+    item_lines = [line for line in hint.splitlines() if line.startswith("- ")]
+    assert len(item_lines) <= engine.RUNTIME_MEMORY_HINT_MAX_ITEMS
+    assert item_lines[0].startswith("- preset_profile:")
 
 
 @pytest.mark.asyncio

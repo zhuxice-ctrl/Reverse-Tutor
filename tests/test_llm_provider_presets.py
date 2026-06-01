@@ -274,7 +274,7 @@ def test_mobile_prompt_adapts_when_goal_is_not_learning():
     assert "本回合相关主题" in html
 
 
-def test_mobile_proactive_conversation_has_three_modes_and_local_dispatch():
+def test_mobile_proactive_conversation_has_global_modes_and_local_dispatch():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert "PROACTIVE_CONFIG_KEY" in html
@@ -282,12 +282,17 @@ def test_mobile_proactive_conversation_has_three_modes_and_local_dispatch():
     assert "online" in html
     assert "offline" in html
     assert "sleep" in html
+    assert "custom" in html
     assert "minIntervalMs: 30 * 60 * 1000" in html
     assert "maxIntervalMs: 60 * 60 * 1000" in html
     assert "offline: { label: '离线', disabled: true }" in html
+    assert "custom: { label: '自定义'" in html
+    assert "PROACTIVE_CUSTOM_MINUTES_KEY" in html
+    assert "global-proactive-custom-minutes" in html
     assert "mode_disabled" in html
     assert "proactiveIntervalMs" in html
     assert "function proactiveConfig" in html
+    assert "function renderGlobalProactiveControls" in html
     assert "async function maybeRunProactiveTurn" in html
     assert "run_proactive_turn" in html
     assert "source:'proactive'" in html

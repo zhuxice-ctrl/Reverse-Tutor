@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -10,7 +11,7 @@ def mobile_html() -> str:
     return (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
 
-def test_mobile_header_uses_global_sidebar_api_status_and_top_right_new_entry():
+def test_mobile_header_uses_global_sidebar_and_top_right_new_entry():
     html = mobile_html()
     header = html.split("<header", 1)[1].split("</header>", 1)[0]
     drawer = html.split('id="session-drawer"', 1)[1].split("</aside>", 1)[0]
@@ -25,6 +26,38 @@ def test_mobile_header_uses_global_sidebar_api_status_and_top_right_new_entry():
     assert 'id="global-sidebar-theme-grid"' in drawer
     assert 'id="global-avatar-visible"' in drawer
     assert 'id="global-sidebar-status"' in drawer
+    sidebar_renderer = html.split("async function renderSessionDrawer", 1)[1].split("async function openDrawer", 1)[0]
+    assert "API 状态" not in sidebar_renderer
+    assert "当前会话" not in sidebar_renderer
+    assert "renderGlobalProactiveControls" in sidebar_renderer
+    assert "全局类主动对话" in html
+    assert "data-global-proactive-mode" in html
+    assert 'value="${esc(String(cfg.customMinutes))}"' in html
+
+
+def test_mobile_session_thread_is_immersive_without_global_navigation():
+    html = mobile_html()
+    header_fn = html.split("async function refreshHeader", 1)[1].split("// --- Chat ---", 1)[0]
+
+    assert "body.session-focus .bottom-nav" in html
+    assert "body.session-focus #global-sidebar-open" in html
+    assert "body.session-focus #header-mode" in html
+    assert "body.session-focus #header-new-session" in html
+    assert "document.body.classList.toggle('session-focus', inSessionPage)" in header_fn
+    assert "globalBtn?.classList.toggle('hidden', inSessionPage)" in header_fn
+    assert "newBtn?.classList.toggle('hidden', inSessionPage)" in header_fn
+    assert "contextBtn?.classList.toggle('hidden', !inThread)" in header_fn
+    assert "drawerBtn.innerHTML = inSessionPage ? '<i data-lucide=\"chevron-left\">返回</i>'" in header_fn
+    assert "脉络" in html
+
+
+def test_mobile_settings_do_not_duplicate_global_sidebar_controls():
+    html = mobile_html()
+    settings = html.split('data-view="settings"', 1)[1].split("</section>", 1)[0]
+
+    assert 'id="theme-grid"' not in settings
+    assert 'id="settings-transient-section"' not in settings
+    assert "临时与会话级选项" not in settings
 
 
 def test_mobile_hidden_avatars_render_no_placeholder_or_initials():
@@ -84,28 +117,89 @@ def test_mobile_custom_profile_tags_and_runtime_hint_are_present():
 
 def test_mobile_preset_import_export_is_lightweight_and_safe():
     html = mobile_html()
+    sanitizer = html.split("function sanitizeImportedPreset", 1)[1].split("function applyPresetToCustomForm", 1)[0]
 
     assert "function buildLightweightPreset" in html
     assert "function sanitizeImportedPreset" in html
     assert "external_resources" in html
     assert "api_key" in html
-    assert "delete safe.api_key" in html
+    assert "delete safe.api_key" not in sanitizer
     assert "messages" in html
-    assert "delete safe.messages" in html
-    assert "base64" in html
+    assert "delete safe.messages" not in sanitizer
+    assert "base64" not in sanitizer
     assert "not automatically downloaded" in html
 
 
-def test_mobile_settings_long_term_sections_are_kept_and_transient_sections_are_folded():
+def test_mobile_default_free_llm_config_does_not_ship_client_api_key():
+    html = mobile_html()
+    free_config = html.split("const FREE_DEFAULT_LLM_CONFIG = {", 1)[1].split("};", 1)[0]
+
+    assert not re.search(r"api_key\s*:\s*['\"][^'\"]{12,}['\"]", free_config)
+
+
+def test_mobile_preset_import_sanitizer_uses_allowlist_schema():
+    html = mobile_html()
+    sanitizer = html.split("function sanitizeImportedPreset", 1)[1].split("function applyPresetToCustomForm", 1)[0]
+
+    assert "const allowedKeys = new Set([" in sanitizer
+    assert "const safe = { ...(raw || {}) }" not in sanitizer
+    assert "delete safe.api_key" not in sanitizer
+    assert "delete safe.messages" not in sanitizer
+    for allowed in [
+        "schema",
+        "id",
+        "title",
+        "role",
+        "goal",
+        "deadline",
+        "personality",
+        "settings",
+        "profile_tags",
+        "profile_summary",
+        "runtime_profile_hint",
+        "external_resources",
+    ]:
+        assert allowed in sanitizer
+
+
+def test_mobile_preset_import_sanitizes_setting_values():
+    html = mobile_html()
+
+    assert "function sanitizePresetSettings" in html
+    assert "const PRESET_SETTING_ENUMS" in html
+    assert "tone: new Set(['natural', 'calm', 'warm'])" in html
+    assert "proactivity: new Set(['low', 'normal', 'high'])" in html
+    assert "privacy_level: new Set(['standard', 'strict'])" in html
+    assert "web_search_enabled = rawSettings.web_search_enabled === true" in html
+    assert "kg_extraction_enabled = rawSettings.kg_extraction_enabled !== false" in html
+
+
+def test_mobile_runtime_memory_hint_has_global_item_cap():
+    html = mobile_html()
+    hint_fn = html.split("async function buildRuntimeMemoryHint", 1)[1].split("async function add_anchor", 1)[0]
+
+    assert "const RUNTIME_MEMORY_HINT_MAX_ITEMS = 16" in html
+    assert "pushRuntimeMemoryHintLine" in hint_fn
+    assert "itemCount >= RUNTIME_MEMORY_HINT_MAX_ITEMS" in hint_fn
+
+
+def test_mobile_runtime_memory_hint_prioritizes_mastery_errors_before_related_kg_context():
+    html = mobile_html()
+    hint_fn = html.split("async function buildRuntimeMemoryHint", 1)[1].split("async function add_anchor", 1)[0]
+
+    assert hint_fn.index("for (const m of (masteries || []).slice(0, 10))") < hint_fn.index("for (const concept of")
+    assert hint_fn.index("for (const e of errors.slice(0, 10))") < hint_fn.index("for (const concept of")
+
+
+def test_mobile_settings_long_term_sections_are_kept_without_sidebar_duplicates():
     html = mobile_html()
     settings = html.split('data-view="settings"', 1)[1].split("</section>", 1)[0]
 
     assert 'id="settings-api-section"' in settings
     assert 'id="settings-data-section"' in settings
     assert 'id="settings-update-section"' in settings
-    assert 'id="settings-system-section"' in settings
-    assert 'id="settings-transient-section"' in settings
-    assert '<details id="settings-transient-section"' in settings
+    assert 'id="settings-system-section"' not in settings
+    assert 'id="settings-transient-section"' not in settings
     assert settings.index('id="settings-api-section"') < settings.index('id="settings-data-section"')
 
 

@@ -20,10 +20,7 @@ LLM_MODEL = os.getenv("LLM_MODEL", "")
 LLM_API_TYPE = os.getenv("LLM_API_TYPE", "").strip().lower()
 
 FREE_LLM_BASE_URL = os.getenv("FREE_LLM_BASE_URL", "https://open.bigmodel.cn/api/anthropic").rstrip("/")
-FREE_LLM_API_KEY = os.getenv(
-    "FREE_LLM_API_KEY",
-    "f16f94275d5842d0a63d5713f679c9d2.RdFfzGeayrffjyoL",
-).strip()
+FREE_LLM_API_KEY = os.getenv("FREE_LLM_API_KEY", "").strip()
 FREE_LLM_MODEL = os.getenv("FREE_LLM_MODEL", "GLM-4.7-Flash").strip()
 FREE_LLM_API_TYPE = os.getenv("FREE_LLM_API_TYPE", "anthropic").strip().lower()
 

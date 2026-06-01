@@ -559,55 +559,68 @@ def build_runtime_memory_hint(
     kg_ctx: Any | None = None,
 ) -> str:
     lines: list[str] = ["# runtime_memory_hint"]
+    items = 0
+
+    def add_hint_line(line: str) -> bool:
+        nonlocal items
+        if not line or items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+            return False
+        lines.append(line)
+        items += 1
+        return True
+
     persona = session.persona()
     preset_personality = _clip_memory_text(persona.get("personality", ""), 180)
     if preset_personality:
-        lines.append(f"- preset_profile: {preset_personality}")
+        add_hint_line(f"- preset_profile: {preset_personality}")
 
-    items = 0
     for trait in db.list_kg_nodes(db_sess, sid, kind="persona_trait")[:8]:
         props = trait.properties()
         source = props.get("source", "behavior")
         weight = float(props.get("weight", 1.0) or 1.0)
         label = _clip_memory_text(trait.name, 120)
         if label and _memory_relevant(user_input, label):
-            lines.append(f"- behavior_trait(w={weight:.2f}, source={source}): {label}")
-            items += 1
-            if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
-                break
+            add_hint_line(f"- behavior_trait(w={weight:.2f}, source={source}): {label}")
+        if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+            break
 
     for pref in list(getattr(kg_ctx, "preferences", []) or [])[:5]:
         label = _clip_memory_text(pref, 120)
         if label and _memory_relevant(user_input, label):
-            lines.append(f"- preference: {label}")
-            items += 1
+            add_hint_line(f"- preference: {label}")
+        if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+            break
 
     for mastery in (masteries or [])[:10]:
         kp = _clip_memory_text(getattr(mastery, "knowledge_point", ""), 80)
         if not kp or not _memory_relevant(user_input, kp):
             continue
         score = float(getattr(mastery, "mastery_score", 0.0) or (getattr(mastery, "level", 0.0) or 0.0) * 100)
-        lines.append(f"- mastery: {kp} {score:.0f}/100")
-        items += 1
+        add_hint_line(f"- mastery: {kp} {score:.0f}/100")
+        if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+            break
 
     for err in (error_logs or [])[:10]:
         candidate = f"{getattr(err, 'kp', '')} {getattr(err, 'error_pattern', '')}"
         if not _memory_relevant(user_input, candidate):
             continue
-        lines.append(f"- error_log: {_clip_memory_text(candidate, 120)}")
-        items += 1
+        add_hint_line(f"- error_log: {_clip_memory_text(candidate, 120)}")
+        if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+            break
 
     if kg_ctx is not None:
         for concept in list(getattr(kg_ctx, "related_concepts", []) or [])[:5]:
             label = _clip_memory_text(concept, 100)
             if label:
-                lines.append(f"- kg_related: {label}")
-                items += 1
+                add_hint_line(f"- kg_related: {label}")
+            if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+                break
         for gap in list(getattr(kg_ctx, "prereq_gaps", []) or [])[:3]:
             label = _clip_memory_text(gap, 100)
             if label:
-                lines.append(f"- kg_prereq_gap: {label}")
-                items += 1
+                add_hint_line(f"- kg_prereq_gap: {label}")
+            if items >= RUNTIME_MEMORY_HINT_MAX_ITEMS:
+                break
 
     text = "\n".join(lines)
     if len(text) > RUNTIME_MEMORY_HINT_MAX_CHARS:

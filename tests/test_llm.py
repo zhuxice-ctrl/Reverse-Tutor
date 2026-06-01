@@ -1,6 +1,9 @@
 """LLM 适配层单测（运行时配置切换 + mock ping）。"""
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pytest
 
 import llm
@@ -12,6 +15,13 @@ def test_default_mock_mode():
     assert cfg["mode"] == "mock"
     assert cfg["has_api_key"] is False
     assert llm.has_real_llm() is False
+
+
+def test_llm_module_does_not_bundle_free_provider_api_key():
+    source = (Path(__file__).resolve().parents[1] / "llm.py").read_text(encoding="utf-8")
+
+    assert not re.search(r"[0-9a-f]{32}\.[A-Za-z0-9_-]{16,}", source)
+    assert 'os.getenv("FREE_LLM_API_KEY", "")' in source
 
 
 def test_free_default_config_replaces_mock_when_enabled(monkeypatch):
