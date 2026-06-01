@@ -128,6 +128,44 @@ def test_mobile_custom_profile_tags_and_runtime_hint_are_present():
     assert "profile_long_text" not in prompt_fn
 
 
+def test_mobile_profile_tags_use_large_dialog_with_sectioned_hash_tags():
+    html = mobile_html()
+    custom_panel = html.split('id="new-custom-panel"', 1)[1].split('id="profile-description"', 1)[0]
+    dialog = html.split('id="profile-tag-dialog"', 1)[1].split('<!-- ==============', 1)[0]
+    render_fn = html.split("function renderProfileTags", 1)[1].split("function addProfileTag", 1)[0]
+    categories_src = html.split("const PROFILE_TAG_CATEGORIES", 1)[1].split("function normalizeProfileTags", 1)[0]
+
+    assert 'id="profile-tag-open"' in html
+    assert 'id="profile-tag-close"' in html
+    assert 'id="profile-tag-dialog"' in html
+    assert 'max-h-[88vh]' in dialog or 'h-[88vh]' in dialog
+    assert 'id="profile-tag-bank"' not in custom_panel
+
+    for label in ["学习弱点", "性格反应", "学习偏好", "抗拒行为"]:
+        assert f"label: '{label}'" in categories_src
+
+    for tag in [
+        "基础断层",
+        "公式会背不会用",
+        "审题跳步",
+        "迁移困难",
+        "容易焦虑",
+        "被否定会退缩",
+        "先例题再抽象",
+        "多追问少讲解",
+        "逃避难题",
+        "急着要答案",
+    ]:
+        assert f"#{tag}" not in categories_src
+
+    category_blocks = re.findall(r"\{\s*label: '[^']+', tags: \[([^\]]+)\]\s*\}", categories_src)
+    assert len(category_blocks) == 4
+    assert all(block.count("'") // 2 == 8 for block in category_blocks)
+    assert 'tagHash(label)' in render_fn
+    assert 'tagHash(tag.label)' in render_fn
+    assert "addProfileTag($('#profile-custom-tag').value, 'custom')" in html
+
+
 def test_mobile_preset_import_export_is_lightweight_and_safe():
     html = mobile_html()
     sanitizer = html.split("function sanitizeImportedPreset", 1)[1].split("function applyPresetToCustomForm", 1)[0]

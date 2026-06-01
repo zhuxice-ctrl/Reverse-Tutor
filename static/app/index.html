@@ -1649,15 +1649,17 @@
           <span class="text-xs text-neutral-400">截止时间</span>
           <input id="new-deadline" placeholder="2026 高考 / 3 个月内 ..." class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
         </label>
-        <label class="block">
+        <div class="block">
           <span class="text-xs text-neutral-400">tag 画像系统</span>
-          <div id="profile-tag-bank" class="mt-1 grid grid-cols-2 gap-2"></div>
+          <button id="profile-tag-open" type="button" class="mt-1 w-full bg-neutral-900 active:bg-neutral-800 border border-neutral-800 rounded-lg px-3 py-2.5 text-left flex items-center justify-between gap-3">
+            <span class="min-w-0">
+              <span class="block text-sm text-neutral-100">选择画像 tag</span>
+              <span id="profile-tag-count" class="block text-[11px] text-neutral-500 mt-0.5">未选择 tag</span>
+            </span>
+            <span class="text-neutral-500"><i data-lucide="chevron-right">›</i></span>
+          </button>
           <div id="profile-selected-tags" class="mt-2 flex flex-wrap gap-1.5 text-xs"></div>
-          <div class="mt-2 flex gap-2">
-            <input id="profile-custom-tag" maxlength="20" placeholder="自定义 tag" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
-            <button id="profile-custom-add" type="button" class="text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">添加</button>
-          </div>
-        </label>
+        </div>
         <label class="block">
           <span class="text-xs text-neutral-400">画像描述（最多 1000 字）</span>
           <textarea id="profile-description" maxlength="1000" rows="3" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" placeholder="稳定的教学偏好、常见反应、需要避开的方式"></textarea>
@@ -1707,6 +1709,39 @@
   </section>
 
 </main>
+
+<!-- ============== tag 画像系统弹窗 ============== -->
+<div id="profile-tag-dialog" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[78] p-3">
+  <div class="w-full max-w-lg h-[88vh] max-h-[88vh] bg-neutral-950 border border-neutral-800 rounded-2xl shadow-2xl safe-bottom flex flex-col overflow-hidden">
+    <div class="px-4 py-3 border-b border-neutral-800 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <div class="text-sm font-semibold">tag 画像系统</div>
+        <div class="text-[11px] text-neutral-500 mt-0.5">先选系统分区，再点选具体 tag</div>
+      </div>
+      <button id="profile-tag-close" type="button" class="icon-only text-neutral-400" aria-label="关闭画像 tag"><i data-lucide="x">×</i></button>
+    </div>
+    <div class="px-4 py-3 border-b border-neutral-900 space-y-3">
+      <div>
+        <div class="text-xs font-semibold text-neutral-300">已选 tag</div>
+        <div id="profile-dialog-selected-tags" class="mt-2 flex flex-wrap gap-1.5 text-xs"></div>
+      </div>
+      <label class="block relative">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500">搜</i>
+        <input id="profile-tag-search" maxlength="20" placeholder="搜索 tag" class="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-sm">
+      </label>
+    </div>
+    <div class="flex-1 min-h-0 scroll-y px-4 py-3 space-y-4">
+      <div id="profile-tag-bank" class="space-y-4"></div>
+    </div>
+    <div class="px-4 py-3 border-t border-neutral-800 bg-neutral-950 space-y-2">
+      <div class="text-xs text-neutral-400">自定义 tag</div>
+      <div class="flex gap-2">
+        <input id="profile-custom-tag" maxlength="20" placeholder="输入后归为自定义 tag" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm">
+        <button id="profile-custom-add" type="button" class="text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">添加</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============== 知识图谱节点详情底部弹窗 ============== -->
 <div id="graph-sheet-overlay" class="graph-sheet-overlay"></div>
@@ -1894,6 +1929,7 @@ const state = {
   selectedActionMessage: null,
   quotedMessage: null,
   newProfileTags: [],
+  profileTagSearch: '',
   newAvatarImage: '',
   importedPreset: null,
   newReturnRoute: null,
@@ -4235,17 +4271,17 @@ const ENGINE = (() => {
     kg_blacklist: [],
   };
   const PROFILE_TAG_CATEGORIES = {
-    weakness: { label: '学习弱点', tags: ['基础断层', '公式会背不会用', '审题跳步', '迁移困难'] },
-    reaction: { label: '性格反应', tags: ['容易焦虑', '被否定会退缩', '好胜心强', '需要及时肯定'] },
-    preference: { label: '教学偏好', tags: ['先例题再抽象', '多追问少讲解', '喜欢步骤清单', '需要反例'] },
-    resistance: { label: '抗拒行为', tags: ['逃避难题', '急着要答案', '不愿复盘', '分心拖延'] },
+    weakness: { label: '学习弱点', tags: ['基础断层', '公式会背不会用', '审题跳步', '迁移困难', '概念混淆', '计算粗心', '步骤漏写', '知识点串不起来'] },
+    reaction: { label: '性格反应', tags: ['容易焦虑', '被否定会退缩', '好胜心强', '需要及时肯定', '容易急躁', '害怕暴露不会', '喜欢被挑战', '遇难题沉默'] },
+    preference: { label: '学习偏好', tags: ['先例题再抽象', '多追问少讲解', '喜欢步骤清单', '需要反例', '先复盘再推进', '图示更容易懂', '短回合高频反馈', '先给提示不揭答案'] },
+    resistance: { label: '抗拒行为', tags: ['逃避难题', '急着要答案', '不愿复盘', '分心拖延', '容易放弃', '跳过基础检查', '只想刷题不总结', '被催促会抵触'] },
   };
 
   function normalizeProfileTags(tags=[]) {
     return (Array.isArray(tags) ? tags : [])
       .map(tag => ({
         category: String(tag?.category || 'custom').slice(0, 24),
-        label: String(tag?.label || tag || '').trim().slice(0, 20),
+        label: String(tag?.label || tag || '').replace(/^#+/, '').trim().slice(0, 20),
       }))
       .filter(tag => tag.label)
       .slice(0, 24);
@@ -6033,38 +6069,95 @@ const TEMPLATES = [
     reqs:['每天 30 个核心词汇','阅读以真题为主']},
 ];
 
+function cleanProfileTagLabel(label) {
+  return String(label || '').replace(/^#+/, '').trim().slice(0, 20);
+}
+
+function tagHash(label) {
+  const text = cleanProfileTagLabel(label);
+  return text ? `#${text}` : '';
+}
+
+function isProfileTagSelected(label, category='custom') {
+  const text = cleanProfileTagLabel(label);
+  return state.newProfileTags.some(tag => cleanProfileTagLabel(tag.label) === text && (tag.category || 'custom') === category);
+}
+
 function renderProfileTags() {
   const bank = $('#profile-tag-bank');
   const selected = $('#profile-selected-tags');
+  const dialogSelected = $('#profile-dialog-selected-tags');
+  const count = $('#profile-tag-count');
   if (!bank || !selected) return;
   const categories = ENGINE.PROFILE_TAG_CATEGORIES || {};
+  const query = String(state.profileTagSearch || '').trim().toLowerCase();
   bank.innerHTML = Object.entries(categories).map(([category, meta]) => `
-    <div class="bg-neutral-800/70 border border-neutral-700 rounded-lg p-2">
-      <div class="text-[11px] text-neutral-400 mb-1">${esc(meta.label || category)}</div>
-      <div class="flex flex-wrap gap-1">
-        ${(meta.tags || []).map(label => `<button type="button" data-profile-tag="${esc(label)}" data-profile-category="${esc(category)}" class="text-[11px] px-2 py-1 rounded bg-neutral-900 border border-neutral-700 active:bg-neutral-700">${esc(label)}</button>`).join('')}
+    <section data-profile-category-panel="${esc(category)}" class="space-y-2">
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-sm font-semibold text-neutral-200">${esc(meta.label || category)}</div>
+        <div class="text-[11px] text-neutral-500">${(meta.tags || []).length} 个 tag</div>
       </div>
-    </div>
+      <div class="grid grid-cols-2 gap-2">
+        ${(meta.tags || [])
+          .filter(label => !query || String(label).toLowerCase().includes(query) || String(meta.label || category).toLowerCase().includes(query))
+          .map(label => {
+            const selected = isProfileTagSelected(label, category);
+            const cls = selected
+              ? 'bg-emerald-950/60 border-emerald-800 text-emerald-100'
+              : 'bg-neutral-900 border-neutral-800 text-neutral-300';
+            return `<button type="button" data-profile-tag="${esc(label)}" data-profile-category="${esc(category)}" class="min-h-[44px] text-left text-xs px-3 py-2 rounded-lg border active:bg-neutral-800 flex items-center justify-between gap-2 ${cls}">
+              <span class="truncate">${esc(tagHash(label))}</span>
+              <span class="text-neutral-600">›</span>
+            </button>`;
+          }).join('')}
+      </div>
+    </section>
   `).join('');
-  selected.innerHTML = state.newProfileTags.length
-    ? state.newProfileTags.map((tag, idx) => `<button type="button" data-remove-profile-tag="${idx}" class="px-2 py-1 rounded-full bg-emerald-900/40 border border-emerald-800 text-emerald-100">${esc(tag.label)}</button>`).join('')
+  if (!bank.textContent.trim()) {
+    bank.innerHTML = '<div class="text-xs text-neutral-500 py-8 text-center">没有匹配的 tag</div>';
+  }
+  const selectedHtml = state.newProfileTags.length
+    ? state.newProfileTags.map((tag, idx) => `<button type="button" data-remove-profile-tag="${idx}" class="px-2 py-1 rounded-full bg-emerald-900/40 border border-emerald-800 text-emerald-100">${esc(tagHash(tag.label))}</button>`).join('')
     : '<span class="text-neutral-500">未选择 tag</span>';
+  selected.innerHTML = selectedHtml;
+  if (dialogSelected) dialogSelected.innerHTML = selectedHtml;
+  if (count) count.textContent = state.newProfileTags.length ? `已选择 ${state.newProfileTags.length} 个 tag` : '未选择 tag';
   bank.querySelectorAll('[data-profile-tag]').forEach(btn => btn.addEventListener('click', () => {
     addProfileTag(btn.dataset.profileTag, btn.dataset.profileCategory);
   }));
-  selected.querySelectorAll('[data-remove-profile-tag]').forEach(btn => btn.addEventListener('click', () => {
-    state.newProfileTags.splice(Number(btn.dataset.removeProfileTag), 1);
-    renderProfileTags();
-  }));
+  [selected, dialogSelected].filter(Boolean).forEach(container => {
+    container.querySelectorAll('[data-remove-profile-tag]').forEach(btn => btn.addEventListener('click', () => {
+      state.newProfileTags.splice(Number(btn.dataset.removeProfileTag), 1);
+      renderProfileTags();
+    }));
+  });
 }
 
 function addProfileTag(label, category='custom') {
-  const text = String(label || '').trim().slice(0, 20);
+  const text = cleanProfileTagLabel(label);
   if (!text) return;
   if (!state.newProfileTags.some(tag => tag.label === text && tag.category === category)) {
     state.newProfileTags.push({ category, label: text });
   }
   renderProfileTags();
+}
+
+function openProfileTagDialog() {
+  const dialog = $('#profile-tag-dialog');
+  if (!dialog) return;
+  state.profileTagSearch = '';
+  $('#profile-tag-search').value = '';
+  renderProfileTags();
+  dialog.classList.remove('hidden');
+  dialog.classList.add('flex');
+  refreshIcons();
+}
+
+function closeProfileTagDialog() {
+  const dialog = $('#profile-tag-dialog');
+  if (!dialog) return;
+  dialog.classList.add('hidden');
+  dialog.classList.remove('flex');
 }
 
 function sessionPresets() {
@@ -10850,6 +10943,7 @@ function closeTopLayerForBack() {
   if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
   if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
   if (isOpenByHiddenClass('#graph-source-node-editor')) { closeGraphNodeEditor(); return true; }
+  if (isOpenByHiddenClass('#profile-tag-dialog')) { closeProfileTagDialog(); return true; }
   if ($('#graph-sheet')?.classList.contains('show') || $('#graph-sheet-overlay')?.classList.contains('show')) {
     hideGraphSheet();
     return true;
@@ -11232,7 +11326,22 @@ $$('[data-new-mode="builtin"]').forEach(btn => btn.addEventListener('click', () 
   $('#tpl-grid')?.scrollIntoView({ block: 'nearest' });
 }));
 $('#new-custom-back')?.addEventListener('click', openNewQuickPanel);
+$('#profile-tag-open')?.addEventListener('click', openProfileTagDialog);
+$('#profile-tag-close')?.addEventListener('click', closeProfileTagDialog);
+$('#profile-tag-dialog')?.addEventListener('click', e => {
+  if (e.target.id === 'profile-tag-dialog') closeProfileTagDialog();
+});
+$('#profile-tag-search')?.addEventListener('input', e => {
+  state.profileTagSearch = e.target.value || '';
+  renderProfileTags();
+});
 $('#profile-custom-add')?.addEventListener('click', () => {
+  addProfileTag($('#profile-custom-tag').value, 'custom');
+  $('#profile-custom-tag').value = '';
+});
+$('#profile-custom-tag')?.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
   addProfileTag($('#profile-custom-tag').value, 'custom');
   $('#profile-custom-tag').value = '';
 });
