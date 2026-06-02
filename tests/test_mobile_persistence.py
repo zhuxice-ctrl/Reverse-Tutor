@@ -346,6 +346,47 @@ def test_mobile_visual_model_state_is_clear_and_old_docs_can_be_reprocessed():
     assert "重新处理" in html
 
 
+def test_mobile_chat_image_draft_card_is_client_side_and_uses_normal_send_path():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert 'id="chat-image-file" type="file" accept="image/*"' in html
+    assert 'id="chat-image-pick"' in html
+    assert 'id="image-draft-card"' in html
+    assert 'id="image-draft-text"' in html
+    assert "const CHAT_IMAGE_MAX_BYTES = 10 * 1024 * 1024" in html
+    assert "async function compressChatImageFile(file)" in html
+    assert "file.size > CHAT_IMAGE_MAX_BYTES" in html
+    assert "canvas.toDataURL('image/jpeg', CHAT_IMAGE_JPEG_QUALITY)" in html
+    assert "function supports_image_messages()" in html
+    assert "if (!LLM.supports_image_messages())" in html
+    assert "await LLM.chat_json(system, [{ role:'user', content }]" in html
+    assert "raw.reply" in html
+    assert "++chatImageDraftSeq;\n  closeImageDraft();" in html
+    assert "setChatInputValue(text, true, { focus: true });\n  sendMessage();" in html
+
+    image_flow = html[html.index("const CHAT_IMAGE_MAX_EDGE"):html.index("let chatSendHandledByPointer")]
+    assert "ENGINE.run_turn" not in image_flow
+    assert "/api/sessions/${encodeURIComponent(state.sid)}/images" not in image_flow
+
+
+def test_mobile_chat_image_recognition_does_not_use_anthropic_text_adapter_for_images():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    llm_src = html.split("const LLM = (() => {", 1)[1].split("})();", 1)[0]
+    supports_fn = llm_src.split("function supports_image_messages", 1)[1].split("return {", 1)[0]
+
+    assert "supports_vision()" in supports_fn
+    assert "c.api_type !== 'anthropic'" in supports_fn
+    assert "supports_image_messages" in llm_src.rsplit("return {", 1)[1].split("};", 1)[0]
+
+
+def test_mobile_service_worker_cache_key_is_not_changed_for_v4_image_card():
+    sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
+
+    assert "rt-mobile-v0.19.1-test.1-39-pwa-profile-long-text-only" in sw
+    assert "v4-image-card" not in sw
+    assert "rt-mobile-v0.19.1-test.1-40" not in sw
+
+
 def test_mobile_graph_nodes_show_human_readable_analysis_status():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 

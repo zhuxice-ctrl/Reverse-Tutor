@@ -15,6 +15,19 @@ import server
 
 ROOT = Path(__file__).resolve().parent.parent
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"0" * 64
+IMAGE_CARD_KEYS = {
+    "id",
+    "image_id",
+    "session_id",
+    "mime",
+    "extracted_text",
+    "structure",
+    "detected_kps",
+    "episode_id",
+    "original_retained_until",
+    "original_url",
+    "created_at",
+}
 
 
 @pytest.fixture
@@ -47,6 +60,36 @@ async def _upload(client, sid: str, *, name="q.png", mime="image/png", body=PNG_
     return await client.post(f"/api/sessions/{sid}/images", files={"file": (name, body, mime)})
 
 
+def _assert_card_ready_image(
+    card: dict,
+    *,
+    sid: str,
+    mime: str,
+    text: str,
+    kps: list[str],
+    retained: bool,
+) -> None:
+    assert set(card) == IMAGE_CARD_KEYS
+    assert card["id"] > 0
+    assert card["image_id"] > 0
+    assert card["session_id"] == sid
+    assert card["mime"] == mime
+    assert card["extracted_text"] == text
+    assert card["structure"]["kind"] == "question"
+    assert card["structure"]["stem"] == text
+    assert isinstance(card["structure"]["options"], list)
+    assert isinstance(card["structure"]["hints"], list)
+    assert card["detected_kps"] == kps
+    assert card["episode_id"] > 0
+    assert card["created_at"].endswith("Z")
+    if retained:
+        assert card["original_retained_until"].endswith("Z")
+        assert card["original_url"] == f"/api/sessions/{sid}/images/{card['image_id']}/original"
+    else:
+        assert card["original_retained_until"] is None
+        assert card["original_url"] is None
+
+
 async def test_upload_image_default_deletes_original_immediately(client, db_sess, monkeypatch):
     _patch_vision(monkeypatch)
     sid = await _session(client)
@@ -65,6 +108,52 @@ async def test_upload_image_default_deletes_original_immediately(client, db_sess
     episode = db_sess.get(db.Message, body["episode_id"])
     assert episode.role == "system"
     assert episode.meta()["kind"] == "image_extract"
+
+
+async def test_upload_list_and_detail_return_card_ready_image_contract(client, monkeypatch):
+    text = "card-ready extraction"
+    kps = ["extrema", "translation"]
+    _patch_vision(monkeypatch, kps=kps, text=text)
+    sid = await _session(client, settings={"image_retention_days": 7})
+
+    upload = await _upload(client, sid, name="q.webp", mime="image/webp")
+
+    assert upload.status_code == 200
+    uploaded = upload.json()
+    _assert_card_ready_image(uploaded, sid=sid, mime="image/webp", text=text, kps=kps, retained=True)
+    assert "original_path" not in uploaded
+
+    listed_response = await client.get(f"/api/sessions/{sid}/images")
+    assert listed_response.status_code == 200
+    listed = listed_response.json()
+    assert listed == [uploaded]
+    _assert_card_ready_image(listed[0], sid=sid, mime="image/webp", text=text, kps=kps, retained=True)
+    assert "original_path" not in listed[0]
+
+    detail_response = await client.get(f"/api/sessions/{sid}/images/{uploaded['image_id']}")
+    assert detail_response.status_code == 200
+    detail = detail_response.json()
+    assert set(detail) == IMAGE_CARD_KEYS | {"original_path"}
+    assert {key: detail[key] for key in IMAGE_CARD_KEYS} == uploaded
+    assert detail["original_path"]
+    assert Path(detail["original_path"]).exists()
+
+
+async def test_memory_images_use_card_ready_shape_without_original_path(client, monkeypatch):
+    text = "memory card extraction"
+    kps = ["image kp"]
+    _patch_vision(monkeypatch, kps=kps, text=text)
+    sid = await _session(client)
+    uploaded = (await _upload(client, sid)).json()
+
+    r = await client.get(f"/api/sessions/{sid}/memory")
+
+    assert r.status_code == 200
+    images = r.json()["images"]
+    assert images == [uploaded]
+    card = images[0]
+    _assert_card_ready_image(card, sid=sid, mime="image/png", text=text, kps=kps, retained=False)
+    assert "original_path" not in card
 
 
 async def test_upload_image_with_retention_keeps_until_expiry(client, db_sess, monkeypatch):

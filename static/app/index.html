@@ -299,6 +299,69 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
+  .chat-image-button {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border: 1px solid var(--glass-line);
+    border-radius: 8px;
+    color: var(--text-soft);
+    background: var(--surface-soft-gradient);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chat-image-button svg { width: 19px; height: 19px; display: block; }
+  .image-draft-card {
+    margin-bottom: 8px;
+    border: 1px solid var(--glass-line);
+    border-radius: 8px;
+    background: var(--card-gradient);
+    padding: 8px;
+  }
+  .image-draft-body {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+  .image-draft-preview {
+    width: 74px;
+    height: 92px;
+    object-fit: cover;
+    border-radius: 7px;
+    border: 1px solid var(--glass-line);
+    background: rgba(0,0,0,.18);
+  }
+  .image-draft-text {
+    min-height: 92px;
+    height: 92px;
+    max-height: 140px;
+  }
+  .image-draft-actions {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .image-draft-status {
+    min-width: 0;
+    flex: 1;
+    color: var(--muted);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+  .image-draft-actions button {
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12px;
+    border: 1px solid var(--glass-line);
+  }
+  .image-draft-actions .primary {
+    border-color: color-mix(in srgb, var(--accent) 68%, var(--line));
+    background: var(--accent);
+    color: #fff;
+  }
   .message-failed-actions {
     margin-top: 7px;
     display: flex;
@@ -1379,7 +1442,20 @@
             <button id="quote-clear" class="icon-only" aria-label="取消引用"><i data-lucide="x"></i></button>
           </div>
         </div>
+        <div id="image-draft-card" class="image-draft-card hidden">
+          <div class="image-draft-body">
+            <img id="image-draft-preview" class="image-draft-preview" alt="">
+            <textarea id="image-draft-text" rows="3" placeholder="确认或补充图片里的题干、条件、公式…" class="image-draft-text flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+          </div>
+          <div class="image-draft-actions">
+            <div id="image-draft-status" class="image-draft-status">可手动填写图片文字</div>
+            <button id="image-draft-cancel" type="button">取消</button>
+            <button id="image-draft-send" type="button" class="primary">确认发送</button>
+          </div>
+        </div>
+        <input id="chat-image-file" type="file" accept="image/*" class="hidden">
         <div class="flex gap-2 items-end">
+          <button id="chat-image-pick" type="button" class="chat-image-button" aria-label="添加图片"><i data-lucide="image-plus"></i></button>
           <textarea id="chat-input" rows="1" placeholder="作为老师，回复学生 AI…" class="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" style="overflow-y:auto;max-height:128px;"></textarea>
           <button id="chat-send" class="bg-emerald-700 active:bg-emerald-800 text-white text-sm px-4 py-2 rounded-lg font-medium">发送</button>
         </div>
@@ -4118,7 +4194,12 @@ const LLM = (() => {
     return c.capability === 'vision' || c.capability === 'vision_files';
   }
 
-  return { has_real, set_config, get_config, chat_json, chat_text_stream, chat_json_eval_only, mock_stream_response, ping, parse_json: extract_json, fallback_json, supports_vision };
+  function supports_image_messages() {
+    const c = effective_config();
+    return supports_vision() && c.api_type !== 'anthropic';
+  }
+
+  return { has_real, set_config, get_config, chat_json, chat_text_stream, chat_json_eval_only, mock_stream_response, ping, parse_json: extract_json, fallback_json, supports_vision, supports_image_messages };
 })();
 </script>
 
@@ -7707,7 +7788,199 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
   }
 }
 
+const CHAT_IMAGE_MAX_EDGE = 1280;
+const CHAT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const CHAT_IMAGE_JPEG_QUALITY = 0.82;
+let chatImageDraft = null;
+let chatImageDraftSeq = 0;
+
+function setImageDraftStatus(text) {
+  const status = $('#image-draft-status');
+  if (status) status.textContent = text || '';
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('图片读取失败'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadChatImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('图片解码失败'));
+    img.src = dataUrl;
+  });
+}
+
+async function compressChatImageFile(file) {
+  if (!file || !/^image\//i.test(file.type || '')) throw new Error('请选择图片文件');
+  if (file.size > CHAT_IMAGE_MAX_BYTES) throw new Error('图片太大，请选择 10MB 以内的图片');
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const img = await loadChatImage(originalDataUrl);
+  const width = img.naturalWidth || img.width || 1;
+  const height = img.naturalHeight || img.height || 1;
+  const scale = Math.min(1, CHAT_IMAGE_MAX_EDGE / Math.max(width, height));
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('当前浏览器无法处理图片');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+  const dataUrl = canvas.toDataURL('image/jpeg', CHAT_IMAGE_JPEG_QUALITY);
+  return {
+    dataUrl,
+    width: targetWidth,
+    height: targetHeight,
+    originalBytes: file.size || 0,
+    compressedBytes: Math.round((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75),
+  };
+}
+
+function imageRecognitionText(raw) {
+  if (!raw) return '';
+  if (typeof raw === 'string') return raw.trim();
+  const fields = [
+    raw.text,
+    raw.recognized_text,
+    raw.ocr_text,
+    raw.transcription,
+    raw.description,
+    raw.summary,
+    raw.reply,
+  ];
+  if (Array.isArray(raw.lines)) fields.push(raw.lines.join('\n'));
+  return fields.map(v => String(v || '').trim()).find(Boolean) || '';
+}
+
+function openImageDraft(draft) {
+  chatImageDraft = draft;
+  const card = $('#image-draft-card');
+  const preview = $('#image-draft-preview');
+  const field = $('#image-draft-text');
+  if (!card || !preview || !field) return;
+  card.classList.remove('hidden');
+  if (draft.dataUrl) {
+    preview.src = draft.dataUrl;
+    preview.classList.remove('hidden');
+  } else {
+    preview.removeAttribute('src');
+    preview.classList.add('hidden');
+  }
+  field.value = draft.text || '';
+  field.focus({ preventScroll: true });
+  setImageDraftStatus(draft.status || '确认图片文字后发送');
+  keepChatTailVisible(60, { force: true });
+}
+
+function closeImageDraft() {
+  chatImageDraft = null;
+  const card = $('#image-draft-card');
+  const preview = $('#image-draft-preview');
+  const field = $('#image-draft-text');
+  const input = $('#chat-image-file');
+  if (card) card.classList.add('hidden');
+  if (preview) preview.removeAttribute('src');
+  if (field) field.value = '';
+  if (input) input.value = '';
+  setImageDraftStatus('可手动填写图片文字');
+}
+
+function imageDraftManualFallback(message) {
+  setImageDraftStatus(message || '请手动填写图片文字后发送');
+}
+
+async function recognizeChatImageDraft(requestId) {
+  if (!chatImageDraft || chatImageDraft.requestId !== requestId) return;
+  if (!LLM.supports_image_messages()) {
+    imageDraftManualFallback('当前模型或接口不能直接识图，请手动填写图片文字。');
+    return;
+  }
+  const field = $('#image-draft-text');
+  const manualAtStart = field ? field.value : '';
+  setImageDraftStatus('正在识别图片…');
+  const system = '你是学习应用中的图片转文字助手。只读取图片内容，输出严格 JSON：{"text":"识别出的题干、公式、标注和必要的视觉细节"}。不要解题，不要教学，不要写多余说明。';
+  const content = [
+    { type:'text', text:'请识别图片内容，整理成用户可以编辑并作为普通聊天文本发送的内容。' },
+    { type:'image_url', image_url:{ url:chatImageDraft.dataUrl } },
+  ];
+  try {
+    const raw = await LLM.chat_json(system, [{ role:'user', content }], { temperature: 0.1, max_tokens: 360 });
+    if (!chatImageDraft || chatImageDraft.requestId !== requestId) return;
+    const text = imageRecognitionText(raw);
+    if (text && field && field.value === manualAtStart) {
+      field.value = text;
+      field.style.height = 'auto';
+      field.style.height = Math.min(field.scrollHeight, 140) + 'px';
+    }
+    setImageDraftStatus(text ? '已生成识别草稿，请确认后发送。' : '未读出明确文字，请手动填写。');
+  } catch (err) {
+    if (!chatImageDraft || chatImageDraft.requestId !== requestId) return;
+    imageDraftManualFallback('识别失败，请手动填写：' + (err.message || err));
+  }
+}
+
+async function handleChatImageSelected(file) {
+  if (!file) return;
+  const requestId = ++chatImageDraftSeq;
+  openImageDraft({ requestId, fileName: file.name || 'image', dataUrl: '', text: '', status: '正在读取图片…' });
+  try {
+    const compressed = await compressChatImageFile(file);
+    if (requestId !== chatImageDraftSeq) return;
+    const manualText = $('#image-draft-text')?.value || '';
+    openImageDraft({ requestId, fileName: file.name || 'image', ...compressed, text: manualText, status: '图片已载入，可识别或手动填写。' });
+    await recognizeChatImageDraft(requestId);
+  } catch (err) {
+    if (requestId !== chatImageDraftSeq) return;
+    const manualText = $('#image-draft-text')?.value || '';
+    openImageDraft({ requestId, fileName: file.name || 'image', dataUrl: '', text: manualText, status: '图片读取失败，请手动填写。' });
+    imageDraftManualFallback('图片读取失败，请手动填写：' + (err.message || err));
+  }
+}
+
+async function confirmImageDraft() {
+  const text = $('#image-draft-text')?.value.trim();
+  if (!text) { toast('请先填写图片文字'); return; }
+  ++chatImageDraftSeq;
+  closeImageDraft();
+  setChatInputValue(text, true, { focus: true });
+  sendMessage();
+}
+
+function cancelImageDraft() {
+  ++chatImageDraftSeq;
+  closeImageDraft();
+}
+
 let chatSendHandledByPointer = false;
+$('#chat-image-pick')?.addEventListener('pointerdown', e => {
+  if (document.activeElement?.id === 'chat-input') e.preventDefault();
+});
+$('#chat-image-pick')?.addEventListener('click', e => {
+  e.preventDefault();
+  const input = $('#chat-image-file');
+  if (!input) return;
+  input.value = '';
+  input.click();
+});
+$('#chat-image-file')?.addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  handleChatImageSelected(file);
+});
+$('#image-draft-cancel')?.addEventListener('click', cancelImageDraft);
+$('#image-draft-send')?.addEventListener('click', confirmImageDraft);
+$('#image-draft-text')?.addEventListener('input', e => {
+  e.target.style.height = 'auto';
+  e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
+});
 $('#chat-send').addEventListener('pointerdown', e => {
   if (document.activeElement?.id === 'chat-input') e.preventDefault();
 });
