@@ -1661,16 +1661,8 @@
           <div id="profile-selected-tags" class="mt-2 flex flex-wrap gap-1.5 text-xs"></div>
         </div>
         <label class="block">
-          <span class="text-xs text-neutral-400">画像描述（最多 1000 字）</span>
-          <textarea id="profile-description" maxlength="1000" rows="3" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" placeholder="稳定的教学偏好、常见反应、需要避开的方式"></textarea>
-        </label>
-        <label class="block">
           <span class="text-xs text-neutral-400">长文本补充（最多 5000 字）</span>
-          <textarea id="profile-long-text" maxlength="5000" rows="4" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" placeholder="可贴更多背景，只保存结构化摘要，运行时只注入短提示"></textarea>
-        </label>
-        <label class="block">
-          <span class="text-xs text-neutral-400">策略调音台</span>
-          <textarea id="new-pers" rows="2" placeholder="语气、追问强度、纠错时机等偏好" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+          <textarea id="profile-long-text" maxlength="5000" rows="5" class="mt-1 w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none" placeholder="可贴稳定偏好、常见反应、需要避开的方式、语气和追问强度等；系统会自动整理成程序设定"></textarea>
         </label>
         <label class="block">
           <span class="text-xs text-neutral-400">初始诉求（一行一条）</span>
@@ -6079,6 +6071,22 @@ function cleanProfileTagLabel(label) {
   return String(label || '').replace(/^#+/, '').trim().slice(0, 20);
 }
 
+function mergeProfileLongText(...parts) {
+  const seen = new Set();
+  return parts
+    .flatMap(part => String(part || '').split(/\n+/))
+    .map(part => part.trim())
+    .filter(Boolean)
+    .filter(part => {
+      const key = part.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join('\n')
+    .slice(0, 5000);
+}
+
 function tagHash(label) {
   const text = cleanProfileTagLabel(label);
   return text ? `#${text}` : '';
@@ -6321,9 +6329,14 @@ function applyPresetToCustomForm(preset={}) {
   $('#new-role').value = preset.role || '';
   $('#new-goal').value = preset.goal || '';
   $('#new-deadline').value = preset.deadline || '';
-  $('#new-pers').value = preset.personality || '';
   state.newProfileTags = Array.isArray(preset.profile_tags) ? preset.profile_tags.map(t => ({ category: t.category || 'custom', label: t.label || String(t).slice(0, 20) })) : [];
-  $('#profile-description').value = preset.profile_summary?.description || preset.profile_description || '';
+  $('#profile-long-text').value = mergeProfileLongText(
+    preset.profile_summary?.long_text_summary,
+    preset.profile_summary?.description,
+    preset.profile_description,
+    preset.personality,
+    preset.runtime_profile_hint
+  );
   renderProfileTags();
 }
 
@@ -11298,7 +11311,8 @@ function openNew() {
   $$('#tpl-grid [data-tpl]').forEach(b => b.addEventListener('click', () => {
     const t = TEMPLATES[+b.dataset.tpl];
     $('#new-role').value = t.role; $('#new-goal').value = t.goal;
-    $('#new-deadline').value = t.deadline; $('#new-pers').value = t.personality;
+    $('#new-deadline').value = t.deadline;
+    $('#profile-long-text').value = mergeProfileLongText($('#profile-long-text').value, t.personality);
     $('#new-reqs').value = t.reqs.join('\n');
     $('#new-title').value = t.goal ? String(t.goal).slice(0, 20) : '';
     openNewCustomPanel();
@@ -11335,10 +11349,8 @@ async function createSessionFromForm() {
     title: $('#new-title').value.trim(),
     role, goal,
     deadline: $('#new-deadline').value.trim(),
-    personality: $('#new-pers').value.trim(),
     reqs: $('#new-reqs').value.split('\n').map(r=>r.trim()).filter(Boolean),
     profile_tags: state.newProfileTags,
-    profile_description: $('#profile-description').value.trim(),
     profile_long_text: $('#profile-long-text').value.trim(),
     avatar_image: state.newAvatarImage,
     avatar_hidden: $('#new-avatar-hidden').checked,

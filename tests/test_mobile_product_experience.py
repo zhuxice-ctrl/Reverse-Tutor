@@ -114,23 +114,29 @@ def test_mobile_new_session_is_child_page_with_custom_preset_import_and_full_cus
 def test_mobile_custom_profile_tags_and_runtime_hint_are_present():
     html = mobile_html()
     prompt_fn = html.split("function build_system_prompt", 1)[1].split("function finalReplyInstruction", 1)[0]
+    custom_panel = html.split('id="new-custom-panel"', 1)[1].split('id="new-create"', 1)[0]
 
     assert 'id="profile-tag-bank"' in html
     assert 'id="profile-selected-tags"' in html
     assert 'id="profile-custom-tag"' in html
+    assert 'id="profile-long-text"' in custom_panel
+    assert 'id="profile-description"' not in custom_panel
+    assert 'id="new-pers"' not in custom_panel
+    assert '画像描述（最多 1000 字）' not in custom_panel
+    assert '语气、追问强度、纠错时机等偏好' not in custom_panel
     assert 'maxlength="20"' in html
-    assert 'maxlength="1000"' in html
     assert 'maxlength="5000"' in html
     assert "PROFILE_TAG_CATEGORIES" in html
     assert "function buildStructuredProfileSummary" in html
     assert "function buildRuntimeProfileHint" in html
+    assert "mergeProfileLongText" in html
     assert "runtime_profile_hint" in prompt_fn
     assert "profile_long_text" not in prompt_fn
 
 
 def test_mobile_profile_tags_use_large_dialog_with_sectioned_hash_tags():
     html = mobile_html()
-    custom_panel = html.split('id="new-custom-panel"', 1)[1].split('id="profile-description"', 1)[0]
+    custom_panel = html.split('id="new-custom-panel"', 1)[1].split('id="profile-long-text"', 1)[0]
     dialog = html.split('id="profile-tag-dialog"', 1)[1].split('<!-- ==============', 1)[0]
     render_fn = html.split("function renderProfileTags", 1)[1].split("function addProfileTag", 1)[0]
     categories_src = html.split("const PROFILE_TAG_CATEGORIES", 1)[1].split("function normalizeProfileTags", 1)[0]
