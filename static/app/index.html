@@ -320,10 +320,9 @@
     padding: 8px;
   }
   .image-draft-body {
-    display: grid;
-    grid-template-columns: 74px minmax(0, 1fr);
+    display: flex;
     gap: 8px;
-    align-items: stretch;
+    align-items: center;
   }
   .image-draft-preview {
     width: 74px;
@@ -333,10 +332,12 @@
     border: 1px solid var(--glass-line);
     background: rgba(0,0,0,.18);
   }
-  .image-draft-text {
-    min-height: 92px;
-    height: 92px;
-    max-height: 140px;
+  .image-draft-copy {
+    min-width: 0;
+    flex: 1;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
   }
   .image-draft-actions {
     margin-top: 8px;
@@ -361,6 +362,20 @@
     border-color: color-mix(in srgb, var(--accent) 68%, var(--line));
     background: var(--accent);
     color: #fff;
+  }
+  .chat-image-attachments {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chat-image-attachment {
+    width: 92px;
+    height: 92px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--glass-line);
+    background: rgba(0,0,0,.16);
   }
   .message-failed-actions {
     margin-top: 7px;
@@ -687,10 +702,13 @@
     -webkit-backdrop-filter: blur(18px) saturate(1.12);
     border-color: color-mix(in srgb, var(--accent) 22%, var(--glass-line));
     box-shadow: inset 0 1px 0 rgba(255,255,255,.075), 0 12px 28px rgba(0,0,0,.12);
+    transform: translateX(var(--session-swipe-x, 0));
     transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    z-index: 1;
+    will-change: transform;
   }
   .session-card:active {
-    transform: scale(.992);
+    transform: translateX(var(--session-swipe-x, 0)) scale(.992);
     background: var(--card-active-gradient);
     background-image: var(--grain-overlay), var(--card-active-gradient);
     background-size: var(--grain-size), auto, auto;
@@ -705,6 +723,56 @@
   }
   .session-card.pinned {
     border-color: color-mix(in srgb, var(--warn) 45%, var(--glass-line));
+  }
+  .session-swipe-row {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    touch-action: pan-y;
+  }
+  .session-swipe-row.session-swipe-open .session-card {
+    --session-swipe-x: -216px;
+  }
+  .session-swipe-row.session-swipe-moving .session-card {
+    transition: none;
+  }
+  .session-swipe-actions {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 216px;
+    display: grid;
+    grid-template-columns: repeat(3, 72px);
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--glass-line));
+    background: color-mix(in srgb, var(--panel-2) 88%, transparent);
+    z-index: 0;
+  }
+  .session-swipe-actions button {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text);
+    border-left: 1px solid color-mix(in srgb, var(--glass-line) 72%, transparent);
+    background: transparent;
+  }
+  .session-swipe-actions button:first-child {
+    border-left: 0;
+  }
+  .session-swipe-actions button:active {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .session-swipe-actions .danger {
+    color: #fca5a5;
+  }
+  .session-swipe-actions .danger:active {
+    background: rgba(127,29,29,.32);
+  }
+  .session-swipe-actions svg {
+    width: 17px;
+    height: 17px;
   }
   .session-card.avatar-hidden {
     padding-left: 12px;
@@ -1445,12 +1513,13 @@
         <div id="image-draft-card" class="image-draft-card hidden">
           <div class="image-draft-body">
             <img id="image-draft-preview" class="image-draft-preview" alt="">
-            <textarea id="image-draft-text" rows="3" placeholder="确认或补充图片里的题干、条件、公式…" class="image-draft-text flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+            <div class="image-draft-copy">
+              <div class="text-neutral-300">图片已附加</div>
+              <div id="image-draft-status" class="image-draft-status">图片已附加，发送后由多模态模型直接读取。可在下方输入栏补充一句问题。</div>
+            </div>
           </div>
           <div class="image-draft-actions">
-            <div id="image-draft-status" class="image-draft-status">可手动填写图片文字</div>
             <button id="image-draft-cancel" type="button">取消</button>
-            <button id="image-draft-send" type="button" class="primary">确认发送</button>
           </div>
         </div>
         <input id="chat-image-file" type="file" accept="image/*" class="hidden">
@@ -1584,7 +1653,7 @@
           </label>
           <label class="block">
             <span class="text-xs text-neutral-400">API Key</span>
-            <input id="cfg-key" type="password" placeholder="若无则留空" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
+            <input id="cfg-key" type="text" placeholder="若无则留空" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm font-mono">
           </label>
           <label class="block">
             <span class="text-xs text-neutral-400">Model</span>
@@ -1929,8 +1998,6 @@
 </div>
 
 <div id="session-card-popover" class="message-action-popover hidden">
-  <button data-session-action="pin"><i data-lucide="pin"></i><span>置顶</span></button>
-  <button data-session-action="rename"><i data-lucide="pencil"></i><span>重命名</span></button>
   <button data-session-action="preset-export"><i data-lucide="download"></i><span>导出预设</span></button>
   <button data-session-action="avatar"><i data-lucide="image-plus"></i><span>头像</span></button>
   <button data-session-action="avatar-clear"><i data-lucide="trash-2"></i><span>清除头像</span></button>
@@ -2050,6 +2117,8 @@ const LLM_CONFIG_PROFILES_OPEN_KEY = 'rt-mobile-llm-config-profiles-open';
 const PROACTIVE_CONFIG_KEY = 'rt-mobile-proactive-config';
 const PROACTIVE_CUSTOM_MINUTES_KEY = 'rt-mobile-proactive-custom-minutes';
 const SESSION_PINNED_KEY = 'rt-mobile-pinned-sessions';
+const SESSION_SWIPE_ACTION_WIDTH = 216;
+const SESSION_SWIPE_OPEN_THRESHOLD = 88;
 const GLOBAL_AVATARS_VISIBLE_KEY = 'rt-mobile-global-avatars-visible';
 const SESSION_PRESETS_KEY = 'rt-mobile-session-presets';
 const THEME_OPTIONS = [
@@ -2068,10 +2137,10 @@ const PROACTIVE_MODES = {
   custom: { label: '自定义', custom: true },
 };
 const LLM_PROVIDERS = [
-  { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
-  { id:'free-glm', label:'免费 GLM', base_url:'https://open.bigmodel.cn/api/anthropic', model:'GLM-4.7-Flash', models:['GLM-4.7-Flash'], api_type:'anthropic', capability:'text', requires_key:true, json_mode:false },
-  { id:'glm', label:'GLM / 智谱官方', base_url:'https://open.bigmodel.cn/api/paas/v4', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'openai', capability:'text', json_mode:false },
-  { id:'glm-anthropic', label:'GLM / Anthropic', base_url:'https://open.bigmodel.cn/api/anthropic', model:'glm-5.1', models:['glm-5.1','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'anthropic', capability:'text', json_mode:false },
+  { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','glm-4.5-air','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
+  { id:'free-glm', label:'免费 GLM', base_url:'https://open.bigmodel.cn/api/anthropic', model:'GLM-4.7-Flash', models:['GLM-4.7-Flash','glm-4.5-air','glm-4.6','glm-4-plus','glm-4-flash'], api_type:'anthropic', capability:'text', requires_key:true, json_mode:false },
+  { id:'glm', label:'GLM / 智谱官方', base_url:'https://open.bigmodel.cn/api/paas/v4', model:'glm-5.1', models:['glm-5.1','glm-4.5-air','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'openai', capability:'text', json_mode:false },
+  { id:'glm-anthropic', label:'GLM / Anthropic', base_url:'https://open.bigmodel.cn/api/anthropic', model:'glm-5.1', models:['glm-5.1','glm-4.5-air','glm-4.6','glm-4-flash','glm-4-plus'], api_type:'anthropic', capability:'text', json_mode:false },
   { id:'deepseek', label:'DeepSeek / OpenAI', base_url:'https://api.deepseek.com', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'openai', capability:'text', json_mode:false },
   { id:'deepseek-anthropic', label:'DeepSeek / Anthropic', base_url:'https://api.deepseek.com/anthropic', model:'deepseek-v4-flash', models:['deepseek-v4-flash','deepseek-v4-pro'], api_type:'anthropic', capability:'text' },
   { id:'minimax', label:'MiniMax / OpenAI', base_url:'https://api.minimax.io/v1', model:'MiniMax-M2.7', models:['MiniMax-M2.7','MiniMax-M2.7-highspeed','MiniMax-M2.5','MiniMax-M2.5-highspeed','MiniMax-M2.1','MiniMax-M2.1-highspeed','MiniMax-M2'], api_type:'openai', capability:'text', json_mode:false },
@@ -2098,6 +2167,15 @@ const CAPABILITY_OPTIONS = [
   { value:'vision', label:'图片', detail:'识图' },
   { value:'vision_files', label:'文件', detail:'图片/文件' },
 ];
+let llmConfigFormDirty = false;
+
+function markLlmConfigFormDirty() {
+  llmConfigFormDirty = true;
+}
+
+function resetLlmConfigFormDirty() {
+  llmConfigFormDirty = false;
+}
 
 function toast(msg, ms=1800) {
   const t = $('#toast');
@@ -2305,17 +2383,18 @@ function selectLocalFirstLlmConfig(current = {}, localApi = null) {
 
 function normalizeLlmConfig(c = {}) {
   const provider = String(c.provider || 'custom').trim() || 'custom';
-  let apiType = normalizeApiType(c.api_type);
+  const rawApiType = String(c.api_type || '').trim();
+  let apiType = rawApiType ? normalizeApiType(rawApiType) : 'openai';
   let capability = String(c.capability || 'text').trim() || 'text';
   let baseUrl = String(c.base_url || '').trim();
   let apiKey = String(c.api_key || '').trim();
   let model = String(c.model || '').trim();
   if (provider === FREE_DEFAULT_LLM_CONFIG.provider) {
-    apiType = FREE_DEFAULT_LLM_CONFIG.api_type;
-    capability = FREE_DEFAULT_LLM_CONFIG.capability;
-    baseUrl = FREE_DEFAULT_LLM_CONFIG.base_url;
+    apiType = rawApiType ? apiType : FREE_DEFAULT_LLM_CONFIG.api_type;
+    capability = capability || FREE_DEFAULT_LLM_CONFIG.capability;
+    baseUrl = baseUrl || FREE_DEFAULT_LLM_CONFIG.base_url;
     apiKey = apiKey || FREE_DEFAULT_LLM_CONFIG.api_key;
-    model = FREE_DEFAULT_LLM_CONFIG.model;
+    model = model || FREE_DEFAULT_LLM_CONFIG.model;
   }
   return {
     provider,
@@ -3170,6 +3249,19 @@ function renderMathExpression(expr) {
   return html;
 }
 
+function stripModelThinkingText(content) {
+  let s = String(content || '').trim();
+  if (!s) return '';
+  s = s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  s = s.replace(/<think>[\s\S]*$/i, '').trim();
+  s = s.replace(/^\s*(?:🧠\s*)?Thinking Process:\s*[\s\S]*?(?:Ready to output\.\s*|Final Decision:\s*Output[^\n]*\n?)/i, '').trim();
+  s = s.replace(/^\s*\d+\.\s*\*\*Analyze the Request:\*\*[\s\S]*?(?:Ready to output\.\s*|Final Decision:\s*Output[^\n]*\n?)/i, '').trim();
+  s = s.replace(/^\s*(?:Matches all criteria\.|One last check:[\s\S]*?Perfect\.|Let's finalize the text\.)\s*/i, '').trim();
+  if (/^\s*(?:🧠\s*)?Thinking Process:/i.test(s)) return '';
+  if (/^\s*\d+\.\s*\*\*Analyze the Request:\*\*/i.test(s)) return '';
+  return s;
+}
+
 function renderRichText(content) {
   const text = String(content || '');
   const parts = [];
@@ -3191,7 +3283,46 @@ function renderRichText(content) {
 }
 
 function safeChatHtml(content) {
-  return renderRichText(content);
+  return renderRichText(stripModelThinkingText(content));
+}
+
+function normalizeChatImageAttachments(raw=[]) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list.map(item => ({
+    kind: item.kind || 'chat_image',
+    data_url: item.data_url || item.dataUrl || item.url || '',
+    mime: item.mime || 'image/jpeg',
+    file_name: item.file_name || item.fileName || item.name || 'image',
+    width: item.width || 0,
+    height: item.height || 0,
+  })).filter(item => item.data_url && item.kind === 'chat_image');
+}
+
+function messageImageAttachments(messageOrMeta={}) {
+  const meta = messageOrMeta.meta || messageOrMeta || {};
+  return normalizeChatImageAttachments(meta.attachments || []);
+}
+
+function contentWithImageAttachments(text='', attachments=[]) {
+  const imgs = normalizeChatImageAttachments(attachments);
+  if (!imgs.length) return String(text || '');
+  const parts = [];
+  const cleanText = String(text || '').trim();
+  parts.push({ type:'text', text: cleanText || '[用户发送了一张图片]' });
+  imgs.forEach(img => parts.push({
+    type:'image_url',
+    image_url:{ url: img.data_url },
+    mime: img.mime,
+  }));
+  return parts;
+}
+
+function renderImageAttachments(attachments=[]) {
+  const imgs = normalizeChatImageAttachments(attachments);
+  if (!imgs.length) return '';
+  return `<div class="chat-image-attachments">${imgs.map(img => `
+    <img src="${esc(img.data_url)}" alt="${esc(img.file_name || 'image')}" class="chat-image-attachment">
+  `).join('')}</div>`;
 }
 </script>
 
@@ -3839,17 +3970,42 @@ const LLM = (() => {
     return extract_json(await responses_text(system, messages, temperature, max_tokens));
   }
 
+  function anthropicImageSource(url, mime='image/jpeg') {
+    const raw = String(url || '');
+    const match = raw.match(/^data:([^;]+);base64,([\s\S]+)$/i);
+    return {
+      type:'image',
+      source:{ type:'base64', media_type: match ? match[1] : mime, data: match ? match[2] : raw },
+    };
+  }
+
+  function anthropicContentParts(content) {
+    if (!Array.isArray(content)) return String(content || '').trim();
+    const parts = [];
+    for (const p of content) {
+      if (!p || typeof p !== 'object') continue;
+      if (p.type === 'text') {
+        const text = String(p.text || '').trim();
+        if (text) parts.push({ type:'text', text });
+      } else if (p.type === 'image_url') {
+        const url = p.image_url?.url || p.image_url || '';
+        if (url) parts.push(anthropicImageSource(url, p.mime || p.media_type || 'image/jpeg'));
+      }
+    }
+    return parts.length ? parts : String(messageContentText(content) || '').trim();
+  }
+
   function anthropicPayload(system, messages) {
     const systemParts = [system];
     const out = [];
-    for (const m of sanitizeMessagesForCapability(messages, 'text')) {
+    for (const m of sanitizeMessagesForCapability(messages)) {
       const role = m.role === 'assistant' ? 'assistant' : (m.role === 'system' ? 'system' : 'user');
-      const content = String(m.content || '').trim();
-      if (!content) continue;
       if (role === 'system') {
-        systemParts.push(content);
+        const text = messageContentText(m.content).trim();
+        if (text) systemParts.push(text);
       } else {
-        out.push({ role, content });
+        const content = anthropicContentParts(m.content);
+        if ((Array.isArray(content) && content.length) || String(content || '').trim()) out.push({ role, content });
       }
     }
     return {
@@ -4017,7 +4173,7 @@ const LLM = (() => {
 
   function extract_reply_text(raw) {
     let s = String(raw || '').trim();
-    s = s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    s = stripModelThinkingText(s);
     const fence = s.match(/```(?:json|text|markdown|md)?\s*([\s\S]*?)```/i);
     if (fence) s = fence[1].trim();
     s = s.replace(/^\s*(回复|reply|学生回复|assistant)\s*[:：]\s*/i, '').trim();
@@ -4195,8 +4351,7 @@ const LLM = (() => {
   }
 
   function supports_image_messages() {
-    const c = effective_config();
-    return supports_vision() && c.api_type !== 'anthropic';
+    return supports_vision();
   }
 
   return { has_real, set_config, get_config, chat_json, chat_text_stream, chat_json_eval_only, mock_stream_response, ping, parse_json: extract_json, fallback_json, supports_vision, supports_image_messages };
@@ -4796,10 +4951,10 @@ ${format_actions()}
     }).slice(-RECENT_PROMPT_MESSAGE_LIMIT);
     for (const m of recent) {
       if (m.role === 'user' || m.role === 'assistant') {
-        out.push({ role: m.role, content: m.content });
+        out.push({ role: m.role, content: contentWithImageAttachments(m.content, messageImageAttachments(m)) });
       }
     }
-    if (user_input != null) out.push({ role:'user', content: user_input });
+    if (user_input != null) out.push({ role:'user', content: contentWithImageAttachments(user_input, opts.current_input_attachments || []) });
     return out;
   }
 
@@ -5505,7 +5660,7 @@ ${format_actions()}
     return record;
   }
 
-  async function queue_pending_user_message(sid, content, quoted=null) {
+  async function queue_pending_user_message(sid, content, quoted=null, extraMeta={}) {
     return add_message(sid, 'user', content, {
       kind: 'queued_user_message',
       source: 'user',
@@ -5515,6 +5670,7 @@ ${format_actions()}
       quoted_message_id: quoted?.id || null,
       quoted_role: quoted?.role || null,
       quoted_preview: quoted ? String(quoted.content || '').replace(/\s+/g, ' ').trim().slice(0, 180) : '',
+      attachments: normalizeChatImageAttachments(extraMeta.attachments || []),
     });
   }
 
@@ -5741,6 +5897,7 @@ function supportsBackgroundChat(cfg) {
 
   async function tryQueueNativeTurnEarly(sid, user_input, sourceMessage, quoted, turnMeta={}) {
     try {
+      if ((turnMeta.currentInputAttachments || []).length) return null;
       const cfg = LLM.get_config();
       if (cfg.mode !== 'live' || !supportsBackgroundChat(cfg)) return null;
       if (!await NativeBackgroundLlm.isAvailable()) return null;
@@ -5758,8 +5915,9 @@ function supportsBackgroundChat(cfg) {
       const systemBase = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
       const system = runtimeMemoryHint ? systemBase + '\n\n' + runtimeMemoryHint : systemBase;
       const currentInputMessageIds = turnMeta.currentInputMessageIds || [];
+      const currentInputAttachments = turnMeta.currentInputAttachments || [];
       const promptUserInput = currentInputMessageIds.length ? user_input : null;
-      const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
+      const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds, current_input_attachments: currentInputAttachments });
       const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
       if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
       const quotedContext = formatQuotedReplyContext(quoted, user_input);
@@ -5831,8 +5989,9 @@ function supportsBackgroundChat(cfg) {
     try {
     const sourceMessage = userMessage || opts.sourceMessage || null;
     const currentInputMessageIds = queuedUserMessages.map(m => Number(m.id)).filter(Number.isFinite);
+    const currentInputAttachments = queuedUserMessages.flatMap(m => messageImageAttachments(m));
     const promptUserInput = currentInputMessageIds.length ? effectiveUserInput : null;
-    const nativeQueued = await tryQueueNativeTurnEarly(sid, effectiveUserInput, sourceMessage, quoted, { turnId, clientMsgId, currentInputMessageIds });
+    const nativeQueued = await tryQueueNativeTurnEarly(sid, effectiveUserInput, sourceMessage, quoted, { turnId, clientMsgId, currentInputMessageIds, currentInputAttachments });
     if (nativeQueued) {
       await markQueuedUserMessages('completed', { completed_at: Date.now(), native_background: true });
       await renderUserOnce();
@@ -5863,7 +6022,7 @@ function supportsBackgroundChat(cfg) {
     if (opts.stream) {
       const systemStreamBase = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
       const systemStream = runtimeMemoryHint ? systemStreamBase + '\n\n' + runtimeMemoryHint : systemStreamBase;
-      const messagesStream = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
+      const messagesStream = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds, current_input_attachments: currentInputAttachments });
       const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
       if (currentInputInstruction) messagesStream.push({ role: 'system', content: currentInputInstruction });
       const qcStream = formatQuotedReplyContext(quoted, effectiveUserInput);
@@ -5910,7 +6069,7 @@ function supportsBackgroundChat(cfg) {
         opts.onMetadataReady({ evaluation: ev, action: ac, anchor_updates: updates });
       }
 
-      const fullReply = streamObj.fullText() || currentBubbleText;
+      const fullReply = stripModelThinkingText(streamObj.fullText() || currentBubbleText);
       const reply = (fullReply||'').trim() || '（……我有点走神了，你刚才说啥？）';
       const bubbles = shapeReplyBubbles(reply, 3);
       let assistantEpisodeId = null;
@@ -5960,7 +6119,7 @@ function supportsBackgroundChat(cfg) {
     const systemBase = build_system_prompt(session, anchors, masteries, summary_text, sourceContext, kgContextText);
     const system = runtimeMemoryHint ? systemBase + '\n\n' + runtimeMemoryHint : systemBase;
     // 普通用户消息已在 msgs 内；队列当前输入会排除历史副本后追加到末尾
-    const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds });
+    const messages = build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds, current_input_attachments: currentInputAttachments });
     const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
     if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
     const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
@@ -5970,7 +6129,7 @@ function supportsBackgroundChat(cfg) {
     const raw = await LLM.chat_json(system, messages, { temperature: 0.85 });
     const ev = cleanEvaluation(raw.evaluation || {});
     const ac = normalizeAction(raw.action || {}, '自由回复');
-    const reply = (raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
+    const reply = stripModelThinkingText(raw.reply||'').trim() || '（……我有点走神了，你刚才说啥？）';
     const updates = raw.anchor_updates || [];
 
     const bubbles = shapeReplyBubbles(reply, 1);
@@ -6794,22 +6953,30 @@ async function renderSessionHome() {
     const live = pinned ? '<span class="session-tag live">置顶</span>' : (idx === 0 ? '<span class="session-tag live">最近</span>' : '');
     const sourceTag = meta.sources ? `<span class="session-tag">资料 ${meta.sources}</span>` : '';
     const noteTag = meta.notes ? `<span class="session-tag">随笔 ${meta.notes}</span>` : '';
+    const sid = esc(s.id);
     return `
-      <article class="session-card ${active} ${pinned ? 'pinned' : ''} ${avatarHidden}" data-session-open="${esc(s.id)}">
-        ${sessionAvatarHtml(s, visualIndex)}
-        <div class="flex items-center gap-2 min-w-0">
-          <div class="session-name flex-1 min-w-0 truncate">${esc(s.title || '未命名会话')}</div>
-          <div class="text-[10px] text-neutral-500 shrink-0">${esc(formatSessionTime(meta.time))}</div>
+      <div class="session-swipe-row" data-session-row="${sid}">
+        <div class="session-swipe-actions" aria-hidden="true">
+          <button type="button" data-session-swipe-action="pin" data-session-id="${sid}"><i data-lucide="pin"></i><span>置顶</span></button>
+          <button type="button" class="danger" data-session-swipe-action="delete" data-session-id="${sid}"><i data-lucide="trash-2"></i><span>删除</span></button>
+          <button type="button" data-session-swipe-action="rename" data-session-id="${sid}"><i data-lucide="pencil"></i><span>重命名</span></button>
         </div>
-        <div class="session-preview mt-1">${esc(meta.preview)}</div>
-        <div class="flex items-center gap-1.5 mt-2 min-w-0">
-          ${live}
-          <span class="session-tag">${esc(s.persona?.goal || '学习窗口')}</span>
-          ${sourceTag}
-          ${noteTag}
-        </div>
-        ${meta.unreadCount ? `<div class="session-unread">${Math.min(meta.unreadCount, 99)}</div>` : ''}
-      </article>`;
+        <article class="session-card ${active} ${pinned ? 'pinned' : ''} ${avatarHidden}" data-session-open="${sid}">
+          ${sessionAvatarHtml(s, visualIndex)}
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="session-name flex-1 min-w-0 truncate">${esc(s.title || '未命名会话')}</div>
+            <div class="text-[10px] text-neutral-500 shrink-0">${esc(formatSessionTime(meta.time))}</div>
+          </div>
+          <div class="session-preview mt-1">${esc(meta.preview)}</div>
+          <div class="flex items-center gap-1.5 mt-2 min-w-0">
+            ${live}
+            <span class="session-tag">${esc(s.persona?.goal || '学习窗口')}</span>
+            ${sourceTag}
+            ${noteTag}
+          </div>
+          ${meta.unreadCount ? `<div class="session-unread">${Math.min(meta.unreadCount, 99)}</div>` : ''}
+        </article>
+      </div>`;
   };
   const pinnedCards = pinnedRows.map((row, idx) => sessionCardHtml(row, idx, true, idx)).join('');
   const recentCards = recentRows.map((row, idx) => sessionCardHtml(row, idx, false, pinnedRows.length + idx)).join('');
@@ -6847,10 +7014,32 @@ async function renderSessionHome() {
   home.querySelectorAll('[data-session-open]').forEach(card => {
     let timer = null;
     let longPressed = false;
+    let swiping = false;
+    let suppressClick = false;
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let startOpen = false;
+    let swipeX = 0;
     const sid = card.dataset.sessionOpen;
+    const row = card.closest('[data-session-row]');
+    if (row) row.style.touchAction = 'pan-y';
     const clear = () => { if (timer) clearTimeout(timer); timer = null; };
+    const setSwipeX = x => {
+      if (!row) return;
+      swipeX = Math.min(0, Math.max(-SESSION_SWIPE_ACTION_WIDTH, x));
+      row.classList.add('session-swipe-moving');
+      card.style.setProperty('--session-swipe-x', `${swipeX}px`);
+    };
+    const finishSwipe = open => {
+      if (!row) return;
+      row.classList.toggle('session-swipe-open', open);
+      row.classList.remove('session-swipe-moving');
+      card.style.removeProperty('--session-swipe-x');
+    };
     const showMenu = () => {
       longPressed = true;
+      closeSessionSwipeRows();
       const pop = $('#session-card-popover');
       if (!pop) return;
       pop.dataset.sessionId = sid;
@@ -6867,14 +7056,54 @@ async function renderSessionHome() {
       pop.dataset.side = (rect.bottom + ph > window.innerHeight - 12) ? 'above' : 'below';
       pop.classList.remove('hidden');
     };
-    card.addEventListener('pointerdown', () => {
+    card.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       longPressed = false;
+      swiping = false;
+      pointerId = e.pointerId;
+      startX = e.clientX || 0;
+      startY = e.clientY || 0;
+      startOpen = !!row?.classList.contains('session-swipe-open');
+      swipeX = startOpen ? -SESSION_SWIPE_ACTION_WIDTH : 0;
       clear();
       timer = setTimeout(showMenu, 620);
+      try { card.setPointerCapture?.(pointerId); } catch (_) {}
     });
-    card.addEventListener('pointerup', clear);
-    card.addEventListener('pointercancel', clear);
-    card.addEventListener('pointerleave', clear);
+    card.addEventListener('pointermove', e => {
+      if (pointerId !== e.pointerId) return;
+      const dx = (e.clientX || 0) - startX;
+      const dy = (e.clientY || 0) - startY;
+      if (!swiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+        swiping = true;
+        clear();
+        closeSessionSwipeRows(row);
+      }
+      if (swiping) {
+        e.preventDefault();
+        setSwipeX((startOpen ? -SESSION_SWIPE_ACTION_WIDTH : 0) + dx);
+      } else if (Math.abs(dy) > 8) {
+        clear();
+      }
+    });
+    card.addEventListener('pointerup', e => {
+      clear();
+      if (pointerId === e.pointerId) {
+        try { card.releasePointerCapture?.(pointerId); } catch (_) {}
+      }
+      pointerId = null;
+      if (swiping) {
+        const open = swipeX < -SESSION_SWIPE_OPEN_THRESHOLD;
+        finishSwipe(open);
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 0);
+      }
+    });
+    card.addEventListener('pointercancel', () => {
+      clear();
+      pointerId = null;
+      if (swiping) finishSwipe(startOpen);
+    });
+    card.addEventListener('pointerleave', () => { if (!swiping) clear(); });
     card.addEventListener('contextmenu', e => {
       e.preventDefault();
       if (longPressed) return;
@@ -6882,14 +7111,61 @@ async function renderSessionHome() {
       showMenu();
     });
     card.addEventListener('click', e => {
-      if (longPressed) {
+      if (longPressed || suppressClick) {
         e.preventDefault();
         return;
       }
+      if (row?.classList.contains('session-swipe-open')) {
+        e.preventDefault();
+        closeSessionSwipeRows();
+        return;
+      }
+      closeSessionSwipeRows();
       openSessionWindow(sid);
     });
   });
+  home.querySelectorAll('[data-session-swipe-action]').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    handleSessionSwipeAction(btn.dataset.sessionSwipeAction, btn.dataset.sessionId);
+  }));
   refreshIcons();
+}
+
+function closeSessionSwipeRows(except=null) {
+  $$('.session-swipe-row.session-swipe-open, .session-swipe-row.session-swipe-moving').forEach(row => {
+    if (except && row === except) return;
+    row.classList.remove('session-swipe-open', 'session-swipe-moving');
+    row.querySelector('.session-card')?.style.removeProperty('--session-swipe-x');
+  });
+}
+
+async function handleSessionSwipeAction(action, sid) {
+  if (!sid) return;
+  closeSessionSwipeRows();
+  if (action === 'pin') {
+    const pinned = togglePinnedSession(sid);
+    toast(pinned ? '已置顶会话' : '已取消置顶');
+    await renderSessionHome();
+    return;
+  }
+  if (action === 'rename') {
+    await renameSession(sid);
+    return;
+  }
+  if (action === 'delete') {
+    if (!confirm('删除该会话及所有数据？')) return;
+    await ENGINE.delete_session(sid);
+    if (state.sid === sid) {
+      state.sid = null;
+      state.chatScreen = 'list';
+      await DB.kvSet('current_sid', null);
+    }
+    await refreshHeader();
+    await renderSessionHome();
+    await renderSessionDrawer();
+    renderChat();
+    toast('会话已删除');
+  }
 }
 
 async function openSessionWindow(sid) {
@@ -7112,6 +7388,7 @@ function appendQueuedUserMessageBubble(message) {
       <div class="text-[10px] text-neutral-500 mb-1">你（老师）</div>
       ${quoteBlock}
       <div class="md text-sm">${renderRichText(message.content || '')}</div>
+      ${renderImageAttachments(messageImageAttachments(message))}
       ${statusBlock}
     </div>`;
   chat.appendChild(row);
@@ -7263,6 +7540,7 @@ async function renderChat() {
             <div class="text-[10px] text-neutral-500 mb-1">${isUser?'你（老师）':'🎓 学生 AI'}</div>
             ${quoteBlock}
             <div class="md text-sm">${isUser ? renderRichText(m.content) : safeChatHtml(m.content)}</div>
+            ${isUser ? renderImageAttachments(messageImageAttachments(m)) : ''}
             ${queuedState}
             ${meta}
             ${!isUser && messageIndex === 0 ? renderCitedSources(m, msgMeta) : ''}
@@ -7613,18 +7891,27 @@ async function hasPendingNativeBackgroundTurn(sid) {
   ) && (m.meta || {}).kind === 'native_background_pending');
 }
 
-async function sendMessage() {
-  const txt = $('#chat-input').value.trim();
-  if (!txt) {
+async function sendMessage(opts={}) {
+  const activeImageDraft = opts.imageDraft || chatImageDraft || null;
+  const attachment = activeImageDraft?.dataUrl ? chatImageAttachmentFromDraft(activeImageDraft) : null;
+  const inputText = $('#chat-input').value.trim();
+  const txt = activeImageDraft ? (inputText || '[图片]') : inputText;
+  const attachments = attachment ? [attachment] : [];
+  if (attachments.length && !LLM.supports_image_messages()) {
+    toast('当前模型不支持图片消息，请切换到视觉模型后再发送。', 2600);
+    return;
+  }
+  if (!txt && !attachments.length) {
     if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
     return openingFor(state.sid);
   }
   if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
   async function queueForNextTurn({ notifyBusy=true } = {}) {
     const quotedMessage = state.quotedMessage;
-    const queuedMessage = await ENGINE.queue_pending_user_message(state.sid, txt, quotedMessage);
+    const queuedMessage = await ENGINE.queue_pending_user_message(state.sid, txt, quotedMessage, { attachments });
     state.messageQueue.push({ text: txt, message: queuedMessage, quotedMessage });
     setChatInputValue('', false);
+    if (activeImageDraft) closeImageDraft();
     if (quotedMessage) clearQuotedMessage();
     appendQueuedUserMessageBubble(queuedMessage);
     renderQueueIndicator();
@@ -7845,28 +8132,11 @@ async function compressChatImageFile(file) {
   };
 }
 
-function imageRecognitionText(raw) {
-  if (!raw) return '';
-  if (typeof raw === 'string') return raw.trim();
-  const fields = [
-    raw.text,
-    raw.recognized_text,
-    raw.ocr_text,
-    raw.transcription,
-    raw.description,
-    raw.summary,
-    raw.reply,
-  ];
-  if (Array.isArray(raw.lines)) fields.push(raw.lines.join('\n'));
-  return fields.map(v => String(v || '').trim()).find(Boolean) || '';
-}
-
 function openImageDraft(draft) {
   chatImageDraft = draft;
   const card = $('#image-draft-card');
   const preview = $('#image-draft-preview');
-  const field = $('#image-draft-text');
-  if (!card || !preview || !field) return;
+  if (!card || !preview) return;
   card.classList.remove('hidden');
   if (draft.dataUrl) {
     preview.src = draft.dataUrl;
@@ -7875,9 +8145,8 @@ function openImageDraft(draft) {
     preview.removeAttribute('src');
     preview.classList.add('hidden');
   }
-  field.value = draft.text || '';
-  field.focus({ preventScroll: true });
-  setImageDraftStatus(draft.status || '确认图片文字后发送');
+  setImageDraftStatus(draft.status || '图片已附加，发送后由多模态模型直接读取。可在下方输入栏补充一句问题。');
+  $('#chat-input')?.focus({ preventScroll: true });
   keepChatTailVisible(60, { force: true });
 }
 
@@ -7885,47 +8154,26 @@ function closeImageDraft() {
   chatImageDraft = null;
   const card = $('#image-draft-card');
   const preview = $('#image-draft-preview');
-  const field = $('#image-draft-text');
   const input = $('#chat-image-file');
   if (card) card.classList.add('hidden');
   if (preview) preview.removeAttribute('src');
-  if (field) field.value = '';
   if (input) input.value = '';
-  setImageDraftStatus('可手动填写图片文字');
+  setImageDraftStatus('图片已附加，发送后由多模态模型直接读取。可在下方输入栏补充一句问题。');
 }
 
 function imageDraftManualFallback(message) {
-  setImageDraftStatus(message || '请手动填写图片文字后发送');
+  setImageDraftStatus(message || '图片读取失败，请重新选择图片');
 }
 
-async function recognizeChatImageDraft(requestId) {
-  if (!chatImageDraft || chatImageDraft.requestId !== requestId) return;
-  if (!LLM.supports_image_messages()) {
-    imageDraftManualFallback('当前模型或接口不能直接识图，请手动填写图片文字。');
-    return;
-  }
-  const field = $('#image-draft-text');
-  const manualAtStart = field ? field.value : '';
-  setImageDraftStatus('正在识别图片…');
-  const system = '你是学习应用中的图片转文字助手。只读取图片内容，输出严格 JSON：{"text":"识别出的题干、公式、标注和必要的视觉细节"}。不要解题，不要教学，不要写多余说明。';
-  const content = [
-    { type:'text', text:'请识别图片内容，整理成用户可以编辑并作为普通聊天文本发送的内容。' },
-    { type:'image_url', image_url:{ url:chatImageDraft.dataUrl } },
-  ];
-  try {
-    const raw = await LLM.chat_json(system, [{ role:'user', content }], { temperature: 0.1, max_tokens: 360 });
-    if (!chatImageDraft || chatImageDraft.requestId !== requestId) return;
-    const text = imageRecognitionText(raw);
-    if (text && field && field.value === manualAtStart) {
-      field.value = text;
-      field.style.height = 'auto';
-      field.style.height = Math.min(field.scrollHeight, 140) + 'px';
-    }
-    setImageDraftStatus(text ? '已生成识别草稿，请确认后发送。' : '未读出明确文字，请手动填写。');
-  } catch (err) {
-    if (!chatImageDraft || chatImageDraft.requestId !== requestId) return;
-    imageDraftManualFallback('识别失败，请手动填写：' + (err.message || err));
-  }
+function chatImageAttachmentFromDraft(draft={}) {
+  return {
+    kind: 'chat_image',
+    data_url: draft.dataUrl || '',
+    mime: 'image/jpeg',
+    file_name: draft.fileName || 'image',
+    width: draft.width || 0,
+    height: draft.height || 0,
+  };
 }
 
 async function handleChatImageSelected(file) {
@@ -7935,24 +8183,12 @@ async function handleChatImageSelected(file) {
   try {
     const compressed = await compressChatImageFile(file);
     if (requestId !== chatImageDraftSeq) return;
-    const manualText = $('#image-draft-text')?.value || '';
-    openImageDraft({ requestId, fileName: file.name || 'image', ...compressed, text: manualText, status: '图片已载入，可识别或手动填写。' });
-    await recognizeChatImageDraft(requestId);
+    openImageDraft({ requestId, fileName: file.name || 'image', ...compressed, status: '图片已附加，发送后由多模态模型直接读取。可在下方输入栏补充一句问题。' });
   } catch (err) {
     if (requestId !== chatImageDraftSeq) return;
-    const manualText = $('#image-draft-text')?.value || '';
-    openImageDraft({ requestId, fileName: file.name || 'image', dataUrl: '', text: manualText, status: '图片读取失败，请手动填写。' });
-    imageDraftManualFallback('图片读取失败，请手动填写：' + (err.message || err));
+    openImageDraft({ requestId, fileName: file.name || 'image', dataUrl: '', status: '图片读取失败，请重新选择。' });
+    imageDraftManualFallback('图片读取失败，请重新选择：' + (err.message || err));
   }
-}
-
-async function confirmImageDraft() {
-  const text = $('#image-draft-text')?.value.trim();
-  if (!text) { toast('请先填写图片文字'); return; }
-  ++chatImageDraftSeq;
-  closeImageDraft();
-  setChatInputValue(text, true, { focus: true });
-  sendMessage();
 }
 
 function cancelImageDraft() {
@@ -7976,11 +8212,6 @@ $('#chat-image-file')?.addEventListener('change', e => {
   handleChatImageSelected(file);
 });
 $('#image-draft-cancel')?.addEventListener('click', cancelImageDraft);
-$('#image-draft-send')?.addEventListener('click', confirmImageDraft);
-$('#image-draft-text')?.addEventListener('input', e => {
-  e.target.style.height = 'auto';
-  e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
-});
 $('#chat-send').addEventListener('pointerdown', e => {
   if (document.activeElement?.id === 'chat-input') e.preventDefault();
 });
@@ -10459,6 +10690,19 @@ function renderVisionCapabilityHint() {
   el.className = 'text-[11px] mt-1 leading-relaxed ' + (supportsVision ? 'text-emerald-400' : 'text-amber-400');
 }
 
+function showCfgKeyForEditing() {
+  const input = $('#cfg-key');
+  if (input) input.type = 'text';
+}
+
+function hideSavedCfgKey(hasSavedKey = false) {
+  const input = $('#cfg-key');
+  if (!input) return;
+  input.value = '';
+  input.type = hasSavedKey ? 'password' : 'text';
+  input.placeholder = hasSavedKey ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+}
+
 function notificationStatusCopy(status) {
   if (!status || status.available === false) return {
     text: '当前不是 Android 原生环境，只显示应用内提示。',
@@ -10516,6 +10760,7 @@ function renderConfigPickerUi() {
   }
   renderSegmentedControl('#cfg-api-type-segments', API_TYPE_OPTIONS, $('#cfg-api-type').value || 'openai', applyApiTypeSelection);
   renderSegmentedControl('#cfg-capability-segments', CAPABILITY_OPTIONS, $('#cfg-capability').value || 'text', value => {
+    markLlmConfigFormDirty();
     $('#cfg-capability').value = value;
     renderConfigPickerUi();
   });
@@ -10523,26 +10768,13 @@ function renderConfigPickerUi() {
   renderVisionCapabilityHint();
 }
 
-function canAutoSwitchProviderUrl(providerId) {
-  const preset = llmProviderById(providerId);
-  const currentBase = ($('#cfg-base')?.value || '').trim().replace(/\/+$/, '');
-  const presetBase = (preset.base_url || '').trim().replace(/\/+$/, '');
-  return !currentBase || !presetBase || currentBase === presetBase;
-}
-
-function applyEndpointDetectionFromBaseUrl({ updateProvider=false } = {}) {
+function applyEndpointDetectionFromBaseUrl() {
   const input = $('#cfg-base');
   const hint = $('#cfg-url-hint');
   if (!input) return null;
-  const currentProvider = $('#cfg-provider')?.value || 'custom';
   const detected = endpointDetection(input.value);
   if (detected.apiType) {
     $('#cfg-api-type').value = detected.apiType;
-    if (updateProvider && detected.providerId && currentProvider !== FREE_DEFAULT_LLM_CONFIG.provider) {
-      $('#cfg-provider').value = detected.providerId;
-      const preset = llmProviderById(detected.providerId);
-      $('#cfg-capability').value = preset.capability || $('#cfg-capability').value || 'text';
-    }
   }
   if (hint) {
     if (!input.value.trim()) {
@@ -10606,43 +10838,21 @@ async function renderLlmProfiles() {
 
 function applyApiTypeSelection(value) {
   const nextType = normalizeApiType(value);
-  const providerId = $('#cfg-provider')?.value || 'custom';
-  if (providerId === 'glm' && nextType === 'anthropic' && canAutoSwitchProviderUrl(providerId)) {
-    applyLlmProviderPreset('glm-anthropic');
-    return;
-  }
-  if (providerId === 'glm-anthropic' && nextType === 'openai' && canAutoSwitchProviderUrl(providerId)) {
-    applyLlmProviderPreset('glm');
-    return;
-  }
-  if (providerId === 'deepseek' && nextType === 'anthropic' && canAutoSwitchProviderUrl(providerId)) {
-    applyLlmProviderPreset('deepseek-anthropic');
-    return;
-  }
-  if (providerId === 'deepseek-anthropic' && nextType === 'openai' && canAutoSwitchProviderUrl(providerId)) {
-    applyLlmProviderPreset('deepseek');
-    return;
-  }
-  if (providerId === 'minimax' && nextType === 'anthropic' && canAutoSwitchProviderUrl(providerId)) {
-    applyLlmProviderPreset('minimax-anthropic');
-    return;
-  }
-  if (providerId === 'minimax-anthropic' && nextType === 'openai' && canAutoSwitchProviderUrl(providerId)) {
-    applyLlmProviderPreset('minimax');
-    return;
-  }
+  markLlmConfigFormDirty();
   $('#cfg-api-type').value = nextType;
   renderConfigPickerUi();
 }
 
 function applyLlmProviderPreset(providerId) {
   const preset = LLM_PROVIDERS.find(p => p.id === providerId) || LLM_PROVIDERS[0];
+  markLlmConfigFormDirty();
   $('#cfg-provider').value = preset.id;
   $('#cfg-api-type').value = preset.api_type || 'openai';
   $('#cfg-capability').value = preset.capability || 'text';
   $('#cfg-base').value = preset.base_url || '';
   $('#cfg-model').value = preset.model || '';
   $('#cfg-key').value = '';
+  showCfgKeyForEditing();
   renderConfigPickerUi();
 }
 
@@ -10702,13 +10912,13 @@ async function renderSettings() {
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
   renderConfigPickerUi();
-  applyEndpointDetectionFromBaseUrl({ updateProvider: true });
-  $('#cfg-key').value = '';
-  $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  applyEndpointDetectionFromBaseUrl();
+  hideSavedCfgKey(cfg.has_api_key);
   $('#cfg-status').textContent = cfg.mode === 'live'
     ? `当前：live (${cfg.model})，${cfg.has_api_key ? 'API Key 已保存' : '当前预设无需 API Key'}`
     : (cfg.has_api_key ? '当前：mock（Base URL / Model 不完整，API Key 已保存）' : '当前：mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
+  resetLlmConfigFormDirty();
   applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
   setPopupEnabled(popupEnabled());
   renderProactiveSettings();
@@ -10800,8 +11010,7 @@ function collectLlmConfigFromForm(existing = LLM.get_config()) {
   const provider = $('#cfg-provider').value || 'custom';
   const detected = endpointDetection($('#cfg-base').value);
   if (detected.apiType) $('#cfg-api-type').value = detected.apiType;
-  if (detected.providerId && provider !== FREE_DEFAULT_LLM_CONFIG.provider) $('#cfg-provider').value = detected.providerId;
-  const resolvedProvider = $('#cfg-provider').value || provider;
+  const resolvedProvider = provider;
   let baseUrl = $('#cfg-base').value.trim();
   let model = $('#cfg-model').value.trim();
   const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(resolvedProvider);
@@ -10818,6 +11027,28 @@ function collectLlmConfigFromForm(existing = LLM.get_config()) {
   };
 }
 
+async function upsertLlmProfileFromConfig(cfg, preferredName = '') {
+  const normalized = normalizeLlmConfig(cfg);
+  if (!isRunnableLlmConfig(normalized)) return null;
+  const profiles = await restoreLlmProfiles();
+  const sig = llmProfileSignature(normalized);
+  const name = String(preferredName || '').trim() || llmConfigLabel(normalized);
+  const index = profiles.findIndex(p => p.name === name || llmProfileSignature(p.config) === sig);
+  const now = Date.now();
+  const profile = normalizeLlmProfile({
+    id: index >= 0 ? profiles[index].id : '',
+    name,
+    config: normalized,
+    created_at: index >= 0 ? profiles[index].created_at : now,
+    updated_at: now,
+  });
+  if (index >= 0) profiles[index] = profile;
+  else profiles.unshift(profile);
+  await persistLlmProfiles(profiles);
+  setLlmProfilesOpen(true);
+  return profile;
+}
+
 async function saveCurrentLlmProfile() {
   const { config } = collectLlmConfigFromForm();
   const cfg = normalizeLlmConfig(config);
@@ -10831,25 +11062,15 @@ async function saveCurrentLlmProfile() {
   }
   const nameInput = $('#cfg-profile-name');
   const name = (nameInput?.value || '').trim() || llmConfigLabel(cfg);
-  const profiles = await restoreLlmProfiles();
-  const sig = llmProfileSignature(cfg);
-  const index = profiles.findIndex(p => p.name === name || llmProfileSignature(p.config) === sig);
-  const now = Date.now();
-  const profile = normalizeLlmProfile({
-    id: index >= 0 ? profiles[index].id : '',
-    name,
-    config: cfg,
-    created_at: index >= 0 ? profiles[index].created_at : now,
-    updated_at: now,
-  });
-  if (index >= 0) profiles[index] = profile;
-  else profiles.unshift(profile);
-  await persistLlmProfiles(profiles);
-  setLlmProfilesOpen(true);
+  const profile = await upsertLlmProfileFromConfig(cfg, name);
+  if (!profile) {
+    toast('请先保存可运行的 LLM 配置');
+    return;
+  }
   const active = await persistLlmConfig(cfg);
+  resetLlmConfigFormDirty();
   if (nameInput) nameInput.value = '';
-  $('#cfg-key').value = '';
-  $('#cfg-key').placeholder = active.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  hideSavedCfgKey(active.has_api_key);
   $('#cfg-status').textContent = `配置档案已保存并切换：${profile.name}`;
   $('#cfg-status').className = 'text-xs text-emerald-400';
   renderConfigPickerUi();
@@ -10865,13 +11086,13 @@ async function switchLlmProfile(profileId) {
     return;
   }
   const cfg = await persistLlmConfig(profile.config);
+  resetLlmConfigFormDirty();
   $('#cfg-provider').value = cfg.provider || 'custom';
   $('#cfg-api-type').value = cfg.api_type || 'openai';
   $('#cfg-capability').value = cfg.capability || 'text';
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
-  $('#cfg-key').value = '';
-  $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  hideSavedCfgKey(cfg.has_api_key);
   $('#cfg-profile-name').value = profile.name;
   $('#cfg-status').textContent = `已切换配置档案：${profile.name}`;
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
@@ -10892,19 +11113,21 @@ async function deleteLlmProfile(profileId) {
   await renderLlmProfiles();
 }
 
-async function saveLlmConfig() {
+async function saveLlmConfig({ saveProfile = true } = {}) {
   const { config: c } = collectLlmConfigFromForm();
   const cfg = await persistLlmConfig(c);
+  const profile = saveProfile ? await upsertLlmProfileFromConfig(c, $('#cfg-profile-name')?.value || '') : null;
+  resetLlmConfigFormDirty();
   $('#cfg-base').value = cfg.base_url || '';
   $('#cfg-model').value = cfg.model || '';
-  $('#cfg-key').value = '';
-  $('#cfg-key').placeholder = cfg.has_api_key ? '已保存，留空 = 保留原 key' : '没有 key 可留空';
+  hideSavedCfgKey(cfg.has_api_key);
+  if (profile) $('#cfg-profile-name').value = profile.name;
   $('#cfg-status').textContent = cfg.mode==='live'
     ? `已保存到本设备，已切到 live：${cfg.model}${cfg.has_api_key ? '' : '（无需 API Key）'}`
     : (cfg.has_api_key ? '信息不完整，仍是 mock；API Key 已保留' : '信息不完整，仍是 mock');
   $('#cfg-status').className = 'text-xs ' + (cfg.mode==='live'?'text-emerald-400':'text-amber-400');
   renderConfigPickerUi();
-  applyEndpointDetectionFromBaseUrl({ updateProvider: true });
+  applyEndpointDetectionFromBaseUrl();
   await renderLlmProfiles();
   refreshHeader();
 }
@@ -10978,7 +11201,7 @@ async function testLlm() {
   btn.disabled = true;
   const oldText = btn.textContent;
   try {
-    await saveLlmConfig();
+    await saveLlmConfig({ saveProfile: false });
     $('#cfg-status').textContent = '测试中…';
     $('#cfg-status').className = 'text-xs text-neutral-400';
     const r = await LLM.ping();
@@ -11017,8 +11240,10 @@ $('#cfg-profile-save').addEventListener('click', saveCurrentLlmProfile);
 $('#cfg-test').addEventListener('click', testLlm);
 $('#cfg-clear').addEventListener('click', clearLlm);
 $('#cfg-provider').addEventListener('change', e => applyLlmProviderPreset(e.target.value));
-$('#cfg-base').addEventListener('input', () => applyEndpointDetectionFromBaseUrl({ updateProvider: true }));
-$('#cfg-base').addEventListener('change', () => applyEndpointDetectionFromBaseUrl({ updateProvider: true }));
+$('#cfg-base').addEventListener('input', () => { markLlmConfigFormDirty(); applyEndpointDetectionFromBaseUrl(); });
+$('#cfg-base').addEventListener('change', () => { markLlmConfigFormDirty(); applyEndpointDetectionFromBaseUrl(); });
+$('#cfg-key').addEventListener('focus', showCfgKeyForEditing);
+$('#cfg-key').addEventListener('input', () => { showCfgKeyForEditing(); markLlmConfigFormDirty(); });
 $('#cfg-provider-trigger').addEventListener('click', () => {
   const current = $('#cfg-provider').value || 'custom';
   openChoiceSheet({
@@ -11035,7 +11260,7 @@ $('#cfg-provider-trigger').addEventListener('click', () => {
     onPick: opt => applyLlmProviderPreset(opt.value),
   });
 });
-$('#cfg-model').addEventListener('input', () => { renderModelPresetChips(); renderVisionCapabilityHint(); });
+$('#cfg-model').addEventListener('input', () => { markLlmConfigFormDirty(); renderModelPresetChips(); renderVisionCapabilityHint(); });
 $('#llm-diagnostic-close').addEventListener('click', closeLlmDiagnostic);
 $('#llm-diagnostic-copy').addEventListener('click', async () => {
   const text = $('#llm-diagnostic-body')?.textContent || '';
@@ -11060,13 +11285,7 @@ $('#session-card-popover').addEventListener('click', e => {
   e.stopPropagation();
   const sid = $('#session-card-popover')?.dataset?.sessionId;
   if (!sid) return;
-  if (btn.dataset.sessionAction === 'pin') {
-    const pinned = togglePinnedSession(sid);
-    toast(pinned ? '已置顶会话' : '已取消置顶');
-    setTimeout(renderSessionHome, 30);
-  } else if (btn.dataset.sessionAction === 'rename') {
-    renameSession(sid);
-  } else if (btn.dataset.sessionAction === 'preset-export') {
+  if (btn.dataset.sessionAction === 'preset-export') {
     exportSessionPreset(sid);
   } else if (btn.dataset.sessionAction === 'avatar') {
     chooseSessionAvatar(sid);
@@ -11075,6 +11294,9 @@ $('#session-card-popover').addEventListener('click', e => {
   }
   $('#session-card-popover').classList.add('hidden');
 });
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('.session-swipe-row')) closeSessionSwipeRows();
+}, true);
 document.addEventListener('pointerdown', e => {
   const pop = $('#message-action-popover');
   if (!pop || pop.classList.contains('hidden')) return;
@@ -11103,7 +11325,7 @@ async function restoreRuntimeConfigOnResume() {
     await restoreLlmConfig();
     await importNativeBackgroundTurns();
     await maybeRunProactiveTurn({ reason: 'resume' });
-    if (state.currentTab === 'settings') renderSettings();
+    if (state.currentTab === 'settings' && !llmConfigFormDirty) renderSettings();
     refreshHeader();
   } catch (err) {
     console.warn('restore runtime config failed', err);
@@ -11266,6 +11488,7 @@ function closeTopLayerForBack() {
   if (pop && !pop.classList.contains('hidden')) { closeMessageActionPopover(); return true; }
   const sPop = $('#session-card-popover');
   if (sPop && !sPop.classList.contains('hidden')) { sPop.classList.add('hidden'); return true; }
+  if ($('.session-swipe-row.session-swipe-open')) { closeSessionSwipeRows(); return true; }
   if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
   if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
   if (isOpenByHiddenClass('#graph-source-node-editor')) { closeGraphNodeEditor(); return true; }

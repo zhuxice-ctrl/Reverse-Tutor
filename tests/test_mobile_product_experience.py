@@ -77,12 +77,34 @@ def test_mobile_hidden_avatars_render_no_placeholder_or_initials():
 def test_mobile_sessions_can_be_renamed_and_created_with_custom_title():
     html = mobile_html()
 
-    assert 'data-session-action="rename"' in html
+    assert 'data-session-swipe-action="rename"' in html
     assert "async function renameSession" in html
     assert "session.title = title" in html
     assert 'id="new-title"' in html
     assert "title: $('#new-title').value.trim()" in html
     assert "title || `${role}" in html
+
+
+def test_mobile_session_row_swipe_actions_are_separate_from_long_press_avatar_menu():
+    html = mobile_html()
+    popover = html.split('id="session-card-popover"', 1)[1].split("</div>", 1)[0]
+    card_fn = html.split("const sessionCardHtml =", 1)[1].split("const pinnedCards =", 1)[0]
+    home_events = html.split("home.querySelectorAll('[data-session-open]')", 1)[1].split("refreshIcons();", 1)[0]
+    handler = html.split("async function handleSessionSwipeAction", 1)[1].split("async function openSessionWindow", 1)[0]
+
+    assert 'data-session-swipe-action="pin"' in card_fn
+    assert 'data-session-swipe-action="delete"' in card_fn
+    assert 'data-session-swipe-action="rename"' in card_fn
+    assert 'data-session-action="pin"' not in popover
+    assert 'data-session-action="rename"' not in popover
+    assert 'data-session-action="preset-export"' in popover
+    assert 'data-session-action="avatar"' in popover
+    assert 'data-session-action="avatar-clear"' in popover
+    assert "touchAction = 'pan-y'" in home_events
+    assert "session-swipe-open" in home_events
+    assert "handleSessionSwipeAction" in home_events
+    assert "confirm('删除该会话及所有数据？')" in handler
+    assert "ENGINE.delete_session(sid)" in handler
 
 
 def test_mobile_new_session_is_child_page_with_custom_preset_import_and_full_custom_page():

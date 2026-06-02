@@ -237,12 +237,59 @@ def test_mobile_free_glm_can_be_explicitly_selected_after_user_api_exists():
     collect_block = html.split("function collectLlmConfigFromForm", 1)[1].split("async function saveCurrentLlmProfile", 1)[0]
 
     assert "provider === FREE_DEFAULT_LLM_CONFIG.provider" in normalize_block
-    assert "baseUrl = FREE_DEFAULT_LLM_CONFIG.base_url" in normalize_block
+    assert "baseUrl = baseUrl || FREE_DEFAULT_LLM_CONFIG.base_url" in normalize_block
     assert "apiKey = apiKey || FREE_DEFAULT_LLM_CONFIG.api_key" in normalize_block
-    assert "model = FREE_DEFAULT_LLM_CONFIG.model" in normalize_block
+    assert "model = model || FREE_DEFAULT_LLM_CONFIG.model" in normalize_block
     assert "if (isRunnableLlmConfig(normalizedCurrent)) return normalizedCurrent" in select_block
-    assert "currentProvider !== FREE_DEFAULT_LLM_CONFIG.provider" in endpoint_block
-    assert "detected.providerId && provider !== FREE_DEFAULT_LLM_CONFIG.provider" in collect_block
+    assert "$('#cfg-provider').value = detected.providerId" not in endpoint_block
+    assert "const resolvedProvider = provider" in collect_block
+    assert "$('#cfg-provider').value = detected.providerId" not in collect_block
+
+
+def test_mobile_llm_presets_keep_user_edits_and_hide_key_only_after_save():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    provider_block = html.split("const LLM_PROVIDERS", 1)[1].split("const API_TYPE_OPTIONS", 1)[0]
+    normalize_block = html.split("function normalizeLlmConfig", 1)[1].split("function loadLlmConfigLocal", 1)[0]
+    save_block = html.split("async function saveLlmConfig", 1)[1].split("function llmErrorDiagnosis", 1)[0]
+    provider_preset_block = html.split("function applyLlmProviderPreset", 1)[1].split("async function renderSettings", 1)[0]
+    api_type_block = html.split("function applyApiTypeSelection", 1)[1].split("function applyLlmProviderPreset", 1)[0]
+    listener_block = html.split("$('#cfg-save').addEventListener", 1)[1].split("$('#llm-diagnostic-close')", 1)[0]
+
+    assert "glm-4.5-air" in provider_block
+    assert "const rawApiType = String(c.api_type || '').trim()" in normalize_block
+    assert "apiType = rawApiType ? apiType : FREE_DEFAULT_LLM_CONFIG.api_type" in normalize_block
+    assert "capability = capability || FREE_DEFAULT_LLM_CONFIG.capability" in normalize_block
+    assert "baseUrl = baseUrl || FREE_DEFAULT_LLM_CONFIG.base_url" in normalize_block
+    assert "model = model || FREE_DEFAULT_LLM_CONFIG.model" in normalize_block
+    assert "function showCfgKeyForEditing" in html
+    assert "function hideSavedCfgKey" in html
+    assert "async function upsertLlmProfileFromConfig" in html
+    assert "const profile = saveProfile ? await upsertLlmProfileFromConfig(c" in save_block
+    assert "applyLlmProviderPreset(" not in api_type_block
+    assert "showCfgKeyForEditing();" in provider_preset_block
+    assert "hideSavedCfgKey(cfg.has_api_key)" in save_block
+    assert "$('#cfg-key').addEventListener('focus', showCfgKeyForEditing)" in listener_block
+    assert "$('#cfg-key').addEventListener('input', () => { showCfgKeyForEditing(); markLlmConfigFormDirty(); })" in listener_block
+
+
+def test_mobile_llm_resume_does_not_overwrite_unsaved_config_form():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    resume_block = html.split("async function restoreRuntimeConfigOnResume", 1)[1].split("document.addEventListener('visibilitychange'", 1)[0]
+    provider_preset_block = html.split("function applyLlmProviderPreset", 1)[1].split("async function renderSettings", 1)[0]
+    api_type_block = html.split("function applyApiTypeSelection", 1)[1].split("function applyLlmProviderPreset", 1)[0]
+    save_block = html.split("async function saveLlmConfig", 1)[1].split("function llmErrorDiagnosis", 1)[0]
+    listener_block = html.split("$('#cfg-save').addEventListener", 1)[1].split("$('#llm-diagnostic-close')", 1)[0]
+
+    assert "let llmConfigFormDirty = false" in html
+    assert "function markLlmConfigFormDirty" in html
+    assert "function resetLlmConfigFormDirty" in html
+    assert "if (state.currentTab === 'settings' && !llmConfigFormDirty) renderSettings();" in resume_block
+    assert "markLlmConfigFormDirty();" in provider_preset_block
+    assert "markLlmConfigFormDirty();" in api_type_block
+    assert "resetLlmConfigFormDirty();" in save_block
+    assert "$('#cfg-key').addEventListener('input', () => { showCfgKeyForEditing(); markLlmConfigFormDirty(); })" in listener_block
+    assert "$('#cfg-model').addEventListener('input', () => { markLlmConfigFormDirty(); renderModelPresetChips(); renderVisionCapabilityHint(); })" in listener_block
+    assert "$('#cfg-base').addEventListener('input', () => { markLlmConfigFormDirty(); applyEndpointDetectionFromBaseUrl(); })" in listener_block
 
 
 def test_mobile_chat_turns_are_bound_and_rendered_safely():

@@ -346,37 +346,60 @@ def test_mobile_visual_model_state_is_clear_and_old_docs_can_be_reprocessed():
     assert "重新处理" in html
 
 
-def test_mobile_chat_image_draft_card_is_client_side_and_uses_normal_send_path():
+def test_mobile_chat_image_attachment_sends_direct_multimodal_turn():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
     assert 'id="chat-image-file" type="file" accept="image/*"' in html
     assert 'id="chat-image-pick"' in html
     assert 'id="image-draft-card"' in html
-    assert 'id="image-draft-text"' in html
+    assert 'id="image-draft-text"' not in html
+    assert 'id="image-draft-send"' not in html
     assert "const CHAT_IMAGE_MAX_BYTES = 10 * 1024 * 1024" in html
     assert "async function compressChatImageFile(file)" in html
     assert "file.size > CHAT_IMAGE_MAX_BYTES" in html
     assert "canvas.toDataURL('image/jpeg', CHAT_IMAGE_JPEG_QUALITY)" in html
     assert "function supports_image_messages()" in html
-    assert "if (!LLM.supports_image_messages())" in html
-    assert "await LLM.chat_json(system, [{ role:'user', content }]" in html
-    assert "raw.reply" in html
-    assert "++chatImageDraftSeq;\n  closeImageDraft();" in html
-    assert "setChatInputValue(text, true, { focus: true });\n  sendMessage();" in html
+    assert "function chatImageAttachmentFromDraft" in html
+    assert "function contentWithImageAttachments" in html
+    assert "currentInputAttachments" in html
+    assert "const activeImageDraft = opts.imageDraft || chatImageDraft || null;" in html
+    assert "if (activeImageDraft) closeImageDraft();" in html
+    assert "图片已附加，发送后由多模态模型直接读取" in html
 
     image_flow = html[html.index("const CHAT_IMAGE_MAX_EDGE"):html.index("let chatSendHandledByPointer")]
+    assert "recognizeChatImageDraft" not in image_flow
+    assert "LLM.chat_json(system, [{ role:'user', content }]" not in image_flow
+    assert "setChatInputValue(text, true, { focus: true });\n  sendMessage();" not in image_flow
+    assert "$('#image-draft-text')" not in image_flow
+    assert "请手动填写图片文字" not in image_flow
     assert "ENGINE.run_turn" not in image_flow
     assert "/api/sessions/${encodeURIComponent(state.sid)}/images" not in image_flow
 
 
-def test_mobile_chat_image_recognition_does_not_use_anthropic_text_adapter_for_images():
+def test_mobile_chat_image_messages_support_anthropic_and_openai_payloads():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
     llm_src = html.split("const LLM = (() => {", 1)[1].split("})();", 1)[0]
     supports_fn = llm_src.split("function supports_image_messages", 1)[1].split("return {", 1)[0]
+    anthropic_payload = html.split("function anthropicImageSource", 1)[1].split("function extractAnthropicText", 1)[0]
 
     assert "supports_vision()" in supports_fn
-    assert "c.api_type !== 'anthropic'" in supports_fn
+    assert "c.api_type !== 'anthropic'" not in supports_fn
+    assert "type:'image'" in anthropic_payload
+    assert "source:{ type:'base64'" in anthropic_payload
     assert "supports_image_messages" in llm_src.rsplit("return {", 1)[1].split("};", 1)[0]
+
+
+def test_mobile_chat_strips_model_thinking_from_visible_replies():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    strip_fn = html.split("function stripModelThinkingText", 1)[1].split("function renderRichText", 1)[0]
+    stream_fn = html.split("if (opts.stream)", 1)[1].split("// Non-streaming path", 1)[0]
+    non_stream_fn = html.split("// Non-streaming path", 1)[1].split("async function run_proactive_turn", 1)[0]
+
+    assert "Thinking Process" in strip_fn
+    assert "<think>" in strip_fn
+    assert "stripModelThinkingText(streamObj.fullText() || currentBubbleText)" in stream_fn
+    assert "stripModelThinkingText(raw.reply||'')" in non_stream_fn
+    assert "content.innerHTML = safeChatHtml(htmlText);" in html
 
 
 def test_mobile_service_worker_cache_key_is_not_changed_for_v4_image_card():
@@ -404,7 +427,8 @@ def test_mobile_renders_math_and_chemistry_as_readable_rich_text():
     assert "function renderMathExpression" in html
     assert "math-inline" in html
     assert "frac-line" in html
-    assert "safeChatHtml(content) {\n  return renderRichText(content);" in html
+    assert "function stripModelThinkingText" in html
+    assert "safeChatHtml(content) {\n  return renderRichText(stripModelThinkingText(content));" in html
     assert "renderRichText(m.content)" in html
 
 
@@ -768,10 +792,10 @@ def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_
     assert "不要把最后一条 user 消息当作历史总结" in html
     assert "const currentInputMessageIds = queuedUserMessages.map" in run_turn_fn
     assert "const promptUserInput = currentInputMessageIds.length ? effectiveUserInput : null;" in run_turn_fn
-    assert "build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds })" in run_turn_fn
+    assert "build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds, current_input_attachments: currentInputAttachments })" in run_turn_fn
     assert "formatCurrentInputInstruction(promptUserInput)" in run_turn_fn
     assert "const currentInputMessageIds = turnMeta.currentInputMessageIds || [];" in native_queue_fn
-    assert "build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds })" in native_queue_fn
+    assert "build_messages(msgs, promptUserInput, skip_id, { exclude_ids: currentInputMessageIds, current_input_attachments: currentInputAttachments })" in native_queue_fn
     assert "formatCurrentInputInstruction(promptUserInput)" in native_queue_fn
     assert "logical_created_at: Date.now() + 86400000" not in html
     assert "logicalBase" not in html
