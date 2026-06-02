@@ -17,10 +17,10 @@
       const metaColors = {
         ink: '#252927',
         warm: '#c9c0b3',
-        berry: '#241820',
+        berry: '#2a1b27',
         midnight: '#171b24',
-        ember: '#251d19',
-        ocean: '#ddd7ea',
+        ember: '#292724',
+        ocean: '#09100e',
       };
       const saved = localStorage.getItem('rt-mobile-theme');
       const theme = Object.prototype.hasOwnProperty.call(metaColors, saved) ? saved : 'ink';
@@ -109,35 +109,36 @@
   }
   :root.theme-berry, body.theme-berry {
     color-scheme: dark;
-    --page: #241820;
-    --panel: #31222b;
-    --panel-2: #3d2a35;
-    --panel-3: #553747;
-    --line: #705164;
-    --text: #f5e8ee;
-    --text-soft: #dec9d4;
-    --muted: #b99dac;
-    --accent: #b88493;
-    --accent-hover: #c294a0;
-    --accent-soft: #543944;
-    --warn: #b9a06d;
-    --chat-bg: #2d1f28;
-    --chat-line: rgba(245, 232, 238, .10);
-    --chat-mark: rgba(216, 137, 159, .12);
-    --page-glow-1: rgba(184, 132, 147, .10);
-    --page-glow-2: rgba(185, 160, 109, .07);
-    --glass: rgba(49, 34, 43, .80);
-    --glass-2: rgba(61, 42, 53, .68);
-    --glass-line: rgba(245, 232, 238, .14);
-    --page-gradient: radial-gradient(circle at 14% 0%, rgba(184,132,147,.14), transparent 32%), radial-gradient(circle at 88% 8%, rgba(185,160,109,.07), transparent 30%), linear-gradient(180deg, #342832 0%, #2b222a 42%, #21191f 72%, #171116 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(184,132,147,.06), transparent 30%), linear-gradient(180deg, #322830 0%, #2f252d 56%, #2b2228 100%);
-    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(245,232,238,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(245,232,238,.014) 35px, transparent 36px);
-    --texture-opacity: .62;
-    --surface-gradient: linear-gradient(180deg, rgba(72,44,58,.80), rgba(43,27,38,.84) 60%, rgba(24,15,22,.88));
-    --surface-soft-gradient: linear-gradient(180deg, rgba(82,52,66,.72), rgba(54,34,47,.72) 58%, rgba(39,24,34,.74));
-    --card-gradient: radial-gradient(circle at 9% 0%, rgba(184,132,147,.13), transparent 34%), linear-gradient(180deg, rgba(64,47,57,.78), rgba(45,34,42,.82) 60%, rgba(30,23,28,.84));
-    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(184,132,147,.22), transparent 38%), linear-gradient(180deg, rgba(78,55,66,.86), rgba(53,39,48,.84) 60%, rgba(36,27,33,.86));
-    --avatar-gradient: linear-gradient(135deg, #c7a2ac, #a47786 52%, #b0a078);
+    --page: #2a1b27;
+    --panel: #342530;
+    --panel-2: #402d38;
+    --panel-3: #523845;
+    --line: #725869;
+    --text: #f6eeee;
+    --text-soft: #dbc7cb;
+    --muted: #ae9a9a;
+    --accent: #d87963;
+    --accent-hover: #e08a75;
+    --accent-soft: #503138;
+    --warn: #d8b86b;
+    --chat-bg: #281b25;
+    --chat-line: rgba(216, 121, 99, .13);
+    --chat-mark: rgba(216, 121, 99, .12);
+    --page-glow-1: rgba(216, 121, 99, .12);
+    --page-glow-2: rgba(216, 184, 107, .09);
+    --glass: rgba(52, 37, 48, .82);
+    --glass-2: rgba(64, 45, 56, .70);
+    --glass-line: rgba(234, 201, 187, .15);
+    --page-gradient: radial-gradient(circle at 16% 0%, rgba(216,121,99,.13), transparent 31%), radial-gradient(circle at 88% 9%, rgba(216,184,107,.09), transparent 29%), radial-gradient(circle at 50% 94%, rgba(164,80,113,.08), transparent 36%), linear-gradient(180deg, #372935 0%, #2f222d 42%, #251820 72%, #160f15 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(216,121,99,.07), transparent 30%), radial-gradient(circle at 86% 12%, rgba(216,184,107,.05), transparent 28%), linear-gradient(180deg, #332530 0%, #2b1e28 56%, #23161f 100%);
+    --grain-overlay: none;
+    --texture-overlay: none;
+    --texture-opacity: 0;
+    --surface-gradient: radial-gradient(circle at 9% 0%, rgba(216,121,99,.08), transparent 34%), linear-gradient(180deg, rgba(62,43,54,.84), rgba(40,27,36,.86) 60%, rgba(23,15,22,.90));
+    --surface-soft-gradient: radial-gradient(circle at 10% 0%, rgba(216,184,107,.07), transparent 34%), linear-gradient(180deg, rgba(68,47,58,.76), rgba(48,33,43,.76) 58%, rgba(33,22,30,.78));
+    --card-gradient: radial-gradient(circle at 8% 0%, rgba(216,121,99,.11), transparent 34%), radial-gradient(circle at 92% 8%, rgba(216,184,107,.08), transparent 32%), linear-gradient(180deg, rgba(66,47,57,.82), rgba(46,32,42,.84) 60%, rgba(30,20,28,.87));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(216,121,99,.18), transparent 38%), radial-gradient(circle at 92% 12%, rgba(216,184,107,.12), transparent 34%), linear-gradient(180deg, rgba(78,54,63,.90), rgba(54,36,47,.88) 60%, rgba(35,23,33,.90));
+    --avatar-gradient: linear-gradient(135deg, #d87963, #a45071 48%, #d8b86b);
   }
   :root.theme-midnight, body.theme-midnight {
     color-scheme: dark;
@@ -173,67 +174,69 @@
   }
   :root.theme-ember, body.theme-ember {
     color-scheme: dark;
-    --page: #251d19;
-    --panel: #302821;
-    --panel-2: #3d3128;
-    --panel-3: #504236;
-    --line: #705f50;
-    --text: #f4ede5;
-    --text-soft: #dccdc0;
-    --muted: #b29f8e;
-    --accent: #b6896d;
-    --accent-hover: #c0987d;
-    --accent-soft: #553d33;
-    --warn: #bea36e;
-    --chat-bg: #312721;
-    --chat-line: rgba(244, 237, 229, .10);
-    --chat-mark: rgba(212, 147, 101, .12);
-    --page-glow-1: rgba(182, 137, 109, .09);
-    --page-glow-2: rgba(190, 163, 110, .06);
-    --glass: rgba(48, 40, 33, .80);
-    --glass-2: rgba(61, 49, 40, .68);
-    --glass-line: rgba(244, 237, 229, .14);
-    --page-gradient: radial-gradient(circle at 14% 0%, rgba(182,137,109,.13), transparent 32%), radial-gradient(circle at 88% 8%, rgba(190,163,110,.07), transparent 30%), linear-gradient(180deg, #372d26 0%, #2d251f 42%, #211b17 72%, #17120f 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(182,137,109,.06), transparent 30%), linear-gradient(180deg, #352d27 0%, #312923 56%, #2e251f 100%);
-    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(244,237,229,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(244,237,229,.014) 35px, transparent 36px);
-    --texture-opacity: .62;
-    --surface-gradient: linear-gradient(180deg, rgba(70,52,39,.80), rgba(42,31,24,.84) 60%, rgba(24,17,13,.88));
-    --surface-soft-gradient: linear-gradient(180deg, rgba(75,57,43,.72), rgba(48,36,28,.72) 58%, rgba(34,25,20,.74));
-    --card-gradient: radial-gradient(circle at 9% 0%, rgba(182,137,109,.13), transparent 34%), linear-gradient(180deg, rgba(63,51,43,.78), rgba(44,36,30,.82) 60%, rgba(29,23,19,.84));
-    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(182,137,109,.22), transparent 38%), linear-gradient(180deg, rgba(76,58,47,.86), rgba(53,41,33,.84) 60%, rgba(35,27,22,.86));
-    --avatar-gradient: linear-gradient(135deg, #c7aa8f, #9d7a64 54%, #b9a56f);
+    --page: #292724;
+    --panel: #34322e;
+    --panel-2: #3f3c36;
+    --panel-3: #504b42;
+    --line: #756c5d;
+    --text: #f4eee3;
+    --text-soft: #d8cbb9;
+    --muted: #a99c8a;
+    --accent: #b88c67;
+    --accent-hover: #c39a74;
+    --accent-soft: #554639;
+    --warn: #8f9d92;
+    --chat-bg: #282723;
+    --chat-line: rgba(244, 238, 227, .10);
+    --chat-mark: rgba(184, 140, 103, .10);
+    --page-glow-1: rgba(184, 140, 103, .10);
+    --page-glow-2: rgba(143, 157, 146, .07);
+    --glass: rgba(52, 50, 46, .84);
+    --glass-2: rgba(63, 60, 54, .72);
+    --glass-line: rgba(244, 238, 227, .15);
+    --page-gradient: radial-gradient(circle at 13% 0%, rgba(184,140,103,.12), transparent 31%), radial-gradient(circle at 90% 8%, rgba(143,157,146,.08), transparent 28%), radial-gradient(circle at 52% 92%, rgba(99,80,62,.08), transparent 36%), linear-gradient(180deg, #34322e 0%, #2d2b27 42%, #24221f 72%, #191815 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(184,140,103,.06), transparent 30%), radial-gradient(circle at 88% 12%, rgba(143,157,146,.045), transparent 28%), linear-gradient(180deg, #32302c 0%, #2d2b27 56%, #272521 100%);
+    --grain-overlay: none;
+    --texture-overlay: none;
+    --texture-opacity: 0;
+    --surface-gradient: radial-gradient(circle at 9% 0%, rgba(184,140,103,.08), transparent 34%), linear-gradient(180deg, rgba(60,56,50,.84), rgba(40,38,34,.86) 60%, rgba(22,21,19,.90));
+    --surface-soft-gradient: radial-gradient(circle at 10% 0%, rgba(143,157,146,.06), transparent 34%), linear-gradient(180deg, rgba(68,63,55,.76), rgba(47,44,39,.76) 58%, rgba(32,30,27,.78));
+    --card-gradient: radial-gradient(circle at 8% 0%, rgba(184,140,103,.10), transparent 34%), radial-gradient(circle at 92% 8%, rgba(143,157,146,.07), transparent 32%), linear-gradient(180deg, rgba(61,57,50,.82), rgba(43,40,35,.84) 60%, rgba(29,27,24,.87));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(184,140,103,.18), transparent 38%), radial-gradient(circle at 92% 12%, rgba(143,157,146,.11), transparent 34%), linear-gradient(180deg, rgba(74,68,58,.90), rgba(50,46,39,.88) 60%, rgba(33,31,27,.90));
+    --avatar-gradient: linear-gradient(135deg, #1f1e1b, #b88c67 52%, #8f9d92);
   }
   :root.theme-ocean, body.theme-ocean {
-    color-scheme: light;
-    --page: #ddd7ea;
-    --panel: #e9e3f1;
-    --panel-2: #f5f0fa;
-    --panel-3: #cec3df;
-    --line: #aa9abd;
-    --text: #261f2f;
-    --text-soft: #51445f;
-    --muted: #766985;
-    --accent: #827394;
-    --accent-hover: #746487;
-    --accent-soft: #ded9e8;
-    --warn: #806f4a;
-    --chat-bg: #f2eef7;
-    --chat-line: rgba(117, 86, 159, .14);
-    --chat-mark: rgba(117, 86, 159, .10);
-    --page-glow-1: rgba(130, 115, 148, .10);
-    --page-glow-2: rgba(128, 111, 74, .07);
-    --glass: rgba(233, 227, 241, .78);
-    --glass-2: rgba(245, 240, 250, .66);
-    --glass-line: rgba(84, 62, 111, .18);
-    --page-gradient: radial-gradient(circle at 14% 0%, rgba(255,255,255,.30), transparent 30%), radial-gradient(circle at 88% 8%, rgba(130,115,148,.09), transparent 28%), linear-gradient(180deg, #f9f6fb 0%, #eee8f4 34%, #ddd4e8 68%, #c9bed6 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(255,255,255,.14), transparent 28%), linear-gradient(180deg, #faf7fc 0%, #f3eff7 56%, #eee8f3 100%);
-    --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(130,115,148,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(84,72,99,.016) 35px, transparent 36px);
-    --texture-opacity: .54;
-    --surface-gradient: linear-gradient(180deg, rgba(253,249,255,.82), rgba(228,219,240,.84) 58%, rgba(187,174,207,.86));
-    --surface-soft-gradient: linear-gradient(180deg, rgba(253,249,255,.78), rgba(232,222,244,.74) 56%, rgba(201,189,220,.76));
-    --card-gradient: radial-gradient(circle at 10% 0%, rgba(255,255,255,.24), transparent 34%), linear-gradient(180deg, rgba(251,248,253,.84), rgba(229,222,239,.84) 56%, rgba(204,194,216,.88));
-    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(255,255,255,.30), transparent 38%), linear-gradient(180deg, rgba(246,242,250,.88), rgba(225,217,237,.86) 56%, rgba(199,188,215,.88));
-    --avatar-gradient: linear-gradient(135deg, #beb2cc, #7f718f 54%, #a9956f);
+    color-scheme: dark;
+    --page: #09100e;
+    --panel: #0e1512;
+    --panel-2: #151d19;
+    --panel-3: #202b25;
+    --line: #30443a;
+    --text: #f1fff8;
+    --text-soft: #b9d0c5;
+    --muted: #6f837a;
+    --accent: #3fbd8d;
+    --accent-hover: #58c99d;
+    --accent-soft: #0c3428;
+    --warn: #8460b5;
+    --chat-bg: #090d0c;
+    --chat-line: rgba(63, 189, 141, .12);
+    --chat-mark: rgba(63, 189, 141, .11);
+    --page-glow-1: rgba(63, 189, 141, .10);
+    --page-glow-2: rgba(132, 96, 181, .08);
+    --glass: rgba(14, 21, 18, .86);
+    --glass-2: rgba(21, 29, 25, .74);
+    --glass-line: rgba(114, 255, 206, .16);
+    --page-gradient: radial-gradient(circle at 13% 0%, rgba(63,189,141,.10), transparent 31%), radial-gradient(circle at 88% 8%, rgba(132,96,181,.08), transparent 29%), radial-gradient(circle at 50% 94%, rgba(42,95,75,.08), transparent 36%), linear-gradient(180deg, #111815 0%, #0b1210 42%, #09100e 72%, #040706 100%);
+    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(63,189,141,.055), transparent 30%), radial-gradient(circle at 86% 12%, rgba(132,96,181,.045), transparent 28%), linear-gradient(180deg, #0e1512 0%, #0a100e 56%, #070b0a 100%);
+    --grain-overlay: none;
+    --texture-overlay: none;
+    --texture-opacity: 0;
+    --surface-gradient: radial-gradient(circle at 8% 0%, rgba(63,189,141,.075), transparent 34%), linear-gradient(180deg, rgba(17,28,24,.86), rgba(10,18,15,.88) 60%, rgba(4,8,7,.92));
+    --surface-soft-gradient: radial-gradient(circle at 10% 0%, rgba(132,96,181,.06), transparent 34%), linear-gradient(180deg, rgba(22,34,29,.78), rgba(13,22,18,.78) 56%, rgba(7,12,10,.80));
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(63,189,141,.10), transparent 34%), radial-gradient(circle at 92% 8%, rgba(132,96,181,.07), transparent 30%), linear-gradient(180deg, rgba(18,28,24,.86), rgba(12,20,17,.86) 56%, rgba(7,12,10,.88));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(63,189,141,.17), transparent 38%), radial-gradient(circle at 92% 12%, rgba(132,96,181,.11), transparent 32%), linear-gradient(180deg, rgba(22,37,31,.92), rgba(13,25,20,.90) 56%, rgba(7,15,12,.92));
+    --avatar-gradient: linear-gradient(135deg, #050706, #3fbd8d 58%, #8460b5);
   }
   html, body { height: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; overflow: hidden; }
   body {
@@ -1754,6 +1757,7 @@
   <!-- 新建会话 page -->
   <section data-view="new-session" id="new-session-page" class="view flex-1 min-h-0 hidden flex flex-col">
     <div class="new-session-page flex-1 min-h-0 scroll-y px-3 py-3 space-y-4">
+      <button id="new-create" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium shadow-lg">创建会话 + 学生开场</button>
       <div id="new-quick-panel" class="space-y-4">
         <div class="grid grid-cols-3 gap-2">
           <button type="button" data-new-mode="custom" class="bg-neutral-900 active:bg-neutral-800 border border-neutral-800 rounded-lg p-3 text-left">
@@ -1841,7 +1845,6 @@
           <div id="new-avatar-status" class="text-[11px] text-neutral-500">未选择头像</div>
         </div>
       </div>
-      <button id="new-create" class="sticky bottom-3 w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium shadow-lg">创建会话 + 学生开场</button>
     </div>
   </section>
 
@@ -2067,6 +2070,8 @@ const state = {
   selectedActionMessage: null,
   quotedMessage: null,
   newProfileTags: [],
+  newStrategySettings: null,
+  newPersonaPersonality: '',
   activeProfileTagCategory: 'weakness',
   profileTagExpanded: false,
   profileTagSearch: '',
@@ -2124,10 +2129,10 @@ const SESSION_PRESETS_KEY = 'rt-mobile-session-presets';
 const THEME_OPTIONS = [
   { id:'ink', label:'柔和黑色', detail:'默认低亮深色', metaColor:'#252927', swatches:['#252927','#303631','#78a084'] },
   { id:'warm', label:'暖灰浅色', detail:'纸感浅色阅读', metaColor:'#c9c0b3', swatches:['#c9c0b3','#e4ddd4','#567663'] },
-  { id:'berry', label:'莓果暗色', detail:'柔和酒红背景', metaColor:'#241820', swatches:['#241820','#3d2a35','#d8899f'] },
+  { id:'berry', label:'迈阿密夕阳', detail:'暖紫暗调，低饱和落日橙与柔黄', metaColor:'#2a1b27', swatches:['#2a1b27','#d87963','#d8b86b'] },
   { id:'midnight', label:'蓝灰夜色', detail:'冷静深色界面', metaColor:'#171b24', swatches:['#171b24','#2c3546','#8fb8c9'] },
-  { id:'ember', label:'琥珀暗色', detail:'暖调深色对话', metaColor:'#251d19', swatches:['#251d19','#3d3128','#d49365'] },
-  { id:'ocean', label:'紫藤浅色', detail:'柔和紫色阅读', metaColor:'#ddd7ea', swatches:['#ddd7ea','#f5f0fa','#75569f'] },
+  { id:'ember', label:'侘寂原木', detail:'深空原木磨砂，沙丘草绿收尾', metaColor:'#292724', swatches:['#292724','#b88c67','#8f9d92'] },
+  { id:'ocean', label:'复古黑客', detail:'暗视野磨砂，柔和终端绿与暗紫', metaColor:'#09100e', swatches:['#09100e','#3fbd8d','#8460b5'] },
 ];
 const THEME_META = Object.fromEntries(THEME_OPTIONS.map(theme => [theme.id, theme]));
 const PROACTIVE_MODES = {
@@ -6295,16 +6300,100 @@ function supportsBackgroundChat(cfg) {
 const TEMPLATES = [
   { label:'📐 高三冲刺', role:'高三理科生', goal:'数学一年内冲到 130 分',
     deadline:'2026 高考', personality:'焦虑+好胜，会逃避难题',
-    reqs:['重点突破函数、导数、解析几何','先慢后快，前期循序渐进']},
+    profile_long_text:'数学目标明确但遇到综合题容易先慌，常见问题是审题跳步、公式会背不会迁移。适合先定位前置缺口，再用反例追问逼出关键条件。',
+    profile_tags:[{ category:'weakness', label:'审题跳步' }, { category:'reaction', label:'容易焦虑' }, { category:'strategy', label:'考试导向' }],
+    settings:{ feedback_intensity:4, probing_intensity:4, scaffold_intensity:3, correction_persistence:'balanced', review_frequency:'high', tone:'warm' },
+    reqs:['重点突破函数、导数、解析几何','先慢后快，前期循序渐进','每次结束给一个可复盘错因']},
   { label:'🐍 Python 入门', role:'编程小白', goal:'3 个月能独立写 Python 小工具',
     deadline:'3 个月内', personality:'好奇但容易被报错吓到',
-    reqs:['从语法到实战','案例驱动']},
+    profile_long_text:'对编程有兴趣，但看到 traceback 会退缩。需要把错误信息当线索读，先写小脚本，再逐步加入文件、网络请求和简单 GUI。',
+    profile_tags:[{ category:'weakness', label:'基础断层' }, { category:'reaction', label:'害怕暴露不会' }, { category:'preference', label:'先例题再抽象' }],
+    settings:{ feedback_intensity:3, probing_intensity:3, scaffold_intensity:4, correction_persistence:'gentle', review_frequency:'normal', tone:'warm' },
+    reqs:['从语法到实战','案例驱动','每次保留一个可运行的小练习']},
   { label:'🗣️ 雅思口语', role:'雅思考生', goal:'口语稳定 7.0',
     deadline:'3 个月', personality:'紧张内向，开口困难',
-    reqs:['重点 part 2 长讲','每天必须练 15 分钟']},
+    profile_long_text:'开口前会反复担心语法，导致句子短、停顿多。适合先给低压力话题，再做追问扩展、连接词和自然纠错。',
+    profile_tags:[{ category:'reaction', label:'被追问会紧张' }, { category:'preference', label:'偏好口语化解释' }, { category:'strategy', label:'降低挫败感' }],
+    settings:{ feedback_intensity:3, probing_intensity:4, scaffold_intensity:3, correction_persistence:'gentle', review_frequency:'high', tone:'warm' },
+    reqs:['重点 Part 2 长讲','每天必须练 15 分钟','先流利度后精修表达']},
   { label:'📚 考研英语', role:'考研党', goal:'考研英语二 75+',
     deadline:'2025 年 12 月', personality:'毅力强但词汇底子薄',
-    reqs:['每天 30 个核心词汇','阅读以真题为主']},
+    profile_long_text:'能坚持但容易把阅读错因归结为单词不会。需要拆分长难句、定位题干陷阱，并把高频词放进复习调度。',
+    profile_tags:[{ category:'weakness', label:'知识点串不起来' }, { category:'preference', label:'需要错题对照' }, { category:'strategy', label:'多做阶段小结' }],
+    settings:{ feedback_intensity:3, probing_intensity:3, scaffold_intensity:3, correction_persistence:'balanced', review_frequency:'high', tone:'calm' },
+    reqs:['每天 30 个核心词汇','阅读以真题为主','每周复盘一次错题类型']},
+  { label:'🏛️ 公务员行测', role:'公考备考生', goal:'行测稳定 75+',
+    deadline:'省考前 4 个月', personality:'速度焦虑，容易在数量关系卡住',
+    profile_long_text:'目标是提速和稳定正确率。需要把题型、方法、耗时和放弃策略一起训练，避免在低收益题上消耗过久。',
+    profile_tags:[{ category:'weakness', label:'应用题无从下手' }, { category:'resistance', label:'急着要答案' }, { category:'strategy', label:'快节奏推进' }],
+    settings:{ feedback_intensity:4, probing_intensity:3, scaffold_intensity:2, correction_persistence:'persistent', review_frequency:'normal', tone:'calm' },
+    reqs:['数量关系先做取舍策略','资料分析练速算','每轮标记耗时']},
+  { label:'💻 前端作品集', role:'转行前端学习者', goal:'8 周做出可投递作品集',
+    deadline:'8 周内', personality:'审美敏感但工程基础不稳',
+    profile_long_text:'想做出能展示能力的项目，但容易沉迷样式细节。需要把需求、组件、数据状态、测试和部署拆成阶段任务。',
+    profile_tags:[{ category:'weakness', label:'步骤漏写' }, { category:'preference', label:'喜欢步骤清单' }, { category:'strategy', label:'多做阶段小结' }],
+    settings:{ feedback_intensity:4, probing_intensity:3, scaffold_intensity:4, correction_persistence:'balanced', review_frequency:'normal', tone:'natural' },
+    reqs:['先确定作品集主题','每周完成一个可展示模块','代码和交互都要能解释']},
+  { label:'🇯🇵 日语 N2', role:'日语自学者', goal:'半年通过 JLPT N2',
+    deadline:'6 个月', personality:'听力弱，背单词容易半途而废',
+    profile_long_text:'词汇和语法需要滚动复习，听力需要从短句 shadowing 开始。适合每天小任务，不适合一次性塞太多内容。',
+    profile_tags:[{ category:'weakness', label:'复习后遗忘快' }, { category:'reaction', label:'容易放弃' }, { category:'preference', label:'短回合高频反馈' }],
+    settings:{ feedback_intensity:3, probing_intensity:2, scaffold_intensity:4, correction_persistence:'gentle', review_frequency:'high', tone:'warm' },
+    reqs:['语法按场景造句','听力每天 10 分钟 shadowing','错词进入复习']},
+  { label:'🤖 机器学习入门', role:'AI 初学者', goal:'2 个月掌握机器学习基础',
+    deadline:'2 个月', personality:'数学基础一般，容易被公式吓到',
+    profile_long_text:'需要先从直觉、图像和小数据例子进入，再回到公式。不要直接堆概念，要让用户能解释模型为什么这样预测。',
+    profile_tags:[{ category:'weakness', label:'概念混淆' }, { category:'preference', label:'图示更容易懂' }, { category:'strategy', label:'慢节奏拆解' }],
+    settings:{ feedback_intensity:3, probing_intensity:4, scaffold_intensity:4, correction_persistence:'balanced', review_frequency:'normal', tone:'calm' },
+    reqs:['先理解监督学习/回归/分类','每个概念配一个小例子','用 Python 做最小实验']},
+  { label:'🧮 初中数学补缺', role:'初二学生', goal:'期末数学从 70 到 90',
+    deadline:'本学期期末', personality:'基础断层，遇到应用题就想跳过',
+    profile_long_text:'需要补齐方程、函数、几何基础。回答时常常只给结果不写过程，必须引导他说出每一步为什么。',
+    profile_tags:[{ category:'weakness', label:'基础断层' }, { category:'resistance', label:'不爱写过程' }, { category:'preference', label:'先给提示不揭答案' }],
+    settings:{ feedback_intensity:4, probing_intensity:4, scaffold_intensity:5, correction_persistence:'balanced', review_frequency:'high', tone:'warm' },
+    reqs:['先补前置知识','每题必须写过程','每天 3 道典型题']},
+  { label:'🧪 高中化学', role:'高二学生', goal:'化学稳定 85+',
+    deadline:'下次月考', personality:'概念会背但不会综合推断',
+    profile_long_text:'重点是物质结构、反应原理和实验题。需要把题干信息转成反应链，追问条件、现象和守恒关系。',
+    profile_tags:[{ category:'weakness', label:'公式会背不会用' }, { category:'weakness', label:'推理链容易断' }, { category:'strategy', label:'错因优先' }],
+    settings:{ feedback_intensity:4, probing_intensity:4, scaffold_intensity:3, correction_persistence:'persistent', review_frequency:'normal', tone:'calm' },
+    reqs:['每次抓一个反应原理','实验题重视现象和原因','错因写成短句']},
+  { label:'📖 小学阅读', role:'五年级学生', goal:'阅读理解答题更完整',
+    deadline:'2 个月', personality:'想象力强但答题容易跑题',
+    profile_long_text:'需要训练从原文找证据、分点作答和概括段意。语气要轻松，但要坚持让学生引用原句。',
+    profile_tags:[{ category:'weakness', label:'审题跳步' }, { category:'preference', label:'喜欢类比' }, { category:'reaction', label:'需要及时肯定' }],
+    settings:{ feedback_intensity:5, probing_intensity:3, scaffold_intensity:5, correction_persistence:'gentle', review_frequency:'normal', tone:'warm' },
+    reqs:['先读题再回原文','每题找一句证据','训练分点表达']},
+  { label:'🎤 演讲表达', role:'职场新人', goal:'一个月内能清晰做 5 分钟汇报',
+    deadline:'1 个月', personality:'准备充分但上台紧张',
+    profile_long_text:'需要训练结构、开头、过渡和结尾。反馈要具体到句子，不要只说“不错”。每轮最好让用户复述一版。',
+    profile_tags:[{ category:'reaction', label:'容易焦虑' }, { category:'preference', label:'偏好口语化解释' }, { category:'strategy', label:'先鼓励再纠错' }],
+    settings:{ feedback_intensity:4, probing_intensity:3, scaffold_intensity:3, correction_persistence:'gentle', review_frequency:'low', tone:'warm' },
+    reqs:['先做 5 分钟汇报结构','每次练一个开场','录音后复盘卡点']},
+  { label:'📊 数据分析', role:'运营转数据分析', goal:'10 周掌握 SQL + 可视化',
+    deadline:'10 周', personality:'业务理解强但统计基础弱',
+    profile_long_text:'学习应围绕业务问题展开：指标定义、SQL 查询、可视化解释和结论建议。每个知识点都要落到一个场景。',
+    profile_tags:[{ category:'weakness', label:'迁移困难' }, { category:'preference', label:'先例题再抽象' }, { category:'strategy', label:'考试导向' }],
+    settings:{ feedback_intensity:3, probing_intensity:4, scaffold_intensity:3, correction_persistence:'balanced', review_frequency:'normal', tone:'natural' },
+    reqs:['SQL 从查询到分组聚合','每周一个业务分析题','图表必须说明结论']},
+  { label:'🧠 认知心理学', role:'心理学入门者', goal:'系统读完一本认知心理学教材',
+    deadline:'12 周', personality:'爱联想但容易概念混杂',
+    profile_long_text:'需要把概念、实验、结论和现实例子分开整理。适合用提问检查是否能举例和迁移。',
+    profile_tags:[{ category:'weakness', label:'概念混淆' }, { category:'preference', label:'喜欢类比' }, { category:'strategy', label:'多用苏格拉底式' }],
+    settings:{ feedback_intensity:3, probing_intensity:5, scaffold_intensity:2, correction_persistence:'balanced', review_frequency:'normal', tone:'calm' },
+    reqs:['每章整理核心概念','必须能讲出实验逻辑','用生活例子迁移']},
+  { label:'🏃 健身习惯', role:'久坐上班族', goal:'90 天建立稳定运动习惯',
+    deadline:'90 天', personality:'开局热情高，容易三天打鱼',
+    profile_long_text:'重点不是极限强度，而是低门槛持续。需要记录阻碍、情绪和恢复情况，避免把一次中断当失败。',
+    profile_tags:[{ category:'resistance', label:'分心拖延' }, { category:'reaction', label:'压力越大越乱' }, { category:'strategy', label:'降低挫败感' }],
+    settings:{ feedback_intensity:4, probing_intensity:2, scaffold_intensity:4, correction_persistence:'gentle', review_frequency:'high', tone:'warm' },
+    reqs:['先从每周 3 次 20 分钟开始','记录睡眠和疲劳','中断后要有恢复方案']},
+  { label:'🎨 绘画基础', role:'零基础绘画学习者', goal:'3 个月掌握头像素描基础',
+    deadline:'3 个月', personality:'喜欢画但怕被评价',
+    profile_long_text:'需要把观察、比例、明暗和结构拆开练。反馈要指出一个主要问题和一个下一步动作，不要一次批太多。',
+    profile_tags:[{ category:'reaction', label:'被否定会退缩' }, { category:'preference', label:'适合分层任务' }, { category:'strategy', label:'先鼓励再纠错' }],
+    settings:{ feedback_intensity:3, probing_intensity:2, scaffold_intensity:5, correction_persistence:'gentle', review_frequency:'normal', tone:'warm' },
+    reqs:['先练线条和比例','每周一张完整头像','反馈只抓最关键问题']},
 ];
 
 function cleanProfileTagLabel(label) {
@@ -6569,10 +6658,14 @@ function applyPresetToCustomForm(preset={}) {
   $('#new-role').value = preset.role || '';
   $('#new-goal').value = preset.goal || '';
   $('#new-deadline').value = preset.deadline || '';
+  $('#new-reqs').value = Array.isArray(preset.reqs) ? preset.reqs.map(x => String(x || '').trim()).filter(Boolean).join('\n') : '';
+  state.newPersonaPersonality = String(preset.personality || '').trim();
+  state.newStrategySettings = preset.settings ? ENGINE.normalizeStrategySettings(preset.settings) : null;
   state.newProfileTags = Array.isArray(preset.profile_tags) ? preset.profile_tags.map(t => ({ category: t.category || 'custom', label: t.label || String(t).slice(0, 20) })) : [];
   $('#profile-long-text').value = mergeProfileLongText(
     preset.profile_summary?.long_text_summary,
     preset.profile_summary?.description,
+    preset.profile_long_text,
     preset.profile_description,
     preset.personality,
     preset.runtime_profile_hint
@@ -11794,6 +11887,8 @@ function openNew() {
   switchTab('new-session');
   openNewQuickPanel();
   state.newProfileTags = [];
+  state.newStrategySettings = null;
+  state.newPersonaPersonality = '';
   state.newAvatarImage = '';
   state.importedPreset = null;
   $('#preset-preview')?.classList.add('hidden');
@@ -11806,11 +11901,7 @@ function openNew() {
     </button>`).join('');
   $$('#tpl-grid [data-tpl]').forEach(b => b.addEventListener('click', () => {
     const t = TEMPLATES[+b.dataset.tpl];
-    $('#new-role').value = t.role; $('#new-goal').value = t.goal;
-    $('#new-deadline').value = t.deadline;
-    $('#profile-long-text').value = mergeProfileLongText($('#profile-long-text').value, t.personality);
-    $('#new-reqs').value = t.reqs.join('\n');
-    $('#new-title').value = t.goal ? String(t.goal).slice(0, 20) : '';
+    applyPresetToCustomForm({ ...t, title: t.title || (t.goal ? String(t.goal).slice(0, 20) : '') });
     openNewCustomPanel();
   }));
   renderProfileTags();
@@ -11845,7 +11936,9 @@ async function createSessionFromForm() {
     title: $('#new-title').value.trim(),
     role, goal,
     deadline: $('#new-deadline').value.trim(),
+    personality: state.newPersonaPersonality,
     reqs: $('#new-reqs').value.split('\n').map(r=>r.trim()).filter(Boolean),
+    settings: state.newStrategySettings || {},
     profile_tags: state.newProfileTags,
     profile_long_text: $('#profile-long-text').value.trim(),
     avatar_image: state.newAvatarImage,

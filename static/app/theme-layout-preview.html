@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reverse Tutor Theme Layout Preview</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #252927;
+    --panel: #303631;
+    --panel-2: #394039;
+    --panel-3: #465047;
+    --line: #5f685d;
+    --text: #ebe6dc;
+    --text-soft: #d4ccbd;
+    --muted: #aaa193;
+    --accent: #829485;
+    --accent-hover: #93a095;
+    --accent-soft: #455348;
+    --warn: #bda570;
+    --glass-line: rgba(235, 230, 220, .14);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(130,148,133,.15), transparent 32%), radial-gradient(circle at 86% 9%, rgba(189,165,112,.08), transparent 28%), linear-gradient(180deg, #313934 0%, #29312c 34%, #202720 67%, #161b16 100%);
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(130,148,133,.12), transparent 32%), linear-gradient(180deg, rgba(55,66,58,.74), rgba(39,48,42,.78) 58%, rgba(25,32,27,.82));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(130,148,133,.20), transparent 36%), linear-gradient(180deg, rgba(69,82,70,.82), rgba(48,61,51,.84) 58%, rgba(29,39,32,.86));
+    --surface-gradient: linear-gradient(180deg, rgba(54,68,58,.78), rgba(30,41,34,.84) 58%, rgba(17,25,20,.88));
+  }
+  body.theme-warm {
+    color-scheme: light;
+    --page: #c9c0b3;
+    --panel: #d8d0c5;
+    --panel-2: #e4ddd4;
+    --panel-3: #bdb3a6;
+    --line: #a99f91;
+    --text: #28241f;
+    --text-soft: #4f473e;
+    --muted: #766d62;
+    --accent: #6c7569;
+    --accent-hover: #5f695f;
+    --accent-soft: #d6dbd1;
+    --warn: #7d6a42;
+    --glass-line: rgba(80, 67, 52, .18);
+    --page-gradient: radial-gradient(circle at 15% 0%, rgba(255,255,255,.28), transparent 30%), radial-gradient(circle at 88% 8%, rgba(125,106,66,.08), transparent 28%), linear-gradient(180deg, #f0eae2 0%, #e4dcd1 34%, #d7ccbd 68%, #c5b8a8 100%);
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(255,255,255,.24), transparent 34%), linear-gradient(180deg, rgba(248,244,237,.84), rgba(225,216,204,.84) 56%, rgba(199,187,170,.88));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(255,255,255,.30), transparent 38%), linear-gradient(180deg, rgba(240,241,235,.88), rgba(220,225,215,.86) 56%, rgba(195,202,190,.88));
+    --surface-gradient: linear-gradient(180deg, rgba(250,246,239,.82), rgba(221,211,198,.84) 58%, rgba(180,168,151,.86));
+  }
+  body.theme-berry {
+    color-scheme: dark;
+    --page: #2a1b27;
+    --panel: #342530;
+    --panel-2: #402d38;
+    --panel-3: #523845;
+    --line: #725869;
+    --text: #f6eeee;
+    --text-soft: #dbc7cb;
+    --muted: #ae9a9a;
+    --accent: #d87963;
+    --accent-hover: #e08a75;
+    --accent-soft: #503138;
+    --warn: #d8b86b;
+    --glass-line: rgba(234, 201, 187, .15);
+    --page-gradient: radial-gradient(circle at 16% 0%, rgba(216,121,99,.13), transparent 31%), radial-gradient(circle at 88% 9%, rgba(216,184,107,.09), transparent 29%), radial-gradient(circle at 50% 94%, rgba(164,80,113,.08), transparent 36%), linear-gradient(180deg, #372935 0%, #2f222d 42%, #251820 72%, #160f15 100%);
+    --card-gradient: radial-gradient(circle at 8% 0%, rgba(216,121,99,.11), transparent 34%), radial-gradient(circle at 92% 8%, rgba(216,184,107,.08), transparent 32%), linear-gradient(180deg, rgba(66,47,57,.82), rgba(46,32,42,.84) 60%, rgba(30,20,28,.87));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(216,121,99,.18), transparent 38%), radial-gradient(circle at 92% 12%, rgba(216,184,107,.12), transparent 34%), linear-gradient(180deg, rgba(78,54,63,.90), rgba(54,36,47,.88) 60%, rgba(35,23,33,.90));
+    --surface-gradient: radial-gradient(circle at 9% 0%, rgba(216,121,99,.08), transparent 34%), linear-gradient(180deg, rgba(62,43,54,.84), rgba(40,27,36,.86) 60%, rgba(23,15,22,.90));
+  }
+  body.theme-midnight {
+    color-scheme: dark;
+    --page: #171b24;
+    --panel: #222836;
+    --panel-2: #2c3546;
+    --panel-3: #394356;
+    --line: #586176;
+    --text: #edf0f6;
+    --text-soft: #ccd3df;
+    --muted: #99a3b4;
+    --accent: #8da5ad;
+    --accent-hover: #9aafb6;
+    --accent-soft: #354753;
+    --warn: #bda26f;
+    --glass-line: rgba(237, 240, 246, .14);
+    --page-gradient: radial-gradient(circle at 14% 0%, rgba(141,165,173,.14), transparent 32%), radial-gradient(circle at 88% 8%, rgba(189,162,111,.07), transparent 30%), linear-gradient(180deg, #2b3444 0%, #232c3a 40%, #1a202b 72%, #121722 100%);
+    --card-gradient: radial-gradient(circle at 9% 0%, rgba(141,165,173,.13), transparent 34%), linear-gradient(180deg, rgba(46,58,75,.78), rgba(32,41,56,.82) 60%, rgba(21,28,39,.84));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(141,165,173,.22), transparent 38%), linear-gradient(180deg, rgba(57,73,91,.86), rgba(39,50,68,.84) 60%, rgba(25,35,49,.86));
+    --surface-gradient: linear-gradient(180deg, rgba(47,60,78,.80), rgba(28,37,53,.84) 60%, rgba(15,21,31,.88));
+  }
+  body.theme-ember {
+    color-scheme: dark;
+    --page: #292724;
+    --panel: #34322e;
+    --panel-2: #3f3c36;
+    --panel-3: #504b42;
+    --line: #756c5d;
+    --text: #f4eee3;
+    --text-soft: #d8cbb9;
+    --muted: #a99c8a;
+    --accent: #b88c67;
+    --accent-hover: #c39a74;
+    --accent-soft: #554639;
+    --warn: #8f9d92;
+    --glass-line: rgba(241, 233, 220, .15);
+    --page-gradient: radial-gradient(circle at 13% 0%, rgba(184,140,103,.12), transparent 31%), radial-gradient(circle at 90% 8%, rgba(143,157,146,.08), transparent 28%), radial-gradient(circle at 52% 92%, rgba(99,80,62,.08), transparent 36%), linear-gradient(180deg, #34322e 0%, #2d2b27 42%, #24221f 72%, #191815 100%);
+    --card-gradient: radial-gradient(circle at 8% 0%, rgba(184,140,103,.10), transparent 34%), radial-gradient(circle at 92% 8%, rgba(143,157,146,.07), transparent 32%), linear-gradient(180deg, rgba(61,57,50,.82), rgba(43,40,35,.84) 60%, rgba(29,27,24,.87));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(184,140,103,.18), transparent 38%), radial-gradient(circle at 92% 12%, rgba(143,157,146,.11), transparent 34%), linear-gradient(180deg, rgba(74,68,58,.90), rgba(50,46,39,.88) 60%, rgba(33,31,27,.90));
+    --surface-gradient: radial-gradient(circle at 9% 0%, rgba(184,140,103,.08), transparent 34%), linear-gradient(180deg, rgba(60,56,50,.84), rgba(40,38,34,.86) 60%, rgba(22,21,19,.90));
+  }
+  body.theme-ocean {
+    color-scheme: dark;
+    --page: #09100e;
+    --panel: #0e1512;
+    --panel-2: #151d19;
+    --panel-3: #202b25;
+    --line: #30443a;
+    --text: #f1fff8;
+    --text-soft: #b9d0c5;
+    --muted: #6f837a;
+    --accent: #3fbd8d;
+    --accent-hover: #58c99d;
+    --accent-soft: #0c3428;
+    --warn: #8460b5;
+    --glass-line: rgba(114, 255, 206, .16);
+    --page-gradient: radial-gradient(circle at 13% 0%, rgba(63,189,141,.10), transparent 31%), radial-gradient(circle at 88% 8%, rgba(132,96,181,.08), transparent 29%), radial-gradient(circle at 50% 94%, rgba(42,95,75,.08), transparent 36%), linear-gradient(180deg, #111815 0%, #0b1210 42%, #09100e 72%, #040706 100%);
+    --card-gradient: radial-gradient(circle at 10% 0%, rgba(63,189,141,.10), transparent 34%), radial-gradient(circle at 92% 8%, rgba(132,96,181,.07), transparent 30%), linear-gradient(180deg, rgba(18,28,24,.86), rgba(12,20,17,.86) 56%, rgba(7,12,10,.88));
+    --card-active-gradient: radial-gradient(circle at 12% 0%, rgba(63,189,141,.17), transparent 38%), radial-gradient(circle at 92% 12%, rgba(132,96,181,.11), transparent 32%), linear-gradient(180deg, rgba(22,37,31,.92), rgba(13,25,20,.90) 56%, rgba(7,15,12,.92));
+    --surface-gradient: radial-gradient(circle at 8% 0%, rgba(63,189,141,.075), transparent 34%), linear-gradient(180deg, rgba(17,28,24,.86), rgba(10,18,15,.88) 60%, rgba(4,8,7,.92));
+  }
+  * { box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 28px;
+    background: #111;
+    color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  }
+  .stage {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    gap: 18px;
+  }
+  .phone {
+    width: min(100%, 390px);
+    margin: 0 auto;
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--page-gradient);
+    box-shadow: 0 24px 70px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .panel {
+    border: 1px solid var(--glass-line);
+    border-radius: 12px;
+    padding: 12px;
+    background: var(--surface-gradient);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 14px 32px rgba(0,0,0,.12);
+  }
+  .panel-title {
+    margin: 0 0 10px;
+    color: var(--text-soft);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .theme-choice {
+    min-height: 62px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card-gradient);
+    color: var(--text);
+    padding: 8px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 7px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 10px 24px rgba(0,0,0,.08);
+    transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    cursor: pointer;
+  }
+  .theme-choice:active {
+    transform: scale(.985);
+    background: var(--card-active-gradient);
+  }
+  .theme-choice.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+    background: var(--card-active-gradient);
+  }
+  .theme-choice-title {
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .theme-choice-detail {
+    margin-top: 2px;
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .theme-choice.active .theme-choice-detail {
+    color: var(--text-soft);
+  }
+  .theme-swatches {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .theme-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.28);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+  }
+  .focus-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .caption {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+</style>
+</head>
+<body class="theme-ember">
+  <main class="stage">
+    <section class="phone">
+      <div class="panel">
+        <p class="panel-title">当前主题选择布局</p>
+        <div id="theme-grid" class="theme-grid"></div>
+      </div>
+    </section>
+    <section class="phone">
+      <div class="panel">
+        <p class="panel-title">圈选重制三项</p>
+        <div id="focus-grid" class="focus-pair"></div>
+      </div>
+    </section>
+    <p class="caption">默认状态为“侘寂原木”激活。点击任意主题卡会切换整页主题变量，并更新 active 边框。</p>
+  </main>
+<script>
+const themes = [
+  { id:'ink', label:'柔和黑色', detail:'默认低亮深色', swatches:['#252927','#303631','#78a084'] },
+  { id:'warm', label:'暖灰浅色', detail:'纸感浅色阅读', swatches:['#c9c0b3','#e4ddd4','#567663'] },
+  { id:'berry', label:'迈阿密夕阳', detail:'暖紫暗调，低饱和落日橙与柔黄', swatches:['#2a1b27','#d87963','#d8b86b'] },
+  { id:'midnight', label:'蓝灰夜色', detail:'冷静深色界面', swatches:['#171b24','#2c3546','#8fb8c9'] },
+  { id:'ember', label:'侘寂原木', detail:'深空原木磨砂，沙丘草绿收尾', swatches:['#292724','#b88c67','#8f9d92'] },
+  { id:'ocean', label:'复古黑客', detail:'暗视野磨砂，柔和终端绿与暗紫', swatches:['#09100e','#3fbd8d','#8460b5'] },
+];
+let active = 'ember';
+
+function card(theme) {
+  return `
+    <button type="button" class="theme-choice ${theme.id === active ? 'active' : ''}" data-theme-choice="${theme.id}" aria-pressed="${theme.id === active ? 'true' : 'false'}">
+      <div>
+        <div class="theme-choice-title">${theme.label}</div>
+        <div class="theme-choice-detail">${theme.detail}</div>
+      </div>
+      <div class="theme-swatches" aria-hidden="true">
+        ${theme.swatches.map(color => `<span class="theme-swatch" style="background:${color}"></span>`).join('')}
+      </div>
+    </button>
+  `;
+}
+
+function render() {
+  document.body.className = active === 'ink' ? '' : `theme-${active}`;
+  document.querySelector('#theme-grid').innerHTML = themes.map(card).join('');
+  document.querySelector('#focus-grid').innerHTML = themes.filter(t => ['ember', 'ocean'].includes(t.id)).map(card).join('');
+  document.querySelectorAll('[data-theme-choice]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      active = btn.dataset.themeChoice;
+      render();
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>

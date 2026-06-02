@@ -128,9 +128,68 @@ def test_mobile_new_session_is_child_page_with_custom_preset_import_and_full_cus
     assert 'data-preset-action="customize"' in html
     assert "function openNewCustomPanel" in html
     assert 'id="new-create"' in new_page
+    assert new_page.index('id="new-create"') < new_page.index('data-new-mode="custom"')
+    assert new_page.index('data-new-mode="custom"') < new_page.index('id="tpl-grid"')
     assert "switchTab('new-session')" in open_new_fn
     assert "const targetTab = route.tab || 'chat'" in close_new_fn
     assert "switchTab(targetTab)" in close_new_fn
+
+
+def test_mobile_highlight_themes_match_reference_styles():
+    html = mobile_html()
+    berry_theme = html.split(":root.theme-berry", 1)[1].split(":root.theme-midnight", 1)[0]
+    ember_theme = html.split(":root.theme-ember", 1)[1].split(":root.theme-ocean", 1)[0]
+    ocean_theme = html.split(":root.theme-ocean", 1)[1].split("html, body", 1)[0]
+    theme_options = html.split("const THEME_OPTIONS = [", 1)[1].split("];", 1)[0]
+
+    assert "label:'迈阿密夕阳'" in theme_options
+    assert "#2a1b27" in berry_theme
+    assert "#d87963" in berry_theme
+    assert "#d8b86b" in berry_theme
+    assert "swatches:['#2a1b27','#d87963','#d8b86b']" in theme_options
+    assert "label:'侘寂原木'" in theme_options
+    assert "#292724" in ember_theme
+    assert "#b88c67" in ember_theme
+    assert "#8f9d92" in ember_theme
+    assert "swatches:['#292724','#b88c67','#8f9d92']" in theme_options
+    assert "label:'复古黑客'" in theme_options
+    assert "color-scheme: dark" in ocean_theme
+    assert "#09100e" in ocean_theme
+    assert "#3fbd8d" in ocean_theme
+    assert "#8460b5" in ocean_theme
+    assert "swatches:['#09100e','#3fbd8d','#8460b5']" in theme_options
+    for theme in [berry_theme, ember_theme, ocean_theme]:
+        assert "--grain-overlay: none" in theme
+        assert "--texture-overlay: none" in theme
+        assert "--texture-opacity: 0" in theme
+        assert "repeating-linear-gradient" not in theme
+        assert "linear-gradient(0deg" not in theme
+
+
+def test_mobile_builtin_session_presets_are_rich_and_varied():
+    html = mobile_html()
+    template_src = html.split("const TEMPLATES = [", 1)[1].split("];", 1)[0]
+    open_new_fn = html.split("function openNew", 1)[1].split("function closeNew", 1)[0]
+    create_fn = html.split("async function createSessionFromForm", 1)[1].split("$('#new-create')", 1)[0]
+    apply_preset_fn = html.split("function applyPresetToCustomForm", 1)[1].split("function renderPresetPreview", 1)[0]
+
+    assert template_src.count("{ label:") >= 16
+    for label in [
+        "高三冲刺",
+        "Python 入门",
+        "雅思口语",
+        "考研英语",
+        "公务员行测",
+        "前端作品集",
+        "日语 N2",
+        "机器学习入门",
+    ]:
+        assert label in template_src
+    for field in ["profile_tags", "profile_long_text", "settings", "feedback_intensity", "probing_intensity", "scaffold_intensity"]:
+        assert field in template_src
+    assert "applyPresetToCustomForm({ ...t" in open_new_fn
+    assert "state.newStrategySettings" in apply_preset_fn
+    assert "settings: state.newStrategySettings" in create_fn
 
 
 def test_mobile_custom_profile_tags_and_runtime_hint_are_present():
