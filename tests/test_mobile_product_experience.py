@@ -363,6 +363,13 @@ def test_mobile_session_row_swipe_sets_presence_and_long_press_has_management_me
     assert 'data-session-action="preset-export"' not in popover
     assert 'data-session-action="avatar"' not in popover
     assert 'data-session-action="avatar-clear"' not in popover
+    assert "#session-card-popover" in html
+    assert "#session-card-popover button span" in html
+    assert "text-overflow: ellipsis;" in html
+    assert "pop.style.right" in home_events
+    assert "pop.style.width = 'auto'" in home_events
+    assert "const rightInset = Math.max" in home_events
+    assert "Math.max(156, Math.min(360, viewportWidth - margin * 2))" in home_events
     assert "function sessionProactiveMode" in html
     assert "function sessionStatusBadgeHtml" in html
     assert "setSessionProactiveMode(sid, action)" in handler
@@ -376,8 +383,8 @@ def test_mobile_session_row_swipe_sets_presence_and_long_press_has_management_me
     assert "handleSessionSwipeAction" in home_events
     assert "pop.classList.add('hidden');" in home_events
     assert "pop.style.left = '-9999px';" in home_events
-    assert "rect.left + rect.width / 2 - popRect.width / 2" in home_events
-    assert "viewportRight - popRect.width - margin" in home_events
+    assert "pop.style.left = `${Math.round(viewportLeft + margin)}px`" in home_events
+    assert "pop.style.right = `${Math.round(rightInset)}px`" in home_events
     assert "viewportBottom - popRect.height - margin" in home_events
     assert "pop.style.setProperty('--popover-arrow-x'" in home_events
     assert "confirm('删除该会话及所有数据？')" in handler

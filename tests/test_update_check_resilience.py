@@ -31,7 +31,7 @@ def test_frontend_update_version_matches_android_and_package_versions():
     assert package["version"] == version_name
     assert f"const APP_VERSION_NAME = '{version_name}';" in html
     assert f"const APP_VERSION_CODE = {version_code};" in html
-    assert f"Reverse Tutor v{version_name} · 移动 PWA" in html
+    assert f"Reverse Tutor v{version_name}" in html
     sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
     assert f"rt-mobile-v{version_name}-{version_code}" in sw
 

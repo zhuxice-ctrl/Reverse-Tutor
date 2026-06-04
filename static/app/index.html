@@ -626,6 +626,23 @@
   .message-action-popover button:last-child { border-radius: 0 13px 13px 0; }
   .message-action-popover button:active { background: var(--accent-soft); }
   .message-action-popover svg { width: 16px; height: 16px; color: var(--accent); }
+  #session-card-popover {
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #session-card-popover button {
+    min-width: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  #session-card-popover button span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   #chat [data-message-id] {
     transform-origin: center;
     transition: transform .16s cubic-bezier(.2,.75,.25,1), box-shadow .16s ease, border-color .16s ease, filter .16s ease;
@@ -2269,7 +2286,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.19.2 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.19.3 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -2671,8 +2688,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 41;
-const APP_VERSION_NAME = '0.19.2';
+const APP_VERSION_CODE = 42;
+const APP_VERSION_NAME = '0.19.3';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -2680,8 +2697,8 @@ const LEGACY_UPDATE_FEED_URLS = [GITHUB_UPDATE_FEED_URL, GITHUB_LATEST_RELEASE_U
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const STREAM_EVAL_TIMEOUT_MS = 8000;
 const STREAM_RENDER_INTERVAL_MS = 80;
-const LIGHT_CHAT_MAX_TOKENS = 260;
-const STUDY_STREAM_MAX_TOKENS = 600;
+const LIGHT_CHAT_MAX_TOKENS = 460;
+const STUDY_STREAM_MAX_TOKENS = 900;
 const MOCK_STREAM_INTERVAL_MS = 8;
 const MOCK_STREAM_MIN_CHARS = 2;
 const MOCK_STREAM_MAX_CHARS = 5;
@@ -5610,14 +5627,14 @@ ${format_actions()}
     const mode = inferConversationMode(session);
     const concise = kind === 'proactive'
       ? '只说 1 句，最多 90 个中文字符。'
-      : '默认 1 到 2 句，最多 120 个中文字符；除非用户明确要求长解释。';
+      : '按用户问题自然展开：轻聊天通常 2 到 5 句、约 120 到 300 个中文字符；解释、列举、复盘或用户让你“说说/展开/什么意思”时要给足信息；只有纯寒暄或用户明确要短答时才 1 句。';
     return `# Post-History Instructions
 - 只写学生 AI 的下一次回复，不写用户/老师的台词，不替用户行动、感受或决定。
 - 尊重用户自主权：用户说不会、拒绝、索要不现实内容或偏离目标时，先承接情绪，再用角色关系把话题推回一个现实可回应的小目标。
 - 当前 mode: ${mode}。${mode === 'goal_support' ? '不要把非学习目标强行改成教学/知识点讲解；围绕人格、关系和目标自然推进。' : '可以请教、追问或复述，但每次只推进一个具体知识点。'}
 - 如果用户主动偏离主线，先判断关联性：无关时先解决当前问题，弱相关时先回答再自然桥接回目标，强相关时继续推进主线。不要硬拽用户回“中点”。
 - 如果用户输入的是模糊术语、英文拼写不完整或自己也不确定的概念，先给出最可能解释并反问确认，而不是直接判定没听懂。
-- 回复像即时聊天：${concise}按实际内容需要输出，不要为了凑气泡扩写；不要连续输出多个独立段落，不要重复称呼或重复同一个请求。
+- 回复像即时聊天：${concise}内容要够回应用户意图，不要无意义扩写；不要连续输出多个独立段落，不要重复称呼或重复同一个请求。
 - 输出仍然只能是一个 JSON 对象，reply 字段放最终自然语言回复。`;
   }
 
@@ -6712,7 +6729,8 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
 - 不要突然讲知识点。
 - 不要做掌握度判断。
 - 如果用户只是寒暄、犹豫、情绪表达或短句补充，就像真实聊天一样接住，不要把每句话都变成学习任务。
-- 回复保持短而生动，通常 1 句，最多 60 个中文字符；只输出学生 AI 的自然语言，不输出 JSON、metadata、评价字段或思考过程。`;
+- 不要故意压缩回复。纯寒暄可以 1 句；用户让你解释、列举、展开、说明意思或继续说时，通常 2 到 5 句、约 120 到 300 个中文字符，信息要给足。
+- 只输出学生 AI 的自然语言，不输出 JSON、metadata、评价字段或思考过程。`;
   }
 
   async function runLightChatTurn({
@@ -6742,7 +6760,7 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
     const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
     if (quotedContext) messages.push({ role: 'system', content: quotedContext });
-    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；短问短答，通常 1 句，最多 60 个中文字符；不要输出 JSON、标题、列表模板或分析字段。' });
+    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；不要故意压缩。纯寒暄可以 1 句；需要解释、列举、回应“说说/什么意思/怎么做/哪几个”时，通常 2 到 5 句、约 120 到 300 个中文字符；不要输出 JSON、标题模板或分析字段。' });
     if (typeof opts.onThinkingStage === 'function') {
       opts.onThinkingStage({ stage: '自然接话', detail: '按人设和最近上下文组织一句自然回复' });
     }
@@ -6979,7 +6997,7 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
       if (typeof opts.onThinkingStage === 'function') opts.onThinkingStage({ stage: '组织回复', detail: '结合主线、资料和当前问题' });
 
       const evalSystem = systemStream + '\n\n# 输出要求\n只输出 evaluation、action、anchor_updates 三个字段，**不要**包含 reply 字段。严格 JSON，以 { 开头。';
-      const replySystem = systemStream + '\n\n# 输出要求\n你现在是角色扮演，就输出你（学生）要说的自然语言回复。**不要**输出 JSON、不要 markdown 代码块、不要 evaluation、不要 action 字段。就正常说话。先短答，通常 1 到 2 句；只有用户明确要求详细讲解时才展开。';
+      const replySystem = systemStream + '\n\n# 输出要求\n你现在是角色扮演，就输出你（学生）要说的自然语言回复。**不要**输出 JSON、不要 markdown 代码块、不要 evaluation、不要 action 字段。就正常说话。按用户问题自然展开：轻聊天通常 2 到 5 句、约 120 到 300 个中文字符；解释、列举、复盘或用户让你继续说时要给足信息；只有纯寒暄或用户明确要短答时才短答。';
 
       const streamObj = LLM.chat_text_stream(replySystem, messagesStream, { temperature: 0.85, max_tokens: STUDY_STREAM_MAX_TOKENS });
       const evalPromise = streamObj.mockResponse
@@ -8179,6 +8197,9 @@ async function renderSessionHome() {
       pop.classList.add('hidden');
       pop.style.left = '-9999px';
       pop.style.top = '-9999px';
+      pop.style.right = '';
+      pop.style.width = '';
+      pop.style.minWidth = '';
       pop.style.maxWidth = '';
       pop.style.setProperty('--popover-arrow-x', '50%');
       const rect = card.getBoundingClientRect();
@@ -8199,23 +8220,26 @@ async function renderSessionHome() {
       );
       const viewportRight = viewportLeft + viewportWidth;
       const viewportBottom = viewportTop + viewportHeight;
-      pop.style.maxWidth = `${Math.max(156, viewportWidth - margin * 2)}px`;
+      const menuWidth = Math.max(156, Math.min(360, viewportWidth - margin * 2));
+      const rightInset = Math.max(0, (window.innerWidth || viewportRight) - viewportRight) + margin;
+      pop.style.left = `${Math.round(viewportLeft + margin)}px`;
+      pop.style.right = `${Math.round(rightInset)}px`;
+      pop.style.width = 'auto';
+      pop.style.minWidth = '0';
+      pop.style.maxWidth = `${Math.round(menuWidth)}px`;
       const popRect = pop.getBoundingClientRect();
       const aboveSpace = rect.top - viewportTop - margin - gap;
       const belowSpace = viewportBottom - rect.bottom - margin - gap;
       const side = aboveSpace >= popRect.height || aboveSpace >= belowSpace ? 'above' : 'below';
-      let left = rect.left + rect.width / 2 - popRect.width / 2;
       let top = side === 'above'
         ? rect.top - gap - popRect.height
         : rect.bottom + gap;
-      left = Math.min(Math.max(viewportLeft + margin, left), viewportRight - popRect.width - margin);
       top = Math.min(Math.max(viewportTop + margin, top), viewportBottom - popRect.height - margin);
-      pop.style.left = `${Math.round(left)}px`;
       pop.style.top = `${Math.round(top)}px`;
       pop.dataset.side = side;
       const arrowX = Math.min(
         popRect.width - 18,
-        Math.max(18, rect.left + rect.width / 2 - left)
+        Math.max(18, rect.left + rect.width / 2 - (viewportLeft + margin))
       );
       pop.style.setProperty('--popover-arrow-x', `${Math.round(arrowX)}px`);
       requestAnimationFrame(() => pop.classList.remove('hidden'));
@@ -14927,8 +14951,49 @@ $('#new-avatar-choose')?.addEventListener('click', () => {
 });
 
 // --- Service Worker + PWA 安装 ---
+const APP_SHELL_CACHE_VERSION_KEY = 'rt-mobile-app-shell-version';
+
+async function ensureAppShellCacheFresh(registration) {
+  const versionLabel = `${APP_VERSION_NAME}-${APP_VERSION_CODE}`;
+  try {
+    const saved = localStorage.getItem(APP_SHELL_CACHE_VERSION_KEY);
+    if (saved === versionLabel) return;
+    localStorage.setItem(APP_SHELL_CACHE_VERSION_KEY, versionLabel);
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys
+        .filter(key => /^rt-mobile-/.test(key) && !key.includes(`v${APP_VERSION_NAME}-${APP_VERSION_CODE}`))
+        .map(key => caches.delete(key)));
+    }
+    registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+  } catch (err) {
+    console.warn('app shell cache refresh failed', err);
+  }
+}
+
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(err => console.warn('sw register failed', err));
+  let swReloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swReloaded) return;
+    swReloaded = true;
+    const key = `rt-mobile-sw-reload-${APP_VERSION_NAME}-${APP_VERSION_CODE}`;
+    if (sessionStorage.getItem(key) === '1') return;
+    sessionStorage.setItem(key, '1');
+    window.location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+    ensureAppShellCacheFresh(reg);
+    reg.update().catch(err => console.warn('sw update failed', err));
+    reg.addEventListener('updatefound', () => {
+      const worker = reg.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(err => console.warn('sw register failed', err));
 }
 
 let _deferredInstall = null;

@@ -73,17 +73,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 41,
-  "versionName": "0.19.2",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.2.apk",
+  "versionCode": 42,
+  "versionName": "0.19.3",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.3.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.2/Reverse-Tutor-v0.19.2.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.3/Reverse-Tutor-v0.19.3.apk"
   ],
   "publishedAt": "2026-06-05",
   "releaseNotes": [
-    "修复手机端主题说明文字超出卡片边界的问题",
-    "修复手机端会话操作弹窗可能跑到屏幕外的问题",
-    "修复图谱语义片段卡牌无法上下滑动切换的问题"
+    "修复真机长按会话后操作菜单仍可能跑到屏幕外的问题",
+    "修复升级后 WebView 可能继续读取旧 app shell 缓存的问题",
+    "移除轻聊天回复被过度压短的硬限制"
   ]
 }
 ```

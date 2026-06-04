@@ -412,10 +412,19 @@ def test_mobile_chat_strips_model_thinking_from_visible_replies():
 
 def test_mobile_service_worker_cache_key_tracks_release_version():
     sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "rt-mobile-v0.19.2-41-mobile-ui-patch" in sw
+    assert "rt-mobile-v0.19.3-42-menu-chat-cache" in sw
+    assert "'./index.html'," not in sw.split("const SHELL =", 1)[1].split("];", 1)[0]
+    assert "fetch(e.request, { cache: 'no-store' })" in sw
+    assert "url.pathname.endsWith('/index.html')" in sw
+    assert "type === 'SKIP_WAITING'" in sw
+    assert "APP_SHELL_CACHE_VERSION_KEY" in html
+    assert "updateViaCache: 'none'" in html
+    assert "ensureAppShellCacheFresh(reg)" in html
+    assert "navigator.serviceWorker.addEventListener('controllerchange'" in html
     assert "v4-image-card" not in sw
-    assert "rt-mobile-v0.19.1-40-session-graph-memo" not in sw
+    assert "rt-mobile-v0.19.2-41-mobile-ui-patch" not in sw
 
 
 def test_mobile_graph_nodes_show_human_readable_analysis_status():
@@ -1005,15 +1014,17 @@ def test_mobile_turn_route_uses_light_llm_chain_without_teaching_postprocessing(
     assert "不要强行教学" in light_prompt_fn
     assert "不要突然讲知识点" in light_prompt_fn
     assert "不要做掌握度判断" in light_prompt_fn
-    assert "最多 60 个中文字符" in light_prompt_fn
-    assert "const LIGHT_CHAT_MAX_TOKENS = 260;" in html
-    assert "const STUDY_STREAM_MAX_TOKENS = 600;" in html
+    assert "不要故意压缩回复" in light_prompt_fn
+    assert "约 120 到 300 个中文字符" in light_prompt_fn
+    assert "const LIGHT_CHAT_MAX_TOKENS = 460;" in html
+    assert "const STUDY_STREAM_MAX_TOKENS = 900;" in html
     assert "const MOCK_STREAM_INTERVAL_MS = 8;" in html
     assert "const MOCK_STREAM_MIN_CHARS = 2;" in html
     assert "const MOCK_STREAM_MAX_CHARS = 5;" in html
     assert "LLM.chat_text_stream(system, messages" in light_fn
     assert "max_tokens: LIGHT_CHAT_MAX_TOKENS" in light_fn
-    assert "先短答，通常 1 到 2 句" in run_turn_fn
+    assert "按用户问题自然展开" in run_turn_fn
+    assert "只有纯寒暄或用户明确要短答时才短答" in run_turn_fn
     assert "max_tokens: STUDY_STREAM_MAX_TOKENS" in run_turn_fn
     mock_stream_fn = html.split("async function* mock_stream_response", 1)[1].split("// === OpenAI", 1)[0]
     assert "MOCK_STREAM_INTERVAL_MS + Math.random() * MOCK_STREAM_INTERVAL_MS" in mock_stream_fn
