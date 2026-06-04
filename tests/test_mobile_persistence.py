@@ -484,6 +484,78 @@ def test_mobile_graph_sheet_can_jump_to_chat_and_edit_source_node():
     assert "chat_message_ids" in html
 
 
+def test_mobile_graph_sheet_can_expand_to_detailed_node_page():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert ".graph-sheet.expanded" in html
+    assert ".graph-sheet:not(.expanded) .graph-detail-only" in html
+    assert "function expandGraphSheet" in html
+    assert "function collapseGraphSheet" in html
+    assert "data-graph-expand-detail" in html
+    assert "GRAPH_SHEET_DRAG_THRESHOLD = 40" in html
+    assert "expandGraphSheet()" in html
+
+
+def test_mobile_graph_sheet_handle_drags_with_pointer_events():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert ".graph-sheet-handle::before" in html
+    assert ".graph-sheet.dragging" in html
+    assert "function bindGraphSheetDragHandle" in html
+    assert "hd.onpointerdown" in html
+    assert "hd.onpointermove" in html
+    assert "hd.onpointerup" in html
+    assert "hd.setPointerCapture" in html
+    assert "hd.onmousedown" in html
+    assert "document.addEventListener('mousemove', onMove)" in html
+    assert "document.addEventListener('mouseup', onUp, { once: true })" in html
+    assert "graphSheetDragStartY - graphSheetDragLatestY > GRAPH_SHEET_DRAG_THRESHOLD" in html
+    assert "graphSheetDragLatestY - graphSheetDragStartY > GRAPH_SHEET_DRAG_THRESHOLD" in html
+
+
+def test_mobile_graph_sheet_drag_follows_pointer_continuously():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function applyGraphSheetDragProgress" in html
+    assert "function clearGraphSheetDragStyle" in html
+    assert "graphSheetDragBaseTop" in html
+    assert "graphSheetDragCompactTop" in html
+    assert "sheet.style.top = `${nextTop}px`" in html
+    assert "sheet.style.maxHeight = 'none'" in html
+    assert "sheet.classList.add('dragging')" in html
+    assert "sheet.classList.remove('dragging')" in html
+    assert "applyGraphSheetDragProgress(sheet)" in html
+
+
+def test_mobile_graph_sheet_detail_sections_and_bidirectional_node_jumps():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "function graphSheetDetailHtml" in html
+    assert "function graphNodeRelations" in html
+    assert "function jumpToGraphSheetNode" in html
+    assert "data-graph-detail-section=\"learning-status\"" in html
+    assert "data-graph-detail-section=\"evidence\"" in html
+    assert "data-graph-detail-section=\"strategy\"" in html
+    assert "data-graph-detail-section=\"relations\"" in html
+    assert "data-graph-node-jump" in html
+    assert "showGraphSheet(target)" in html
+
+
+def test_mobile_graph_sheet_source_jumps_open_context_anchors():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "graphDetailNodes: []" in html
+    assert "graphDetailLinks: []" in html
+    assert "function setActiveGraphDataset" in html
+    assert "setActiveGraphDataset(nodes, links)" in html
+    assert "setActiveGraphDataset(allNodes, allLinks)" in html
+    assert "data-graph-source-anchor" in html
+    assert "data-anchor-row" in html
+    assert "function jumpToGraphSourceAnchor" in html
+    assert "state.contextTab = 'anchors'" in html
+    assert "graph-source-jump-highlight" in html
+
+
 def test_mobile_chat_long_press_can_create_note_nodes_in_graph():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 

@@ -54,7 +54,7 @@
     --accent-hover: #93a095;
     --accent-soft: #455348;
     --warn: #bda570;
-    --chat-bg: #333a34;
+    --chat-bg: #071008;
     --chat-line: rgba(231, 224, 213, .10);
     --chat-mark: rgba(120, 160, 132, .12);
     --page-glow-1: rgba(130, 148, 133, .11);
@@ -63,7 +63,8 @@
     --glass-2: rgba(57, 64, 57, .66);
     --glass-line: rgba(235, 230, 220, .14);
     --page-gradient: radial-gradient(circle at 14% 0%, rgba(130,148,133,.15), transparent 32%), radial-gradient(circle at 86% 9%, rgba(189,165,112,.08), transparent 28%), linear-gradient(180deg, #313934 0%, #29312c 34%, #202720 67%, #161b16 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(130,148,133,.06), transparent 30%), linear-gradient(180deg, #373d38 0%, #343a35 54%, #313630 100%);
+    --chat-slant-overlay: repeating-linear-gradient(108deg, transparent 0 104px, rgba(236,244,225,.040) 105px, transparent 107px, transparent 208px);
+    --chat-gradient: radial-gradient(ellipse 120% 68% at 50% -20%, rgba(236,244,225,.48), transparent 56%), radial-gradient(ellipse 82% 58% at 16% 10%, rgba(133,156,132,.32), transparent 58%), linear-gradient(180deg, #60705f 0%, #2b392d 45%, #071008 100%);
     --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(226,230,222,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(226,230,222,.014) 35px, transparent 36px);
     --grain-overlay: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 .045'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
     --grain-size: 160px 160px;
@@ -98,7 +99,7 @@
     --glass-2: rgba(228, 221, 212, .66);
     --glass-line: rgba(80, 67, 52, .18);
     --page-gradient: radial-gradient(circle at 15% 0%, rgba(255,255,255,.28), transparent 30%), radial-gradient(circle at 88% 8%, rgba(125,106,66,.08), transparent 28%), linear-gradient(180deg, #f0eae2 0%, #e4dcd1 34%, #d7ccbd 68%, #c5b8a8 100%);
-    --chat-gradient: radial-gradient(circle at 15% 0%, rgba(255,255,255,.14), transparent 28%), linear-gradient(180deg, #f0e8de 0%, #ebe2d7 56%, #e7ded2 100%);
+    --chat-gradient: radial-gradient(ellipse 118% 72% at 50% -18%, rgba(255,255,255,.46), transparent 58%), radial-gradient(ellipse 78% 58% at 18% 10%, rgba(108,117,105,.16), transparent 60%), linear-gradient(180deg, #f7efe3 0%, #e8ddcf 46%, #c8b8a5 100%);
     --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(108,117,105,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(92,82,70,.016) 35px, transparent 36px);
     --texture-opacity: .54;
     --surface-gradient: linear-gradient(180deg, rgba(250,246,239,.82), rgba(221,211,198,.84) 58%, rgba(180,168,151,.86));
@@ -130,7 +131,7 @@
     --glass-2: rgba(64, 45, 56, .70);
     --glass-line: rgba(234, 201, 187, .15);
     --page-gradient: radial-gradient(circle at 16% 0%, rgba(216,121,99,.13), transparent 31%), radial-gradient(circle at 88% 9%, rgba(216,184,107,.09), transparent 29%), radial-gradient(circle at 50% 94%, rgba(164,80,113,.08), transparent 36%), linear-gradient(180deg, #372935 0%, #2f222d 42%, #251820 72%, #160f15 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(216,121,99,.07), transparent 30%), radial-gradient(circle at 86% 12%, rgba(216,184,107,.05), transparent 28%), linear-gradient(180deg, #332530 0%, #2b1e28 56%, #23161f 100%);
+    --chat-gradient: radial-gradient(ellipse 118% 72% at 50% -18%, rgba(216,121,99,.28), transparent 58%), radial-gradient(ellipse 78% 58% at 18% 10%, rgba(216,184,107,.18), transparent 60%), linear-gradient(180deg, #4a2d3d 0%, #2d1b28 46%, #130911 100%);
     --grain-overlay: none;
     --texture-overlay: none;
     --texture-opacity: 0;
@@ -163,7 +164,7 @@
     --glass-2: rgba(44, 53, 70, .68);
     --glass-line: rgba(237, 240, 246, .14);
     --page-gradient: radial-gradient(circle at 14% 0%, rgba(141,165,173,.14), transparent 32%), radial-gradient(circle at 88% 8%, rgba(189,162,111,.07), transparent 30%), linear-gradient(180deg, #2b3444 0%, #232c3a 40%, #1a202b 72%, #121722 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(141,165,173,.06), transparent 30%), linear-gradient(180deg, #273143 0%, #242d3c 56%, #212938 100%);
+    --chat-gradient: radial-gradient(ellipse 118% 72% at 50% -18%, rgba(141,165,173,.24), transparent 58%), radial-gradient(ellipse 78% 58% at 18% 10%, rgba(189,162,111,.11), transparent 60%), linear-gradient(180deg, #39475b 0%, #243045 46%, #111827 100%);
     --texture-overlay: repeating-linear-gradient(108deg, transparent 0 86px, rgba(237,240,246,.022) 87px, transparent 89px, transparent 168px), linear-gradient(0deg, transparent 0 34px, rgba(237,240,246,.014) 35px, transparent 36px);
     --texture-opacity: .62;
     --surface-gradient: linear-gradient(180deg, rgba(47,60,78,.80), rgba(28,37,53,.84) 60%, rgba(15,21,31,.88));
@@ -195,7 +196,7 @@
     --glass-2: rgba(63, 60, 54, .72);
     --glass-line: rgba(244, 238, 227, .15);
     --page-gradient: radial-gradient(circle at 13% 0%, rgba(184,140,103,.12), transparent 31%), radial-gradient(circle at 90% 8%, rgba(143,157,146,.08), transparent 28%), radial-gradient(circle at 52% 92%, rgba(99,80,62,.08), transparent 36%), linear-gradient(180deg, #34322e 0%, #2d2b27 42%, #24221f 72%, #191815 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(184,140,103,.06), transparent 30%), radial-gradient(circle at 88% 12%, rgba(143,157,146,.045), transparent 28%), linear-gradient(180deg, #32302c 0%, #2d2b27 56%, #272521 100%);
+    --chat-gradient: radial-gradient(ellipse 118% 72% at 50% -18%, rgba(184,140,103,.26), transparent 58%), radial-gradient(ellipse 78% 58% at 18% 10%, rgba(143,157,146,.13), transparent 60%), linear-gradient(180deg, #443f37 0%, #2d2a25 46%, #171512 100%);
     --grain-overlay: none;
     --texture-overlay: none;
     --texture-opacity: 0;
@@ -228,7 +229,7 @@
     --glass-2: rgba(21, 29, 25, .74);
     --glass-line: rgba(114, 255, 206, .16);
     --page-gradient: radial-gradient(circle at 13% 0%, rgba(63,189,141,.10), transparent 31%), radial-gradient(circle at 88% 8%, rgba(132,96,181,.08), transparent 29%), radial-gradient(circle at 50% 94%, rgba(42,95,75,.08), transparent 36%), linear-gradient(180deg, #111815 0%, #0b1210 42%, #09100e 72%, #040706 100%);
-    --chat-gradient: radial-gradient(circle at 14% 0%, rgba(63,189,141,.055), transparent 30%), radial-gradient(circle at 86% 12%, rgba(132,96,181,.045), transparent 28%), linear-gradient(180deg, #0e1512 0%, #0a100e 56%, #070b0a 100%);
+    --chat-gradient: radial-gradient(ellipse 118% 72% at 50% -18%, rgba(63,189,141,.24), transparent 58%), radial-gradient(ellipse 78% 58% at 18% 10%, rgba(132,96,181,.13), transparent 60%), linear-gradient(180deg, #123527 0%, #092019 46%, #030907 100%);
     --grain-overlay: none;
     --texture-overlay: none;
     --texture-opacity: 0;
@@ -660,8 +661,9 @@
   .bar > div { background: linear-gradient(90deg, var(--warn), var(--accent)); height:100%; }
   #chat {
     background-color: var(--chat-bg);
-    background-image: var(--grain-overlay), var(--chat-gradient);
-    background-size: var(--grain-size), auto, auto;
+    background-image: var(--grain-overlay), var(--chat-slant-overlay), var(--chat-gradient);
+    background-size: var(--grain-size), 260px 100%, 100% 100%, 100% 100%, 100% 100%;
+    background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
     background-attachment: local;
   }
   #chat > * { position: relative; z-index: 1; }
@@ -1007,13 +1009,42 @@
   .graph-sheet.show {
     transform: translateY(0);
   }
+  .graph-sheet.dragging {
+    transition: none !important;
+    transform: translateY(0) !important;
+    max-height: none;
+  }
+  .graph-sheet.expanded {
+    top: 18px;
+    bottom: 0;
+    max-height: none;
+    border-radius: 18px 18px 0 0;
+    background: var(--panel);
+  }
   .graph-sheet-handle {
+    width: 100%;
+    height: 32px;
+    background: transparent;
+    border-radius: 0;
+    margin: 0;
+    flex-shrink: 0;
+    cursor: grab;
+    position: relative;
+    touch-action: none;
+  }
+  .graph-sheet-handle:active {
+    cursor: grabbing;
+  }
+  .graph-sheet-handle::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
     width: 36px;
     height: 4px;
-    background: var(--line);
     border-radius: 2px;
-    margin: 10px auto 0;
-    flex-shrink: 0;
+    background: var(--line);
+    transform: translate(-50%, -50%);
   }
   .graph-sheet-body {
     flex: 1;
@@ -1039,6 +1070,54 @@
     border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
     padding-top: 10px;
     margin-top: 10px;
+  }
+  .graph-sheet:not(.expanded) .graph-detail-only {
+    display: none;
+  }
+  .graph-sheet-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 8px 0 2px;
+  }
+  .graph-sheet-action,
+  .graph-link-button {
+    min-height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 12px;
+    text-align: left;
+  }
+  .graph-sheet-action:active,
+  .graph-link-button:active {
+    background: color-mix(in srgb, var(--accent) 12%, var(--panel-2));
+  }
+  .graph-link-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .graph-link-button .meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .graph-source-preview {
+    color: var(--muted);
+    background: var(--panel-2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+  .graph-source-jump-highlight {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 12px;
   }
   .message-jump-highlight {
     outline: 2px solid var(--warn);
@@ -1122,6 +1201,41 @@
     height: 1px !important;
     opacity: 0 !important;
     pointer-events: none !important;
+  }
+  .strategy-select,
+  .strategy-number,
+  .session-info-input,
+  .session-info-textarea {
+    margin-top: 5px;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-2) 78%, transparent);
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  .strategy-select,
+  .strategy-number,
+  .session-info-input {
+    min-height: 38px;
+  }
+  .session-info-textarea {
+    min-height: 74px;
+    resize: vertical;
+    line-height: 1.45;
+  }
+  .context-avatar-preview {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    display: grid;
+    place-items: center;
+  }
+  .context-avatar-preview .session-avatar {
+    position: static;
+    left: auto;
+    top: auto;
   }
   .config-picker {
     margin-top: 6px;
@@ -1311,6 +1425,27 @@
     border-radius: 18px 18px 0 0;
     box-shadow: 0 -16px 48px rgba(0,0,0,.28);
     overflow: hidden;
+  }
+  .persona-warning-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    background: rgba(0,0,0,.74);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  .persona-warning-overlay.hidden { display: none !important; }
+  .persona-warning-dialog {
+    width: min(420px, 100%);
+    max-height: min(78vh, 620px);
+    overflow-y: auto;
+    background: var(--surface-gradient);
+    border: 1px solid var(--glass-line);
+    border-radius: 10px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.42);
+    color: var(--text);
   }
   .choice-sheet-list {
     max-height: 58vh;
@@ -1570,8 +1705,6 @@
           <button type="button" class="context-tab" data-context-tab="anchors">锚点</button>
           <button type="button" class="context-tab" data-context-tab="notes">随笔</button>
           <button type="button" class="context-tab" data-context-tab="errors">错因</button>
-          <button type="button" class="context-tab" data-context-tab="images">图片</button>
-          <button type="button" class="context-tab" data-context-tab="memory">记忆</button>
           <button type="button" class="context-tab" data-context-tab="settings">设置</button>
         </div>
       </div>
@@ -1593,8 +1726,12 @@
           导入资料（PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB，可多选）
           <input id="anchor-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
         </label>
+        <label class="flex-1 text-center text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 cursor-pointer">
+          导入图片资料
+          <input id="anchor-image-file" type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden">
+        </label>
         <input id="anchor-reprocess-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" class="hidden">
-        <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">支持 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB，多选本地解析</div>
+        <div id="anchor-import-status" class="flex-1 min-w-0 text-[11px] text-neutral-500 self-center truncate">支持文件与图片资料，多选后归入锚点</div>
       </div>
     </form>
   </section>
@@ -2073,6 +2210,45 @@
   </div>
 </div>
 
+<div id="session-rename-sheet" class="choice-sheet-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="session-rename-heading">
+  <div class="choice-sheet safe-bottom">
+    <div class="graph-sheet-handle"></div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div id="session-rename-heading" class="text-sm font-semibold">重命名会话</div>
+          <div class="text-xs text-neutral-500 mt-1">保存后会同步到会话列表和当前聊天窗口标题。</div>
+        </div>
+        <button id="session-rename-close" type="button" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+      </div>
+      <label class="block">
+        <span class="text-xs text-neutral-400">会话名称</span>
+        <input id="session-rename-title" maxlength="20" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm" placeholder="输入新的会话名称">
+      </label>
+      <button id="session-rename-save" type="button" class="w-full bg-emerald-700 active:bg-emerald-800 text-white py-2.5 rounded-lg text-sm font-medium">保存名称</button>
+    </div>
+  </div>
+</div>
+
+<div id="persona-change-warning" class="persona-warning-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="persona-change-warning-heading">
+  <div class="persona-warning-dialog">
+    <div class="p-4 space-y-3">
+      <div class="space-y-1">
+        <div id="persona-change-warning-heading" class="text-sm font-semibold">核心画像发生变化</div>
+        <div class="text-xs text-amber-300 leading-relaxed">大幅改动可能会影响体验感，请慎重选择</div>
+      </div>
+      <div class="text-xs text-neutral-400 leading-relaxed">
+        角色、目标或性格变动后，历史资料和长期记忆不会被改写，但后续对话会按新的画像承接。系统会把这次变更告诉学生 AI，让它自然过渡。
+      </div>
+      <div id="persona-change-warning-list" class="text-xs text-neutral-300 bg-neutral-950/60 border border-neutral-800 rounded-lg p-2 space-y-1"></div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="persona-change-warning-cancel" type="button" class="text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">再想想</button>
+        <button id="persona-change-warning-confirm" type="button" class="text-xs px-3 py-2 rounded bg-amber-600 active:bg-amber-700 text-white font-medium">继续保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============== 状态与工具 ==============
 const $ = s => document.querySelector(s);
@@ -2092,9 +2268,14 @@ const state = {
   sessionSearchComposing: false,
   sessionSearchRenderTimer: null,
   contextTab: 'graph',
+  contextRenderSeq: 0,
   contextEditingNoteId: null,
   graphSelected: '',
   graphEditingNode: null,
+  graphDetailNodes: [],
+  graphDetailLinks: [],
+  graphSheetExpanded: false,
+  graphSheetCompactTop: 0,
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
@@ -2107,11 +2288,13 @@ const state = {
   newAvatarImage: '',
   importedPreset: null,
   newReturnRoute: null,
+  pendingPersonaInfoChange: null,
   messageQueue: [],
   pendingCoalesce: null,
   activeChatTurn: null,
   isGenerating: false,
   queueProcessing: false,
+  renamingSessionId: null,
 };
 let appHistoryReady = false;
 let appHistorySuppress = false;
@@ -4909,6 +5092,7 @@ const ENGINE = (() => {
 
   function build_system_prompt(session, anchors, masteries, summary='', sourceContext='', kgContextText='', runtimeMemoryHint='') {
     const p = session.persona || {};
+    const deadlineInfo = sessionDeadlineStatus(session);
     const conversationMode = inferConversationMode(session);
     const runtime_profile_hint = String(session.runtime_profile_hint || buildRuntimeProfileHint(session.profile_summary || {
       tags: session.profile_tags || [],
@@ -4923,6 +5107,7 @@ const ENGINE = (() => {
 - 角色: ${p.role||''}
 - 目标: ${p.goal||''}
 - 截止: ${p.deadline||''}
+- deadline_status: ${deadlineInfo.prompt}（时间依据：本机时间 ${new Date(Date.now()).toLocaleString('zh-CN')}；不是联网校准时间）
 - 性格: ${p.personality||''}
 
 # 核心自述
@@ -4933,6 +5118,8 @@ ${runtime_profile_hint || '（无）'}
 
 # 策略设置
 ${formatStrategySettings(session.settings || {})}
+
+${formatPersonaTransitionNotice(session.persona_transition_notice)}
 
 # 主线锚（不可漂移，**永远不能违背**）
 ${format_anchors(anchors)}
@@ -4959,6 +5146,7 @@ ${format_actions()}
 # 反例追问式纠错（misconception correction）
 - 当用户用肯定语气断言一条事实性假规则时，evaluation.misconception 写入这条假规则（≤20字）；只是说得不全/不精确时留空，继续 probe/ask。
 - 当 evaluation.misconception 非空 → action.type="challenge"，student_role="confused_student"。
+- 当 action.type="examiner_verify" 且 correctness < 0.5 时，evaluation.error_pattern 写入可复盘的短错因（≤12字）。
 - 铁律：全程学生口吻，禁止“你错了 / 不对 / 正确答案是 / 我来纠正你”。把矛盾说成你这个学生自己的发现。
 - L1 反例：现编一个最小反例，说“我试出来对不上”。例：用户说“函数值为正就是增函数” → “老师我拿 f(x)=x² 套了下，f(1)=1 是正的，可它在 x<0 明明在往下掉？这跟‘f 正就是增’好像打架了，我是不是哪理解错了？”
 - L2 指矛盾：“你前面说 X，这儿又得 Y，我对不上。”
@@ -4984,6 +5172,7 @@ ${format_actions()}
       "reason": "为什么这轮算/不算掌握度证据"
     },
     "misconception": "用户把错的当对的讲出来的那条假规则，≤20字；没有则空字符串",
+    "error_pattern": "考官验证失败时归纳出的短错因，≤12字；没有则空字符串",
     "user_emotion": "neutral|frustrated|engaged|curious|fresh",
     "new_requirements": ["（若用户说出了新诉求/约定就抽取，否则 []）"]
   },
@@ -7342,13 +7531,40 @@ async function updateSessionAvatar(sid, patch) {
 async function renameSession(sid) {
   const session = await DB.get('sessions', sid);
   if (!session) return;
-  let title = prompt('会话名称', session.title || '');
-  if (title === null) return;
-  title = title.trim().slice(0, 20);
+  openSessionRenameSheet(sid, session.title || '');
+}
+
+function openSessionRenameSheet(sid, title='') {
+  const sheet = $('#session-rename-sheet');
+  const input = $('#session-rename-title');
+  if (!sheet || !input) return;
+  state.renamingSessionId = sid;
+  input.value = String(title || '').slice(0, 20);
+  sheet.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function closeSessionRenameSheet() {
+  state.renamingSessionId = null;
+  $('#session-rename-sheet')?.classList.add('hidden');
+}
+
+async function saveSessionRename() {
+  const sid = state.renamingSessionId;
+  const input = $('#session-rename-title');
+  if (!sid || !input) return;
+  const title = input.value.trim().slice(0, 20);
+  input.value = title;
   if (!title) { toast('会话名称不能为空'); return; }
+  const session = await DB.get('sessions', sid);
+  if (!session) { closeSessionRenameSheet(); return; }
   session.title = title;
   session.updated_at = Date.now();
   await DB.put('sessions', session);
+  closeSessionRenameSheet();
   if (state.sid === sid) await refreshHeader();
   await renderSessionHome();
   await renderSessionDrawer();
@@ -9789,6 +10005,135 @@ function anchorVisualState(a) {
   return '已建图';
 }
 
+async function uploadImageExtract(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images`, { method:'POST', body: form });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(detail || '图片资料导入失败');
+  }
+  return await res.json();
+}
+
+async function imageFileToDataUrl(file) {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('图片读取失败'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function buildLocalImageAnchorRow(file, err) {
+  const dataUrl = await imageFileToDataUrl(file);
+  const reason = String(err?.message || err || '图片识别接口不可用').slice(0, 160);
+  return {
+    image_id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    extracted_text: '',
+    detected_kps: [],
+    original_url: dataUrl,
+    data_url: dataUrl,
+    local_only: true,
+    structure: {
+      local_import: true,
+      file_name: file?.name || '图片资料',
+      file_size: file?.size || 0,
+      mime_type: file?.type || '',
+      reason,
+    },
+  };
+}
+
+function imageExtractSourceAnchorText(file, row) {
+  const sourceName = file?.name || '图片资料';
+  const extractedText = String(row?.extracted_text || '').trim();
+  const detectedKps = Array.isArray(row?.detected_kps) ? row.detected_kps.filter(Boolean) : [];
+  const localOnly = !!row?.local_only;
+  const structure = row?.structure && Object.keys(row.structure || {}).length
+    ? JSON.stringify(row.structure, null, 2)
+    : '';
+  const lines = [`[图片资料：${sourceName}]`];
+  lines.push(extractedText
+    ? `识别文本：${extractedText}`
+    : localOnly
+      ? '识别文本：当前静态服务没有图片识别接口，已先本地保存图片资料，请结合原图或后续说明继续判断。'
+      : '识别文本：未识别到稳定文字，请结合原图记录继续判断。');
+  if (detectedKps.length) lines.push(`识别知识点：${detectedKps.join('、')}`);
+  if (structure) lines.push(`结构线索：${structure}`);
+  return compactDocText(lines.join('\n'));
+}
+
+async function addImageExtractAsSourceAnchor(file, row) {
+  if (!row) return null;
+  const sourceName = file?.name || '图片资料';
+  const extractedText = String(row.extracted_text || '').trim();
+  const localOnly = !!row.local_only;
+  const structureText = row.structure && Object.keys(row.structure || {}).length ? JSON.stringify(row.structure) : '';
+  const sourceText = extractedText
+    || (localOnly ? `图片资料 ${sourceName} 已本地归入锚点；当前静态服务没有图片识别接口，尚未完成视觉识别。` : structureText)
+    || '图片资料已导入，但暂未识别到稳定文字。';
+  const diagnostics = {
+    status: extractedText ? 'readable' : 'needs_review',
+    code: extractedText ? 'ok' : (localOnly ? 'image_local_only' : 'image_empty_text'),
+    message: extractedText
+      ? '图片资料已识别为可检索资料。'
+      : localOnly
+        ? '图片资料已本地保存到锚点；当前静态服务没有图片识别接口，请后续补充说明或连接后端后重新识别。'
+        : '图片资料暂未识别到稳定文字，请结合原图或后续对话补充。',
+    char_count: extractedText.length,
+    detected_kp_count: Array.isArray(row.detected_kps) ? row.detected_kps.length : 0,
+  };
+  return await addLocalAnchor('source', imageExtractSourceAnchorText(file, row), 1.2, {
+    source_name: sourceName,
+    source_type: 'image',
+    source_text: sourceText,
+    source_char_count: sourceText.length,
+    source_diagnostics: diagnostics,
+    source_image_id: row.image_id,
+    source_original_url: row.original_url || row.data_url || '',
+    source_detected_kps: row.detected_kps || [],
+    source_structure: row.structure || {},
+    source_memory: createSourceMemory(sourceName, 'image', sourceText, diagnostics, {
+      sourceId: row.image_id ? `image-${row.image_id}` : undefined,
+    }),
+  });
+}
+
+async function importAnchorImages(files, opts={}) {
+  if (!state.sid) { toast('先创建会话'); return; }
+  const status = opts.statusEl || $('#anchor-import-status');
+  const list = Array.from(files || []);
+  if (!list.length) return;
+  let ok = 0;
+  let localFallbackCount = 0;
+  for (const file of list) {
+    let row = null;
+    let localFallback = false;
+    try {
+      if (status) status.textContent = `识别图片中：${file.name}`;
+      row = await uploadImageExtract(file);
+    } catch (err) {
+      row = await buildLocalImageAnchorRow(file, err);
+      localFallback = true;
+      localFallbackCount++;
+    }
+    try {
+      await addImageExtractAsSourceAnchor(file, row);
+      ok++;
+    } catch (err) {
+      toast(`${file.name} 图片资料导入失败：${err.message || err}`, 4200);
+      continue;
+    }
+    if (localFallback && status) status.textContent = `${file.name} 后端不可用，已本地归入锚点`;
+  }
+  if (status) status.textContent = ok
+    ? (localFallbackCount ? `已导入 ${ok} 张图片资料到锚点；其中 ${localFallbackCount} 张为本地保存，未完成识别` : `已导入 ${ok} 张图片资料到锚点`)
+    : '未导入图片资料';
+  if (ok) toast(localFallbackCount ? '后端不可用，已本地归入锚点' : '图片资料已导入锚点');
+  if (opts.render !== false) renderAnchors();
+}
+
 function sourcePreviewText(a) {
   const diagnostics = a?.source_diagnostics || {};
   const sourceText = String(a?.source_text || '');
@@ -9796,6 +10141,9 @@ function sourcePreviewText(a) {
   const pages = diagnostics.page_count || diagnostics.pages_read || (Array.isArray(a?.source_pages) ? a.source_pages.length : null);
   const type = String(a?.source_type || 'doc').toUpperCase();
   const meta = [`${type}`, chars ? `${chars} 字` : '', pages ? `${pages} 页` : ''].filter(Boolean).join(' · ');
+  if (diagnostics.code === 'image_local_only') {
+    return `${meta || type}\n图片已本地保存到锚点；当前静态服务没有图片识别接口，尚未完成文字识别。`;
+  }
   if (sourceNeedsOcr(a)) {
     return `${meta || type}\n需要视觉模型读取页面图片后，才能生成章节分支和候选知识节点。`;
   }
@@ -9805,31 +10153,85 @@ function sourcePreviewText(a) {
   return `${meta || type}\n文档内容已保存为检索证据，聊天命中相关知识后再展开单支分析。`;
 }
 
-function sourceAnchorCardHtml(a) {
+function sourceAnchorCardHtml(a, opts={}) {
+  const reprocess = opts.reprocess === false ? '' : '<button data-reprocess-source="' + esc(String(a.id)) + '" class="text-[11px] px-2 py-0.5 rounded border border-neutral-700 text-neutral-400 active:bg-neutral-800">重新处理</button>';
+  const imagePreview = String(a?.source_type || '') === 'image' && a.source_original_url
+    ? `<img src="${esc(String(a.source_original_url))}" class="mt-2 max-h-28 rounded border border-neutral-800 object-contain" alt="${esc(sourceDisplayName(a, '图片资料'))}">`
+    : '';
   return `
     <div class="font-semibold truncate">${esc(sourceDisplayName(a, '资料'))}</div>
+    ${imagePreview}
     <div class="mt-1 leading-relaxed" style="color:var(--muted)">${esc(sourcePreviewText(a))}</div>
     <div class="mt-1.5 flex gap-1.5 flex-wrap">
       <span class="pill pill-next">${esc(anchorVisualState(a))}</span>
-      <button data-reprocess-source="${a.id}" class="text-[11px] px-2 py-0.5 rounded border border-neutral-700 text-neutral-400 active:bg-neutral-800">重新处理</button>
+      ${reprocess}
     </div>
   `;
 }
 
 let pendingReprocessAnchorId = null;
 
+function anchorCategoryMeta(a) {
+  const source_type = String(a?.source_type || '').toLowerCase();
+  if (a.kind === 'source' && source_type === 'image') {
+    return { key: 'images', label: '图片资料', hint: '从锚点导入的图片识别资料' };
+  }
+  if (a.kind === 'source') {
+    return { key: 'sources', label: '文件资料', hint: 'PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 等资料' };
+  }
+  if (a.kind === 'persona_change') {
+    return { key: 'persona', label: '画像变更', hint: '角色、性格、目标等核心设定调整记录' };
+  }
+  if (['initial', 'requirement'].includes(a.kind)) {
+    return { key: 'manual', label: '手动锚点', hint: '学习目标、约束和主线要求' };
+  }
+  return { key: 'other', label: '其他记录', hint: '自动沉淀的补充线索' };
+}
+
+function anchorItemHtml(a, opts={}) {
+  const deleteAttr = opts.deleteAttr || 'del';
+  const reprocess = opts.reprocess !== false;
+  return `
+    <div data-anchor-row="${esc(String(a.id || ''))}" class="flex gap-2 items-start group bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
+      <span class="pill pill-${a.kind}">${esc(a.kind || 'anchor')}</span>
+      <div class="flex-1 min-w-0 text-neutral-200">
+        ${a.kind === 'source' ? sourceAnchorCardHtml(a, { reprocess }) : `<div class="whitespace-pre-wrap break-words">${esc(a.content || '')}${Number.isFinite(Number(a.weight)) ? ` <span class="text-neutral-600">w=${Number(a.weight).toFixed(1)}</span>` : ''}</div>`}
+      </div>
+      <button data-${deleteAttr}="${esc(String(a.id))}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除锚点"><i data-lucide="x"></i></button>
+    </div>`;
+}
+
+function renderGroupedAnchorsHtml(anchors, opts={}) {
+  const order = ['manual', 'images', 'sources', 'persona', 'other'];
+  const groups = new Map(order.map(key => [key, []]));
+  for (const anchor of anchors || []) {
+    const meta = anchorCategoryMeta(anchor);
+    if (!groups.has(meta.key)) groups.set(meta.key, []);
+    groups.get(meta.key).push(anchor);
+  }
+  return order.map(key => {
+    const items = groups.get(key) || [];
+    if (!items.length) return '';
+    const meta = anchorCategoryMeta(items[0]);
+    return `
+      <section class="space-y-2">
+        <div class="flex items-end justify-between gap-3 px-0.5">
+          <div>
+            <div class="text-xs font-semibold text-neutral-300">${meta.label}</div>
+            <div class="text-[11px] text-neutral-500">${meta.hint}</div>
+          </div>
+          <div class="text-[11px] text-neutral-500">${items.length} 条</div>
+        </div>
+        <div class="space-y-2">${items.map(a => anchorItemHtml(a, opts)).join('')}</div>
+      </section>`;
+  }).join('');
+}
+
 async function renderAnchors() {
   if (!state.sid) { $('#anchors-list').innerHTML = '<div class="text-xs text-neutral-500 text-center mt-10">先创建会话</div>'; return; }
   const anchors = (await DB.bySid('anchors', state.sid)).sort((a,b)=>b.weight-a.weight);
-  $('#anchors-list').innerHTML = anchors.map(a => `
-    <div class="flex gap-2 items-start group bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
-      <span class="pill pill-${a.kind}">${a.kind}</span>
-      <div class="flex-1 text-neutral-200">
-        ${a.kind === 'source' ? sourceAnchorCardHtml(a) : `<div>${esc(a.content)} <span class="text-neutral-600">w=${a.weight.toFixed(1)}</span></div>`}
-      </div>
-      <button data-del="${a.id}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除锚点"><i data-lucide="x"></i></button>
-    </div>
-  `).join('') || '<div class="text-xs text-neutral-500 text-center mt-10">尚无锚</div>';
+  const rows = renderGroupedAnchorsHtml(anchors, { deleteAttr: 'del' });
+  $('#anchors-list').innerHTML = rows || '<div class="text-xs text-neutral-500 text-center mt-10">尚无锚</div>';
   $$('#anchors-list [data-reprocess-source]').forEach(b => b.addEventListener('click', () => {
     pendingReprocessAnchorId = b.dataset.reprocessSource;
     $('#anchor-reprocess-file').click();
@@ -9854,6 +10256,10 @@ $('#anchor-file').addEventListener('change', async e => {
   await importAnchorFiles(e.target.files);
   e.target.value = '';
 });
+$('#anchor-image-file').addEventListener('change', async e => {
+  await importAnchorImages(e.target.files);
+  e.target.value = '';
+});
 $('#anchor-reprocess-file').addEventListener('change', async e => {
   if (!pendingReprocessAnchorId) { e.target.value = ''; return; }
   await importAnchorFiles(e.target.files, { replaceAnchorId: pendingReprocessAnchorId });
@@ -9863,7 +10269,7 @@ $('#anchor-reprocess-file').addEventListener('change', async e => {
 
 async function openLearningContext(tab=state.contextTab || 'graph') {
   if (!state.sid) { toast('先打开一个聊天窗口'); return; }
-  state.contextTab = ['graph','anchors','notes','errors','images','memory','settings'].includes(tab) ? tab : 'graph';
+  state.contextTab = ['graph','anchors','notes','errors','settings'].includes(tab) ? tab : 'graph';
   await markSessionRead(state.sid);
   state.chatScreen = 'context';
   const s = await DB.get('sessions', state.sid);
@@ -9875,33 +10281,50 @@ async function openLearningContext(tab=state.contextTab || 'graph') {
 function closeLearningContext() {
   if (state.sid) markSessionRead(state.sid);
   state.chatScreen = 'thread';
+  state.contextRenderSeq++;
   state.contextEditingNoteId = null;
   syncAppHistory();
   renderChat();
 }
 
-async function renderLearningContext() {
-  $$('.context-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.contextTab === state.contextTab));
-  $('#learning-context-body')?.classList.toggle('context-graph-body', state.contextTab === 'graph');
-  if (state.contextTab === 'anchors') return renderContextAnchors();
-  if (state.contextTab === 'notes') return renderContextNotes();
-  if (state.contextTab === 'errors') return renderContextErrors();
-  if (state.contextTab === 'images') return renderContextImages();
-  if (state.contextTab === 'memory') return renderContextMemory();
-  if (state.contextTab === 'settings') return renderContextSettings();
-  return renderContextGraph();
+function isActiveContextRender(renderId, tab) {
+  return renderId === state.contextRenderSeq
+    && state.currentTab === 'chat'
+    && state.chatScreen === 'context'
+    && state.contextTab === tab;
 }
 
-async function renderContextGraph() {
+function renderContextImmediateShell(tab=state.contextTab) {
   const body = $('#learning-context-body');
-  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  $$('.context-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.contextTab === tab));
+  body?.classList.toggle('context-graph-body', tab === 'graph');
+  if (!body || tab === 'graph') return;
+  ForceGraph.destroy();
+  body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">读取中</div>';
+}
+
+async function renderLearningContext() {
+  const renderId = ++state.contextRenderSeq;
+  renderContextImmediateShell(state.contextTab);
+  if (state.contextTab === 'anchors') return renderContextAnchors(renderId);
+  if (state.contextTab === 'notes') return renderContextNotes(renderId);
+  if (state.contextTab === 'errors') return renderContextErrors(renderId);
+  if (state.contextTab === 'settings') return renderContextSettings(renderId);
+  return renderContextGraph(renderId);
+}
+
+async function renderContextGraph(renderId=state.contextRenderSeq) {
+  const body = $('#learning-context-body');
+  if (!state.sid) { setActiveGraphDataset([], []); body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
   const [msgs, masteries, anchors] = await Promise.all([
     DB.bySid('messages', state.sid),
     DB.bySid('mastery', state.sid),
     DB.bySid('anchors', state.sid),
   ]);
+  if (!isActiveContextRender(renderId, 'graph')) return;
   const ai = msgs.filter(m => m.role === 'assistant');
   if (!masteries.length && !anchors.length) {
+    setActiveGraphDataset([], []);
     ForceGraph.destroy();
     body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">当前窗口还没有图谱节点。聊天、锚点和随笔都会按正常逻辑沉淀到这里。</div>';
     return;
@@ -9910,6 +10333,7 @@ async function renderContextGraph() {
     <div id="context-knowledge-graph" class="knowledge-graph knowledge-graph-fullscreen"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点回顾来源</div></div>`;
   const { nodes, links } = buildGraphData(masteries, ai, anchors);
   nodes.forEach(n => { n.sid = state.sid; });
+  setActiveGraphDataset(nodes, links);
   ForceGraph.init($('#context-knowledge-graph'), node => {
     if (node) { state.graphSelected = node.key; showGraphSheet(node); }
     else { state.graphSelected = ''; hideGraphSheet(); }
@@ -9918,28 +10342,26 @@ async function renderContextGraph() {
   setTimeout(() => { const h = $('#context-knowledge-graph')?.querySelector('.graph-hint'); if(h) h.classList.add('fade'); }, 4000);
 }
 
-async function renderContextAnchors() {
+async function renderContextAnchors(renderId=state.contextRenderSeq) {
   const body = $('#learning-context-body');
   const anchors = state.sid ? (await DB.bySid('anchors', state.sid)).sort((a,b)=>b.weight-a.weight) : [];
-  const rows = anchors.filter(a => a.kind !== 'note').map(a => `
-    <div class="flex items-start gap-2 bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
-      <span class="pill pill-${a.kind}">${esc(a.kind)}</span>
-      <div class="flex-1 min-w-0 text-neutral-300">
-        ${a.kind === 'source' ? sourceAnchorCardHtml(a) : `<div class="whitespace-pre-wrap break-words">${esc(a.content || '')}</div>`}
-      </div>
-      <button data-context-del-anchor="${a.id}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除"><i data-lucide="x"></i></button>
-    </div>`).join('');
+  if (!isActiveContextRender(renderId, 'anchors')) return;
+  const rows = renderGroupedAnchorsHtml(anchors.filter(a => a.kind !== 'note'), { deleteAttr: 'context-del-anchor' });
   body.innerHTML = `
     <form id="context-anchor-form" class="space-y-2 mb-3">
       <textarea id="context-anchor-input" rows="3" placeholder="补充当前窗口的学习目标、约束或资料主线..." class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
-      <div class="flex gap-2">
-        <button class="flex-1 bg-emerald-700 active:bg-emerald-800 text-white text-sm py-2 rounded-lg font-medium">保存锚点</button>
-        <label class="flex-1 text-center text-sm py-2 rounded-lg border border-neutral-700 active:bg-neutral-800 cursor-pointer">
+      <div class="grid grid-cols-3 gap-2">
+        <button class="bg-emerald-700 active:bg-emerald-800 text-white text-sm py-2 rounded-lg font-medium">保存锚点</button>
+        <label class="text-center text-sm py-2 rounded-lg border border-neutral-700 active:bg-neutral-800 cursor-pointer">
           导入资料
           <input id="context-anchor-file" type="file" accept=".pdf,.docx,.txt,.md,.markdown,.html,.htm,.pptx,.epub,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/epub+zip" multiple class="hidden">
         </label>
+        <label class="text-center text-sm py-2 rounded-lg border border-neutral-700 active:bg-neutral-800 cursor-pointer">
+          导入图片资料
+          <input id="context-anchor-image-file" type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden">
+        </label>
       </div>
-      <div id="context-anchor-status" class="text-[11px] text-neutral-500 leading-relaxed"></div>
+      <div id="context-anchor-status" class="text-[11px] text-neutral-500 leading-relaxed">文件和图片资料会直接归入锚点，并按类型显示在下方列表。</div>
     </form>
     <div class="space-y-2">${rows || '<div class="text-xs text-neutral-500 text-center py-8">还没有锚点。保存约束或导入资料后，会进入当前窗口图谱。</div>'}</div>`;
   $('#context-anchor-form')?.addEventListener('submit', async e => {
@@ -9956,6 +10378,11 @@ async function renderContextAnchors() {
     e.target.value = '';
     await renderContextAnchors();
   });
+  $('#context-anchor-image-file')?.addEventListener('change', async e => {
+    await importAnchorImages(e.target.files, { statusEl: $('#context-anchor-status'), render: false });
+    e.target.value = '';
+    await renderContextAnchors();
+  });
   $$('[data-context-del-anchor]').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('删除这个锚点？')) return;
     await DB.del('anchors', +btn.dataset.contextDelAnchor);
@@ -9964,9 +10391,10 @@ async function renderContextAnchors() {
   refreshIcons();
 }
 
-async function renderContextNotes() {
+async function renderContextNotes(renderId=state.contextRenderSeq) {
   const body = $('#learning-context-body');
   const anchors = state.sid ? (await DB.bySid('anchors', state.sid)).sort((a,b)=>(b.created_at||0)-(a.created_at||0)) : [];
+  if (!isActiveContextRender(renderId, 'notes')) return;
   const notes = anchors.filter(a => a.kind === 'note');
   const rows = notes.map(n => {
     const editing = String(state.contextEditingNoteId || '') === String(n.id);
@@ -10036,13 +10464,18 @@ function relativeDayText(ts) {
   return days <= 0 ? '今天' : `${days} 天前`;
 }
 
-async function renderContextErrors() {
+async function renderContextErrors(renderId=state.contextRenderSeq) {
   const body = $('#learning-context-body');
-  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+  if (!state.sid) {
+    if (!isActiveContextRender(renderId, 'errors')) return;
+    body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>';
+    return;
+  }
   const [rows, messages] = await Promise.all([
     DB.bySid('error_log', state.sid),
     DB.bySid('messages', state.sid),
   ]);
+  if (!isActiveContextRender(renderId, 'errors')) return;
   const msgById = new Map(messages.map(m => [Number(m.id), m]));
   const sorted = rows.sort((a,b) => {
     const ar = a.status === 'resolved' ? 1 : 0;
@@ -10064,147 +10497,120 @@ async function renderContextErrors() {
               ${episodes.map(m => `<div class="rounded border border-neutral-800 p-2 text-neutral-400">${esc(String(m.content || '').slice(0, 160))}</div>`).join('') || '<div class="text-neutral-500">暂无关联 episode 片段</div>'}
             </div>
           </details>`;
-      }).join('') || '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">还没有反复错因。考官验证失败并给出 error_pattern 后，会在这里沉淀。</div>'}
+      }).join('') || '<div class="text-xs text-neutral-500 text-center py-10 leading-relaxed">还没有反复错因。模型识别出 misconception，或考官验证失败并给出 error_pattern 后，会在这里沉淀；同一知识点+同一错因会累计出现次数。</div>'}
     </div>`;
 }
 
-async function renderContextImages() {
-  const body = $('#learning-context-body');
-  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
-  let image_extracts = [];
-  try {
-    image_extracts = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images`).then(r => r.ok ? r.json() : []);
-  } catch (e) {
-    image_extracts = [];
+function addCalendarMonths(ts, months) {
+  const d = new Date(ts);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if (d.getDate() < day) d.setDate(0);
+  return d.getTime();
+}
+
+function parseSessionDeadlineTarget(deadline, createdAt=Date.now()) {
+  const text = String(deadline || '').trim();
+  if (!text) return null;
+  let m = text.match(/(\d{4})\s*[-/.年]\s*(\d{1,2})(?:\s*[-/.月]\s*(\d{1,2}))?/);
+  if (m) {
+    const y = Number(m[1]);
+    const month = Number(m[2]) - 1;
+    const day = Number(m[3] || 1);
+    return new Date(y, month, day, 23, 59, 59, 999).getTime();
   }
-  body.innerHTML = `
-    <div class="space-y-3" data-image-extracts="image_extracts">
-      <label class="block bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
-        <span class="text-neutral-300 inline-flex items-center gap-1.5"><i class="button-icon" data-lucide="image-plus"></i><span>上传图片</span></span>
-        <input id="ctx-image-upload" type="file" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full text-neutral-400">
-      </label>
-      ${(image_extracts || []).map(row => `
-        <details class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
-          <summary class="cursor-pointer flex items-center justify-between gap-2">
-            <span class="min-w-0 truncate">${esc(String(row.extracted_text || '图片识别结果').slice(0, 80))}</span>
-            <button type="button" data-delete-image="${row.image_id}" class="shrink-0 text-[11px] px-2 py-1 rounded border border-neutral-700">删除</button>
-          </summary>
-          <div class="mt-2 space-y-2 text-neutral-400">
-            ${row.original_url ? `<img src="${esc(row.original_url)}" class="max-h-32 rounded border border-neutral-800" alt="">` : ''}
-            <div>${esc(row.extracted_text || '')}</div>
-            <pre class="whitespace-pre-wrap text-[11px] bg-neutral-950 border border-neutral-800 rounded p-2">${esc(JSON.stringify(row.structure || {}, null, 2))}</pre>
-            <div class="text-[11px] text-neutral-500">episode #${esc(row.episode_id || '')}</div>
-          </div>
-        </details>`).join('') || '<div class="text-xs text-neutral-500 text-center py-10">还没有图片识别记录</div>'}
-    </div>`;
-  $('#ctx-image-upload')?.addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const form = new FormData();
-    form.append('file', file);
-    await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images`, { method:'POST', body: form });
-    await renderContextImages();
-  });
-  $$('[data-delete-image]').forEach(btn => btn.addEventListener('click', async e => {
-    e.preventDefault();
-    await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/images/${encodeURIComponent(btn.dataset.deleteImage)}`, { method:'DELETE' });
-    await renderContextImages();
-  }));
-  if (window.lucide) lucide.createIcons();
-}
-
-function memoryTime(value) {
-  return value ? esc(String(value).replace('T', ' ').slice(0, 16)) : '未记录';
-}
-
-function memoryDeleteButton(kind, id, label) {
-  return `<button type="button" data-memory-delete-kind="${esc(kind)}" data-memory-delete-id="${esc(id)}" data-memory-delete-label="${esc(label)}" class="shrink-0 text-[11px] px-2 py-1 rounded border border-neutral-700 active:border-red-500 active:text-red-300">删除</button>`;
-}
-
-function memoryRowHtml(kind, id, label, title, detail, time) {
-  return `
-    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs">
-      <div class="flex items-start justify-between gap-2">
-        <div class="min-w-0">
-          <div class="font-semibold text-neutral-200 truncate">${title}</div>
-          <div class="text-neutral-400 mt-1 leading-relaxed break-words">${detail}</div>
-          <div class="text-[10px] text-neutral-500 mt-2">${time}</div>
-        </div>
-        ${memoryDeleteButton(kind, id, label)}
-      </div>
-    </div>`;
-}
-
-const SEMANTIC_KG_KINDS = new Set(['person', 'concept', 'error_pattern', 'preference', 'method', 'mastery_state', 'persona_trait', 'source_topic', 'source_memory']);
-const PROCESS_KG_KINDS = new Set(['background_reply', 'background_generation', 'free_reply', 'model_free_reply', 'ordinary_message_event', 'normal_message_event', 'message_event']);
-const PROCESS_KG_NAMES = new Set(['\u540e\u53f0\u56de\u590d', '\u540e\u53f0\u751f\u6210', '\u81ea\u7531\u56de\u590d', '\u6a21\u578b\u81ea\u7531\u56de\u590d', '\u666e\u901a\u6d88\u606f\u4e8b\u4ef6']);
-
-function normalizeMemoryPanelKgKind(kind) {
-  return String(kind || '').trim().replace(/[_-]+/g, '_').toLowerCase();
-}
-
-function isMemoryPanelSemanticKgNode(node) {
-  const kind = normalizeMemoryPanelKgKind(node?.kind);
-  const name = String(node?.name || '').trim();
-  return !!name && SEMANTIC_KG_KINDS.has(kind) && !PROCESS_KG_KINDS.has(kind) && !PROCESS_KG_NAMES.has(name);
-}
-
-async function renderContextMemory() {
-  const body = $('#learning-context-body');
-  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
-  let memory = null;
-  try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/memory`);
-    memory = res.ok ? await res.json() : null;
-  } catch (e) {
-    memory = null;
+  m = text.match(/(\d{4})\s*高考/);
+  if (m) return new Date(Number(m[1]), 5, 7, 23, 59, 59, 999).getTime();
+  m = text.match(/(\d+)\s*(天|日|周|星期|个月|月|年)\s*(内|后)?/);
+  if (m) {
+    const amount = Math.max(0, Number(m[1]));
+    const unit = m[2];
+    if (unit === '天' || unit === '日') return createdAt + amount * 86400000;
+    if (unit === '周' || unit === '星期') return createdAt + amount * 7 * 86400000;
+    if (unit === '个月' || unit === '月') return addCalendarMonths(createdAt, amount);
+    if (unit === '年') return addCalendarMonths(createdAt, amount * 12);
   }
-  if (!memory) {
-    body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">记忆读取失败</div>';
-    return;
+  return null;
+}
+
+function sessionDeadlineStatus(session) {
+  const deadline = String(session?.persona?.deadline || '').trim();
+  const now = Date.now();
+  const created_at = Number(session?.created_at || now);
+  const targetAt = parseSessionDeadlineTarget(deadline, created_at);
+  const timeSource = { source: 'local_device_time' };
+  if (!deadline) {
+    return { ...timeSource, deadline, targetAt: null, daysLeft: null, label: '未设置截止日期', prompt: 'not_set' };
   }
-  const tabs = [
-    ['anchors', '锚点'], ['mastery', '掌握度'], ['error_logs', '错因'],
-    ['images', '图片'], ['documents', '资料'], ['kg_nodes', '图谱'], ['recent_episodes', '记录'],
-  ];
-  const active = tabs.some(t => t[0] === state.memoryTab) ? state.memoryTab : 'anchors';
-  state.memoryTab = active;
-  const rows = {
-    anchors: (memory.anchors || []).map(a => memoryRowHtml('anchor', a.id, '锚点', `${esc(a.kind || 'anchor')} · weight ${esc(a.weight || 0)}`, esc(a.content || ''), memoryTime(a.created_at))),
-    mastery: (memory.mastery || []).map(m => memoryRowHtml('mastery', m.id, '掌握度', esc(m.knowledge_point || '未命名知识点'), `level ${esc(m.level || 0)} · ${esc(m.mastery_score || 0)}/100 · next ${memoryTime(m.next_review_at)}`, memoryTime(m.updated_at))),
-    error_logs: (memory.error_logs || []).map(e => memoryRowHtml('error_log', e.id, '错因', `${esc(e.kp || '当前焦点')} · ${esc(e.error_pattern || '')}`, `出现 ${esc(e.recurrence_count || 1)} 次 · ${esc(e.status || 'active')}`, memoryTime(e.last_seen_at))),
-    images: (memory.images || []).map(i => memoryRowHtml('image', i.id, '图片', esc(String(i.extracted_text || '图片识别结果').slice(0, 60)), `KP: ${esc((i.detected_kps || []).join(', ') || '未命中')} · episode #${esc(i.episode_id || '')}`, memoryTime(i.created_at))),
-    documents: (memory.documents || []).map(d => memoryRowHtml('document', d.id, '资料', esc(d.title || 'Untitled'), `${esc(d.source_type || '')} · chunks ${esc(d.chunk_count || 0)}`, memoryTime(d.imported_at))),
-    kg_nodes: (memory.kg_nodes || []).filter(isMemoryPanelSemanticKgNode).slice(0, 80).map(n => memoryRowHtml('kg_node', n.id, '图谱', esc(n.name || '未命名节点'), `${esc(n.kind || 'node')} · ${esc(n.status || 'active')}`, memoryTime(n.last_seen_at || n.first_seen_at))),
-    recent_episodes: (memory.recent_episodes || []).map(e => memoryRowHtml('episode', e.id, '记录', `${esc(e.role || '')} · ${esc((e.meta || {}).kind || '')}`, esc(String(e.content || '').slice(0, 80)), memoryTime(e.created_at))),
+  if (!targetAt || !Number.isFinite(targetAt)) {
+    return { ...timeSource, deadline, targetAt: null, daysLeft: null, label: '无法自动判断日期', prompt: `unparsed: ${deadline}` };
+  }
+  const daysLeft = Math.ceil((targetAt - now) / 86400000);
+  if (daysLeft > 0) {
+    return { ...timeSource, deadline, targetAt, daysLeft, label: `还剩 ${daysLeft} 天`, prompt: `active, ${daysLeft} days left` };
+  }
+  if (daysLeft === 0) {
+    return { ...timeSource, deadline, targetAt, daysLeft, label: '今天到期', prompt: 'due_today' };
+  }
+  return { ...timeSource, deadline, targetAt, daysLeft, label: `已到期 ${Math.abs(daysLeft)} 天`, prompt: `expired, ${Math.abs(daysLeft)} days overdue; ask whether to复盘、延期或重设目标` };
+}
+
+const CORE_PERSONA_FIELDS = ['role', 'goal', 'personality'];
+const CORE_PERSONA_FIELD_LABELS = {
+  role: '角色',
+  goal: '目标',
+  personality: '性格',
+};
+
+function normalizePersonaFieldValue(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function detectCorePersonaChanges(session, next) {
+  const current = session?.persona || {};
+  return CORE_PERSONA_FIELDS.map(field => {
+    const before = normalizePersonaFieldValue(current[field]);
+    const after = normalizePersonaFieldValue(next?.[field]);
+    if (before === after) return null;
+    return { field, label: CORE_PERSONA_FIELD_LABELS[field] || field, before, after };
+  }).filter(Boolean);
+}
+
+function buildPersonaTransitionNotice(session, next, changes) {
+  const now = Date.now();
+  return {
+    created_at: now,
+    changed_fields: changes.map(change => change.field),
+    previous: {
+      role: normalizePersonaFieldValue(session?.persona?.role),
+      goal: normalizePersonaFieldValue(session?.persona?.goal),
+      personality: normalizePersonaFieldValue(session?.persona?.personality),
+    },
+    next: {
+      role: normalizePersonaFieldValue(next.role),
+      goal: normalizePersonaFieldValue(next.goal),
+      personality: normalizePersonaFieldValue(next.personality),
+    },
+    summary: changes.map(change => `${change.label}: ${change.before || '未设定'} -> ${change.after || '未设定'}`).join('；'),
   };
-  body.innerHTML = `
-    <div class="space-y-3">
-      <div class="flex gap-2 overflow-x-auto pb-1">
-        ${tabs.map(([key, label]) => `<button type="button" data-memory-kind="${key}" class="context-tab ${key === active ? 'active' : ''}">${label}</button>`).join('')}
-      </div>
-      <div class="space-y-2" data-memory-panel="${active}">
-        ${(rows[active] || []).join('') || '<div class="text-xs text-neutral-500 text-center py-10">当前分类还没有记忆</div>'}
-      </div>
-      <div class="hidden" data-memory-confirm-copy>确定删除这条 [类型] 记忆？删除后不可恢复。</div>
-    </div>`;
-  $$('[data-memory-kind]').forEach(btn => btn.addEventListener('click', async () => {
-    state.memoryTab = btn.dataset.memoryKind;
-    await renderContextMemory();
-  }));
-  $$('[data-memory-delete-kind]').forEach(btn => btn.addEventListener('click', async () => {
-    const label = btn.dataset.memoryDeleteLabel || '记忆';
-    if (!confirm(`确定删除这条 ${label} 记忆？删除后不可恢复。`)) return;
-    const res = await fetch(`/api/sessions/${encodeURIComponent(state.sid)}/memory/${encodeURIComponent(btn.dataset.memoryDeleteKind)}/${encodeURIComponent(btn.dataset.memoryDeleteId)}`, { method: 'DELETE' });
-    if (!res.ok) {
-      let detail = '未知错误';
-      try { detail = (await res.json()).detail || detail; } catch (e) {}
-      toast(`删除失败：${detail}`);
-      return;
-    }
-    toast('已删除');
-    await renderContextMemory();
-  }));
+}
+
+function formatPersonaTransitionNotice(notice) {
+  if (!notice || !Array.isArray(notice.changed_fields) || !notice.changed_fields.length) return '';
+  const fields = notice.changed_fields.map(field => CORE_PERSONA_FIELD_LABELS[field] || field).join('、');
+  const previous = notice.previous || {};
+  const next = notice.next || {};
+  return `# persona_transition_notice
+- 本会话的核心画像刚被用户主动调整，变更字段：${fields}。
+- 旧画像：角色=${previous.role || '未设定'}；目标=${previous.goal || '未设定'}；性格=${previous.personality || '未设定'}。
+- 新画像：角色=${next.role || '未设定'}；目标=${next.goal || '未设定'}；性格=${next.personality || '未设定'}。
+- 你需要在后续对话里自然承接这次画像变更。目标变化时，可以自然表达对新目标和旧进度关系的察觉；角色或性格变化明显时，可以自然过渡成新的学生视角。
+- 不要照抄示例台词，不要机械解释系统设置，不要说自己读取了配置；用当前学生 AI 的口吻自由发挥。`;
+}
+
+function personaTransitionAnchorText(notice) {
+  if (!notice) return '';
+  return `核心画像变更：${notice.summary || '用户调整了角色、目标或性格'}。后续对话需要自然承接这次变化，不改写历史资料和长期记忆。`;
 }
 
 function strategyOption(value, current, label) {
@@ -10225,13 +10631,13 @@ function strategySettingsPanelHtml(session) {
           <label class="block"><span class="text-neutral-400">反馈强度</span><input id="setting-feedback-intensity" data-strategy-setting="feedback_intensity" type="range" min="1" max="5" value="${st.feedback_intensity}" class="w-full accent-emerald-700"></label>
           <label class="block"><span class="text-neutral-400">追问强度</span><input id="setting-probing-intensity" data-strategy-setting="probing_intensity" type="range" min="1" max="5" value="${st.probing_intensity}" class="w-full accent-emerald-700"></label>
           <label class="block"><span class="text-neutral-400">脚手架强度</span><input id="setting-scaffold-intensity" data-strategy-setting="scaffold_intensity" type="range" min="1" max="5" value="${st.scaffold_intensity}" class="w-full accent-emerald-700"></label>
-          <label class="block"><span class="text-neutral-400">纠错时机</span><select id="setting-correction-timing" data-strategy-setting="correction_timing" class="native-config-select">${strategyOption('immediate', st.correction_timing, '即时')}${strategyOption('summary_only', st.correction_timing, '只在小结')}</select></label>
-          <label class="block"><span class="text-neutral-400">纠错坚持度</span><select id="setting-correction-persistence" data-strategy-setting="correction_persistence" class="native-config-select">${strategyOption('gentle', st.correction_persistence, '温和（只给反例）')}${strategyOption('balanced', st.correction_persistence, '平衡（反例+求证提示）')}${strategyOption('persistent', st.correction_persistence, '较真（紧盯改对）')}</select></label>
-          <label class="block"><span class="text-neutral-400">复习频率</span><select id="setting-review-frequency" data-strategy-setting="review_frequency" class="native-config-select">${strategyOption('low', st.review_frequency, '低')}${strategyOption('normal', st.review_frequency, '正常')}${strategyOption('high', st.review_frequency, '高')}</select></label>
-          <label class="block"><span class="text-neutral-400">语气</span><select id="setting-tone" data-strategy-setting="tone" class="native-config-select">${strategyOption('natural', st.tone, '自然')}${strategyOption('calm', st.tone, '冷静')}${strategyOption('warm', st.tone, '温和')}</select></label>
-          <label class="block"><span class="text-neutral-400">主动性</span><select id="setting-proactivity" data-strategy-setting="proactivity" class="native-config-select">${strategyOption('low', st.proactivity, '低')}${strategyOption('normal', st.proactivity, '正常')}${strategyOption('high', st.proactivity, '高')}</select></label>
-          <label class="block"><span class="text-neutral-400">隐私级别</span><select id="setting-privacy-level" data-strategy-setting="privacy_level" class="native-config-select">${strategyOption('standard', st.privacy_level, '标准')}${strategyOption('strict', st.privacy_level, '严格')}</select></label>
-          <label class="block"><span class="text-neutral-400">保留原图 N 天</span><input id="setting-image-retention-days" data-strategy-setting="image_retention_days" type="number" min="0" max="365" value="${st.image_retention_days}" class="native-config-select"></label>
+          <label class="block"><span class="text-neutral-400">纠错时机</span><select id="setting-correction-timing" data-strategy-setting="correction_timing" class="strategy-select">${strategyOption('immediate', st.correction_timing, '即时')}${strategyOption('summary_only', st.correction_timing, '只在小结')}</select></label>
+          <label class="block"><span class="text-neutral-400">纠错坚持度</span><select id="setting-correction-persistence" data-strategy-setting="correction_persistence" class="strategy-select">${strategyOption('gentle', st.correction_persistence, '温和（只给反例）')}${strategyOption('balanced', st.correction_persistence, '平衡（反例+求证提示）')}${strategyOption('persistent', st.correction_persistence, '较真（紧盯改对）')}</select></label>
+          <label class="block"><span class="text-neutral-400">复习频率</span><select id="setting-review-frequency" data-strategy-setting="review_frequency" class="strategy-select">${strategyOption('low', st.review_frequency, '低')}${strategyOption('normal', st.review_frequency, '正常')}${strategyOption('high', st.review_frequency, '高')}</select></label>
+          <label class="block"><span class="text-neutral-400">语气</span><select id="setting-tone" data-strategy-setting="tone" class="strategy-select">${strategyOption('natural', st.tone, '自然')}${strategyOption('calm', st.tone, '冷静')}${strategyOption('warm', st.tone, '温和')}</select></label>
+          <label class="block"><span class="text-neutral-400">主动性</span><select id="setting-proactivity" data-strategy-setting="proactivity" class="strategy-select">${strategyOption('low', st.proactivity, '低')}${strategyOption('normal', st.proactivity, '正常')}${strategyOption('high', st.proactivity, '高')}</select></label>
+          <label class="block"><span class="text-neutral-400">隐私级别</span><select id="setting-privacy-level" data-strategy-setting="privacy_level" class="strategy-select">${strategyOption('standard', st.privacy_level, '标准')}${strategyOption('strict', st.privacy_level, '严格')}</select></label>
+          <label class="block"><span class="text-neutral-400">保留原图 N 天</span><input id="setting-image-retention-days" data-strategy-setting="image_retention_days" type="number" min="0" max="365" value="${st.image_retention_days}" class="strategy-number"></label>
         </div>
         <div class="flex items-center justify-between gap-2">
           <div id="setting-strategy-status" class="text-[11px] text-neutral-500">已绑定到当前会话</div>
@@ -10264,11 +10670,91 @@ function bindStrategySettingsControls() {
   });
 }
 
-async function renderContextSettings() {
-  const body = $('#learning-context-body');
-  if (!state.sid) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
+function collectSessionPersonaInfoDraft() {
+  return {
+    title: ($('#setting-session-title')?.value || '').trim().slice(0, 20),
+    role: ($('#setting-session-role')?.value || '').trim().slice(0, 80),
+    goal: ($('#setting-session-goal')?.value || '').trim().slice(0, 120),
+    deadline: ($('#setting-session-deadline')?.value || '').trim().slice(0, 80),
+    personality: ($('#setting-session-personality')?.value || '').trim().slice(0, 500),
+  };
+}
+
+function openPersonaChangeWarning(pending) {
+  state.pendingPersonaInfoChange = pending;
+  const list = $('#persona-change-warning-list');
+  if (list) {
+    list.innerHTML = pending.changes.map(change => `
+      <div><span class="text-neutral-500">${esc(change.label)}</span>：${esc(change.before || '未设定')} <span class="text-neutral-500">-></span> ${esc(change.after || '未设定')}</div>
+    `).join('');
+  }
+  $('#persona-change-warning')?.classList.remove('hidden');
+}
+
+function closePersonaChangeWarning() {
+  state.pendingPersonaInfoChange = null;
+  $('#persona-change-warning')?.classList.add('hidden');
+}
+
+async function confirmPersonaChangeWarning() {
+  const pending = state.pendingPersonaInfoChange;
+  if (!pending) return;
+  state.pendingPersonaInfoChange = null;
+  $('#persona-change-warning')?.classList.add('hidden');
+  await commitCurrentSessionPersonaInfo(pending.draft, pending.changes);
+}
+
+async function saveCurrentSessionPersonaInfo({ skipWarning=false } = {}) {
+  if (!state.sid) return;
   const s = await DB.get('sessions', state.sid);
+  if (!s) return;
+  const draft = collectSessionPersonaInfoDraft();
+  const { title, role, goal } = draft;
+  if (!title) { toast('标题不能为空'); return; }
+  if (!role) { toast('角色不能为空'); return; }
+  if (!goal) { toast('目标不能为空'); return; }
+  const changes = detectCorePersonaChanges(s, draft);
+  if (changes.length && !skipWarning) {
+    openPersonaChangeWarning({ draft, changes });
+    return;
+  }
+  await commitCurrentSessionPersonaInfo(draft, changes);
+}
+
+async function commitCurrentSessionPersonaInfo(draft, changes=[]) {
+  if (!state.sid) return;
+  const s = await DB.get('sessions', state.sid);
+  if (!s) return;
+  const { title, role, goal, deadline, personality } = draft;
+  const transitionNotice = changes.length ? buildPersonaTransitionNotice(s, draft, changes) : null;
+  s.title = title;
+  s.persona = { ...s.persona, role, goal, deadline, personality };
+  if (transitionNotice) s.persona_transition_notice = transitionNotice;
+  s.updated_at = Date.now();
+  await DB.put('sessions', s);
+  if (transitionNotice) {
+    await addLocalAnchor('persona_change', personaTransitionAnchorText(transitionNotice), 2.6, {
+      persona_transition_notice: transitionNotice,
+    });
+  }
+  toast('会话信息已保存');
+  await refreshHeader();
+  await renderSessionHome();
+  await renderSessionDrawer();
+  await renderContextSettings();
+}
+
+async function renderContextSettings(renderId=state.contextRenderSeq) {
+  const body = $('#learning-context-body');
+  if (!state.sid) {
+    if (!isActiveContextRender(renderId, 'settings')) return;
+    body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>';
+    return;
+  }
+  const s = await DB.get('sessions', state.sid);
+  if (!isActiveContextRender(renderId, 'settings')) return;
   if (!s) { body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">会话不存在</div>'; return; }
+  const deadlineInfo = sessionDeadlineStatus(s);
   body.innerHTML = `
     <div class="space-y-4">
       ${strategySettingsPanelHtml(s)}
@@ -10276,7 +10762,7 @@ async function renderContextSettings() {
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话头像</div>
         <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-4 space-y-4">
           <div class="flex items-center gap-4">
-            ${sessionAvatarHtml(s, 0)}
+            <div class="context-avatar-preview">${sessionAvatarHtml(s, 0)}</div>
             <div class="min-w-0">
               <div class="text-sm text-neutral-200 truncate">${esc(s.title || '未命名会话')}</div>
               <div class="text-[10px] text-neutral-500 mt-1">${esc(s.persona?.goal || s.persona?.role || '')}</div>
@@ -10294,17 +10780,38 @@ async function renderContextSettings() {
       </div>
       <div>
         <div class="text-xs uppercase tracking-wider text-neutral-500 mb-2">会话信息</div>
-        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-2 text-xs">
-          <div class="flex justify-between"><span class="text-neutral-500">标题</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.title || '未命名会话')}</span></div>
-          <div class="flex justify-between"><span class="text-neutral-500">角色</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.role || '')}</span></div>
-          <div class="flex justify-between"><span class="text-neutral-500">目标</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.goal || '')}</span></div>
-          <div class="flex justify-between"><span class="text-neutral-500">截止时间</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.deadline || '未设定')}</span></div>
-          <div class="flex justify-between"><span class="text-neutral-500">性格</span><span class="text-neutral-300 truncate max-w-[60%]">${esc(s.persona?.personality || '未设定')}</span></div>
-          <div class="flex justify-between"><span class="text-neutral-500">创建时间</span><span class="text-neutral-300">${esc(new Date(s.created_at).toLocaleDateString('zh-CN'))}</span></div>
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3 text-xs">
+          <label class="block">
+            <span class="text-neutral-500">标题</span>
+            <input id="setting-session-title" maxlength="20" class="session-info-input" value="${esc(s.title || '未命名会话')}">
+          </label>
+          <label class="block">
+            <span class="text-neutral-500">角色</span>
+            <input id="setting-session-role" maxlength="80" class="session-info-input" value="${esc(s.persona?.role || '')}">
+          </label>
+          <label class="block">
+            <span class="text-neutral-500">目标</span>
+            <input id="setting-session-goal" maxlength="120" class="session-info-input" value="${esc(s.persona?.goal || '')}">
+          </label>
+          <label class="block">
+            <span class="text-neutral-500">截止时间</span>
+            <input id="setting-session-deadline" maxlength="80" class="session-info-input" value="${esc(s.persona?.deadline || '')}" placeholder="例如：2026-06-07 / 3 个月内">
+          </label>
+          <label class="block">
+            <span class="text-neutral-500">性格</span>
+            <textarea id="setting-session-personality" maxlength="500" class="session-info-textarea">${esc(s.persona?.personality || '')}</textarea>
+          </label>
+          <div class="rounded-lg border border-neutral-800 bg-neutral-950/45 p-2 space-y-1">
+            <div class="flex justify-between gap-3"><span class="text-neutral-500">截止状态</span><span id="setting-deadline-status" class="text-neutral-300 text-right">${esc(deadlineInfo.label)}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-neutral-500">时间依据</span><span id="setting-deadline-time-source" class="text-neutral-300 text-right">本机时间 · ${esc(new Date(Date.now()).toLocaleString('zh-CN'))}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-neutral-500">创建时间</span><span class="text-neutral-300 text-right">${esc(new Date(s.created_at).toLocaleString('zh-CN'))}</span></div>
+          </div>
+          <button id="setting-save-session-info" type="button" class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">保存会话信息</button>
         </div>
       </div>
     </div>`;
   bindStrategySettingsControls();
+  $('#setting-save-session-info')?.addEventListener('click', saveCurrentSessionPersonaInfo);
   $('#ctx-avatar-choose')?.addEventListener('click', () => chooseSessionAvatar(state.sid));
   $('#ctx-avatar-clear')?.addEventListener('click', async () => {
     await updateSessionAvatar(state.sid, { avatar_image: '' });
@@ -11005,6 +11512,7 @@ function buildGraphData(masteries, ai, anchors=[]) {
       label: topic.label,
       sourceName: topic.sourceName,
       sourceType: topic.sourceType,
+      sourceId: topic.sourceId,
       preview: topic.preview,
       memoryNodeId: topic.memoryNodeId || '',
       memoryStatus: topic.memoryStatus || '',
@@ -11026,6 +11534,7 @@ function buildGraphData(masteries, ai, anchors=[]) {
       label: note.note_title || note.content || '随笔',
       content: note.note_body || note.content || '',
       messageId: note.note_message_id || null,
+      sourceId: note.note_source_id || null,
       sourceName: note.note_source_role || '聊天随笔',
       meta: { action:{ type:'note', knowledge_point: note.note_title || '随笔' } },
     };
@@ -11082,6 +11591,344 @@ function memoryStatusLabel(status, nodeType='section') {
   if (status === 'outlined') return '待分析';
   if (status === 'raw') return '待视觉模型';
   return status || '待分析';
+}
+
+function setActiveGraphDataset(nodes=[], links=[]) {
+  state.graphDetailNodes = Array.isArray(nodes) ? nodes : [];
+  state.graphDetailLinks = Array.isArray(links) ? links : [];
+}
+
+function graphNodeTitle(node) {
+  return node?.label || node?.kp || node?.meta?.action?.knowledge_point || '图谱节点';
+}
+
+function graphNodeTypeLabel(node) {
+  const type = node?.nodeType || '';
+  if (type === 'kp') return '已学习知识点';
+  if (type === 'source') return '资料锚点';
+  if (type === 'section') return '资料章节';
+  if (type === 'diagnostic') return '导入诊断';
+  if (type === 'latent') return '候选知识点';
+  if (type === 'note') return '随笔';
+  if (type === 'insight') return '学习整理';
+  return '对话片段';
+}
+
+function graphLinkKindLabel(kind) {
+  if (kind === 'foundation') return '资料支撑';
+  if (kind === 'outline') return '章节分支';
+  if (kind === 'diagnostic') return '诊断分支';
+  if (kind === 'memory') return '学习记录';
+  if (kind === 'sequence') return '学习顺序';
+  if (kind === 'related') return '相关概念';
+  if (kind === 'note') return '随笔关联';
+  return kind || '双向链接';
+}
+
+function graphNodeRelations(node) {
+  const key = String(node?.key || '');
+  if (!key) return [];
+  const seen = new Set();
+  const relations = [];
+  for (const link of state.graphDetailLinks || []) {
+    const a = link?.a || link?.source;
+    const b = link?.b || link?.target;
+    if (!a || !b) continue;
+    let other = null;
+    if (String(a.key) === key) other = b;
+    else if (String(b.key) === key) other = a;
+    if (!other || seen.has(String(other.key))) continue;
+    seen.add(String(other.key));
+    relations.push({ node: other, kind: link.kind || '', weight: Number(link.weight || 1) });
+  }
+  return relations.sort((a,b)=>b.weight-a.weight).slice(0, 12);
+}
+
+function graphNodeSourceTargets(node) {
+  const targets = [];
+  const seen = new Set();
+  const add = (sourceId, label, sourceType, sid) => {
+    if (!sourceId) return;
+    const key = String(sourceId);
+    if (seen.has(key)) return;
+    seen.add(key);
+    targets.push({
+      sourceId: key,
+      label: label || `资料 ${targets.length + 1}`,
+      sourceType: sourceType || 'doc',
+      sid: sid || node?.sid || state.sid,
+    });
+  };
+  add(node?.sourceId, node?.sourceName || graphNodeTitle(node), node?.sourceType, node?.sid);
+  for (const rel of graphNodeRelations(node)) {
+    add(rel.node?.sourceId, rel.node?.sourceName || graphNodeTitle(rel.node), rel.node?.sourceType, rel.node?.sid);
+  }
+  return targets.slice(0, 6);
+}
+
+function graphSheetActionButtonsHtml(node) {
+  const targets = graphNodeSourceTargets(node);
+  const hasChat = [
+    ...(node?.chatMessageIds || []),
+    ...(node?.chat_message_ids || []),
+    node?.messageId,
+    node?.meta?.reply_to_message_id,
+  ].filter(Boolean).length > 0;
+  const relationCount = graphNodeRelations(node).length;
+  const buttons = [
+    '<button type="button" data-graph-expand-detail class="graph-sheet-action">展开详情<span class="meta">上拉也可以打开完整节点页</span></button>',
+  ];
+  if (hasChat) buttons.push('<button type="button" data-graph-jump-chat class="graph-sheet-action">回到聊天<span class="meta">定位这个节点的原始对话</span></button>');
+  if (targets[0]) {
+    buttons.push(`<button type="button" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-sheet-action">打开来源<span class="meta">${esc(targets[0].label)}</span></button>`);
+  }
+  if (relationCount) buttons.push('<button type="button" data-graph-expand-detail class="graph-sheet-action">浏览链接<span class="meta">展开后查看相关节点</span></button>');
+  return `<div class="graph-sheet-actions">${buttons.join('')}</div>`;
+}
+
+function graphSheetLearningStatusHtml(node) {
+  const rows = [
+    ['节点类型', graphNodeTypeLabel(node)],
+    ['标题', graphNodeTitle(node)],
+  ];
+  if (node?.nodeType === 'kp') {
+    rows.push(['掌握度', `${Math.round(Number(node.level || 0) * 100)}%`]);
+    rows.push(['练习轮次', `${node.attempts || 0} 次`]);
+  }
+  if (node?.memoryStatus) rows.push(['资料分析', memoryStatusLabel(node.memoryStatus, node.nodeType)]);
+  if (node?.sourceType) rows.push(['资料类型', String(node.sourceType).toUpperCase()]);
+  if (node?.sessionTitle) rows.push(['会话', node.sessionTitle]);
+  return `<div class="sheet-section" data-graph-detail-section="learning-status">
+    <div class="text-xs font-semibold mb-2" style="color:var(--accent)">学习状态</div>
+    <div class="space-y-1 text-xs">${rows.map(([k,v])=>`<div class="flex justify-between gap-3"><span class="text-neutral-500">${esc(k)}</span><span class="text-right">${esc(v)}</span></div>`).join('')}</div>
+  </div>`;
+}
+
+function graphSheetEvidenceHtml(node, digest) {
+  const items = [];
+  if (Array.isArray(digest?.evidence)) items.push(...digest.evidence);
+  if (node?.summary) items.push(node.summary);
+  if (node?.memoryExpansion?.summary) items.push(node.memoryExpansion.summary);
+  if (node?.preview) items.push(node.preview);
+  if (node?.content) items.push(String(node.content).slice(0, 520));
+  const clean = graphUniqueClean(items, 5);
+  return `<div class="sheet-section" data-graph-detail-section="evidence">
+    <div class="text-xs font-semibold mb-2" style="color:var(--accent)">证据摘要</div>
+    <div class="space-y-1.5">${(clean.length ? clean : ['这个节点暂时只有结构关系，后续聊天命中后会补充更具体的证据。']).map(x=>`<div class="graph-source-preview">${renderRichText(String(x).slice(0, 520))}</div>`).join('')}</div>
+  </div>`;
+}
+
+function graphSheetStrategyHtml(node, digest) {
+  const items = [];
+  if (Array.isArray(digest?.nextSteps)) items.push(...digest.nextSteps);
+  if (Array.isArray(node?.memoryExpansion?.teacher_questions)) items.push(...node.memoryExpansion.teacher_questions);
+  if (node?.nodeType === 'latent') items.push('后续对话如果命中这个概念，会把它从候选资料节点接入已学习路径。');
+  if (node?.nodeType === 'diagnostic') items.push('切换到支持视觉的模型后，可以重新处理资料并补全正文节点。');
+  if (node?.nodeType === 'source') items.push('从这个资料节点进入章节或候选知识点，优先补足未分析和常命中的分支。');
+  const clean = graphUniqueClean(items, 5);
+  return `<div class="sheet-section" data-graph-detail-section="strategy">
+    <div class="text-xs font-semibold mb-2" style="color:var(--text-soft)">后续策略</div>
+    <div class="space-y-1.5">${(clean.length ? clean : ['先沿着相关节点回看证据，再决定是否继续追问、补资料或修正节点标题。']).map(x=>`<div class="graph-source-preview">${renderRichText(String(x).slice(0, 420))}</div>`).join('')}</div>
+  </div>`;
+}
+
+function graphSheetRelationsHtml(node) {
+  const relations = graphNodeRelations(node);
+  return `<div class="sheet-section" data-graph-detail-section="relations">
+    <div class="text-xs font-semibold mb-2" style="color:var(--accent)">相关节点</div>
+    <div class="graph-link-grid">${relations.length ? relations.map(rel=>`<button type="button" data-graph-node-jump="${esc(String(rel.node.key))}" class="graph-link-button">
+      ${esc(graphNodeTitle(rel.node))}
+      <span class="meta">${esc(graphLinkKindLabel(rel.kind))} · ${esc(graphNodeTypeLabel(rel.node))}</span>
+    </button>`).join('') : '<div class="text-xs text-neutral-500">这个节点暂时没有可浏览的相邻节点。</div>'}</div>
+  </div>`;
+}
+
+function graphSheetSourcesHtml(node) {
+  const targets = graphNodeSourceTargets(node);
+  return `<div class="sheet-section" data-graph-detail-section="sources">
+    <div class="text-xs font-semibold mb-2" style="color:var(--warn)">来源与锚点</div>
+    <div class="graph-link-grid">${targets.length ? targets.map(target=>`<button type="button" data-graph-source-anchor="${esc(target.sourceId)}" data-graph-open-source="${esc(target.sourceId)}" data-graph-source-sid="${esc(String(target.sid || ''))}" class="graph-link-button">
+      打开锚点资料
+      <span class="meta">${esc(target.label)} · ${esc(String(target.sourceType || 'doc').toUpperCase())}</span>
+    </button>`).join('') : '<div class="text-xs text-neutral-500">这个节点暂时没有直接绑定的资料锚点。</div>'}</div>
+  </div>`;
+}
+
+function graphSheetDetailHtml(node, digest) {
+  return `<div class="graph-detail-only">
+    ${graphSheetLearningStatusHtml(node)}
+    ${graphSheetEvidenceHtml(node, digest)}
+    ${graphSheetStrategyHtml(node, digest)}
+    ${graphSheetRelationsHtml(node)}
+    ${graphSheetSourcesHtml(node)}
+  </div>`;
+}
+
+function expandGraphSheet() {
+  const sheet = $('#graph-sheet');
+  if (!sheet) return;
+  clearGraphSheetDragStyle(sheet);
+  state.graphSheetExpanded = true;
+  sheet.classList.add('expanded');
+}
+
+function collapseGraphSheet() {
+  const sheet = $('#graph-sheet');
+  if (!sheet) return;
+  clearGraphSheetDragStyle(sheet);
+  state.graphSheetExpanded = false;
+  sheet.classList.remove('expanded');
+}
+
+const GRAPH_SHEET_EXPANDED_TOP = 18;
+const GRAPH_SHEET_DRAG_THRESHOLD = 40;
+let graphSheetDragStartY = 0;
+let graphSheetDragLatestY = 0;
+let graphSheetDragging = false;
+let graphSheetPointerStartedAt = 0;
+let graphSheetDragBaseTop = 0;
+let graphSheetDragCompactTop = 0;
+
+function estimateGraphSheetCompactTop(sheet) {
+  const stored = Number(state.graphSheetCompactTop || 0);
+  if (stored > GRAPH_SHEET_EXPANDED_TOP) return stored;
+  const fallbackHeight = Math.min(sheet?.scrollHeight || Math.round(window.innerHeight * .58), Math.round(window.innerHeight * .78));
+  return Math.max(GRAPH_SHEET_EXPANDED_TOP, window.innerHeight - fallbackHeight);
+}
+
+function rememberGraphSheetCompactTop(sheet) {
+  const rect = sheet?.getBoundingClientRect();
+  if (!rect || state.graphSheetExpanded || !sheet.classList.contains('show')) return estimateGraphSheetCompactTop(sheet);
+  state.graphSheetCompactTop = rect.top;
+  return rect.top;
+}
+
+function beginGraphSheetDrag(sheet, clientY) {
+  if (!sheet) return;
+  const rect = sheet.getBoundingClientRect();
+  graphSheetDragging = true;
+  graphSheetDragStartY = clientY;
+  graphSheetDragLatestY = clientY;
+  graphSheetDragBaseTop = rect.top;
+  graphSheetDragCompactTop = state.graphSheetExpanded ? estimateGraphSheetCompactTop(sheet) : rememberGraphSheetCompactTop(sheet);
+  sheet.classList.add('dragging');
+  sheet.style.top = `${rect.top}px`;
+  sheet.style.maxHeight = 'none';
+  sheet.style.transform = 'translateY(0)';
+}
+
+function applyGraphSheetDragProgress(sheet=$('#graph-sheet')) {
+  if (!sheet || !graphSheetDragging) return;
+  const minTop = GRAPH_SHEET_EXPANDED_TOP;
+  const maxTop = Math.max(graphSheetDragCompactTop || estimateGraphSheetCompactTop(sheet), minTop + 40);
+  const rawTop = graphSheetDragBaseTop + (graphSheetDragLatestY - graphSheetDragStartY);
+  const rubberTop = rawTop < minTop
+    ? minTop + (rawTop - minTop) * .24
+    : rawTop > maxTop
+      ? maxTop + (rawTop - maxTop) * .24
+      : rawTop;
+  const nextTop = Math.max(0, Math.min(window.innerHeight - 64, rubberTop));
+  sheet.style.top = `${nextTop}px`;
+  sheet.style.maxHeight = 'none';
+  sheet.style.transform = 'translateY(0)';
+}
+
+function updateGraphSheetDrag(sheet, clientY) {
+  if (!graphSheetDragging) return;
+  graphSheetDragLatestY = clientY;
+  applyGraphSheetDragProgress(sheet);
+}
+
+function clearGraphSheetDragStyle(sheet=$('#graph-sheet')) {
+  if (!sheet) return;
+  sheet.classList.remove('dragging');
+  sheet.style.top = '';
+  sheet.style.maxHeight = '';
+  sheet.style.transform = '';
+}
+
+function finishGraphSheetDrag(sheet=$('#graph-sheet')) {
+  const dragDelta = graphSheetDragLatestY - graphSheetDragStartY;
+  if (graphSheetDragStartY - graphSheetDragLatestY > GRAPH_SHEET_DRAG_THRESHOLD) {
+    clearGraphSheetDragStyle(sheet);
+    expandGraphSheet();
+  } else if (graphSheetDragLatestY - graphSheetDragStartY > GRAPH_SHEET_DRAG_THRESHOLD) {
+    clearGraphSheetDragStyle(sheet);
+    if (state.graphSheetExpanded) collapseGraphSheet();
+    else if (dragDelta > GRAPH_SHEET_DRAG_THRESHOLD * 1.6) hideGraphSheet();
+    else collapseGraphSheet();
+  } else {
+    clearGraphSheetDragStyle(sheet);
+    if (state.graphSheetExpanded) expandGraphSheet();
+    else collapseGraphSheet();
+  }
+  graphSheetDragging = false;
+}
+
+function bindGraphSheetDragHandle(sheet) {
+  const hd = sheet?.querySelector('.graph-sheet-handle');
+  if (!hd) return;
+  hd.onpointerdown = e => {
+    graphSheetPointerStartedAt = Date.now();
+    beginGraphSheetDrag(sheet, e.clientY);
+    hd.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  };
+  hd.onpointermove = e => {
+    updateGraphSheetDrag(sheet, e.clientY);
+    e.preventDefault();
+  };
+  hd.onpointerup = e => {
+    if (!graphSheetDragging) return;
+    updateGraphSheetDrag(sheet, e.clientY);
+    hd.releasePointerCapture?.(e.pointerId);
+    finishGraphSheetDrag(sheet);
+  };
+  hd.onpointercancel = e => {
+    if (graphSheetDragging) hd.releasePointerCapture?.(e.pointerId);
+    clearGraphSheetDragStyle(sheet);
+    graphSheetDragging = false;
+  };
+  hd.onmousedown = e => {
+    if (Date.now() - graphSheetPointerStartedAt < 350) return;
+    beginGraphSheetDrag(sheet, e.clientY);
+    const onMove = ev => updateGraphSheetDrag(sheet, ev.clientY);
+    const onUp = ev => {
+      updateGraphSheetDrag(sheet, ev.clientY);
+      document.removeEventListener('mousemove', onMove);
+      finishGraphSheetDrag(sheet);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp, { once: true });
+    e.preventDefault();
+  };
+}
+
+async function jumpToGraphSheetNode(key) {
+  const target = (state.graphDetailNodes || []).find(n => String(n.key) === String(key));
+  if (!target) { toast('这个节点不在当前图谱里'); return; }
+  await showGraphSheet(target);
+  expandGraphSheet();
+}
+
+async function jumpToGraphSourceAnchor(sourceId, sourceSid=state.sid) {
+  if (!sourceId) { toast('没有找到来源锚点'); return; }
+  hideGraphSheet();
+  if (sourceSid && sourceSid !== state.sid) {
+    state.sid = sourceSid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  state.contextTab = 'anchors';
+  state.chatScreen = 'context';
+  switchTab('chat');
+  await renderChat();
+  requestAnimationFrame(() => {
+    const row = Array.from(document.querySelectorAll('[data-anchor-row]')).find(el => el.dataset.anchorRow === String(sourceId));
+    if (!row) { toast('来源资料可能已被删除'); return; }
+    row.scrollIntoView({ behavior:'smooth', block:'center' });
+    row.classList.add('graph-source-jump-highlight');
+    setTimeout(() => row.classList.remove('graph-source-jump-highlight'), 2200);
+  });
 }
 
 async function jumpToGraphNodeChat(node=state.graphEditingNode) {
@@ -11388,26 +12235,33 @@ async function showGraphSheet(node) {
     }
   }
 
+  html += graphSheetActionButtonsHtml(node);
+  html += graphSheetDetailHtml(node, digest);
   body.innerHTML=html;
   if (state.currentTab === 'insights') {
     body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.remove());
   }
-  body.querySelector('[data-graph-jump-chat]')?.addEventListener('click', () => jumpToGraphNodeChat(node));
-  body.querySelector('[data-graph-edit-node]')?.addEventListener('click', () => openGraphNodeEditor(node));
+  body.querySelectorAll('[data-graph-jump-chat]').forEach(btn => btn.addEventListener('click', () => jumpToGraphNodeChat(node)));
+  body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.addEventListener('click', () => openGraphNodeEditor(node)));
+  body.querySelectorAll('[data-graph-expand-detail]').forEach(btn => btn.addEventListener('click', expandGraphSheet));
+  body.querySelectorAll('[data-graph-node-jump]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSheetNode(btn.dataset.graphNodeJump)));
+  body.querySelectorAll('[data-graph-source-anchor]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSourceAnchor(btn.dataset.graphSourceAnchor, btn.dataset.graphSourceSid || state.sid)));
   body.scrollTop=0;
-  requestAnimationFrame(()=>{ overlay.classList.add('show'); sheet.classList.add('show'); });
+  requestAnimationFrame(()=>{
+    overlay.classList.add('show');
+    sheet.classList.add('show');
+    requestAnimationFrame(() => rememberGraphSheetCompactTop(sheet));
+  });
   overlay.onclick = hideGraphSheet;
-  let sy=0,moved=false;
-  const hd=sheet.querySelector('.graph-sheet-handle');
-  if(hd){
-    hd.ontouchstart=e=>{sy=e.touches[0].clientY;moved=false;};
-    hd.ontouchmove=e=>{if(e.touches[0].clientY-sy>40)moved=true;};
-    hd.ontouchend=()=>{if(moved)hideGraphSheet();};
-  }
+  bindGraphSheetDragHandle(sheet);
 }
 function hideGraphSheet() {
   $('#graph-sheet-overlay').classList.remove('show');
-  $('#graph-sheet').classList.remove('show');
+  const sheet = $('#graph-sheet');
+  clearGraphSheetDragStyle(sheet);
+  sheet.classList.remove('show');
+  sheet.classList.remove('expanded');
+  state.graphSheetExpanded = false;
 }
 
 async function renderInsights() {
@@ -11416,6 +12270,7 @@ async function renderInsights() {
   const actDiv = $('#insights-actions');
   const sessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
   if (!sessions.length) {
+    setActiveGraphDataset([], []);
     ForceGraph.destroy();
     sumDiv.innerHTML = '<div class="text-neutral-500">先创建会话</div>';
     mastDiv.innerHTML = ''; actDiv.innerHTML = '';
@@ -11441,6 +12296,7 @@ async function renderInsights() {
     allNodes.push(...nodes);
     allLinks.push(...links);
   }
+  setActiveGraphDataset(allNodes, allLinks);
   const sourceAnchors = allAnchors.filter(a => a.kind === 'source');
   const noteAnchors = allAnchors.filter(a => a.kind === 'note');
   const avg = allMasteries.length ? allMasteries.reduce((s,m)=>s+m.level,0)/allMasteries.length : 0;
@@ -12190,6 +13046,23 @@ $('#choice-sheet-close').addEventListener('click', closeChoiceSheet);
 $('#choice-sheet').addEventListener('click', e => {
   if (e.target.id === 'choice-sheet') closeChoiceSheet();
 });
+$('#session-rename-close').addEventListener('click', closeSessionRenameSheet);
+$('#session-rename-sheet').addEventListener('click', e => {
+  if (e.target.id === 'session-rename-sheet') closeSessionRenameSheet();
+});
+$('#session-rename-save').addEventListener('click', async () => {
+  await saveSessionRename();
+});
+$('#session-rename-title').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  saveSessionRename();
+});
+$('#persona-change-warning-cancel').addEventListener('click', closePersonaChangeWarning);
+$('#persona-change-warning-confirm').addEventListener('click', confirmPersonaChangeWarning);
+$('#persona-change-warning').addEventListener('click', e => {
+  if (e.target.id === 'persona-change-warning') closePersonaChangeWarning();
+});
 $('#message-action-popover').addEventListener('click', e => {
   const btn = e.target.closest('[data-message-action]');
   if (!btn) return;
@@ -12322,6 +13195,7 @@ $('#learning-context-open').addEventListener('click', () => openLearningContext(
 $('#learning-context-close')?.addEventListener('click', closeLearningContext);
 $$('[data-context-tab]').forEach(btn => btn.addEventListener('click', async () => {
   state.contextTab = btn.dataset.contextTab;
+  renderContextImmediateShell(state.contextTab);
   syncAppHistory();
   await renderLearningContext();
 }));
@@ -12407,6 +13281,8 @@ function closeTopLayerForBack() {
   if (sPop && !sPop.classList.contains('hidden')) { sPop.classList.add('hidden'); return true; }
   if ($('.session-swipe-row.session-swipe-open')) { closeSessionSwipeRows(); return true; }
   if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
+  if (isOpenByHiddenClass('#session-rename-sheet')) { closeSessionRenameSheet(); return true; }
+  if (isOpenByHiddenClass('#persona-change-warning')) { closePersonaChangeWarning(); return true; }
   if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
   if (isOpenByHiddenClass('#graph-source-node-editor')) { closeGraphNodeEditor(); return true; }
   if (isOpenByHiddenClass('#profile-tag-dialog')) { closeProfileTagDialog(); return true; }

@@ -241,9 +241,13 @@ async def test_oversize_or_unsupported_mime_rejected(client, monkeypatch):
     assert too_big.status_code == 422
 
 
-def test_pwa_context_has_image_tab():
+def test_pwa_context_images_are_imported_through_anchors():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    context_anchors_fn = html.split("async function renderContextAnchors", 1)[1].split("async function renderContextNotes", 1)[0]
 
-    assert 'data-context-tab="images"' in html
-    assert "renderContextImages" in html
-    assert "image_extracts" in html or "extracted_text" in html
+    assert 'data-context-tab="images"' not in html
+    assert "renderContextImages" not in html
+    assert 'id="context-anchor-image-file"' in context_anchors_fn
+    assert "importAnchorImages" in html
+    assert "source_type: 'image'" in html
+    assert "image_extracts" not in html

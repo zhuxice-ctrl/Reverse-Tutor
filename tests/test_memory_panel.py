@@ -262,23 +262,15 @@ async def test_delete_nonexistent_id_returns_404(client, db_sess):
     assert r.status_code == 404
 
 
-def test_pwa_memory_tab_surfaces_semantic_kg_nodes():
-    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
-    render_fn = html.split("async function renderContextMemory", 1)[1].split("function bindLearningContextActions", 1)[0]
-    kg_filter = html.split("function normalizeMemoryPanelKgKind", 1)[1].split("async function renderContextMemory", 1)[0]
-
-    assert "isMemoryPanelSemanticKgNode" in html
-    assert "normalizeMemoryPanelKgKind" in html
-    assert "replace(/[_-]+/g, '_').toLowerCase()" in kg_filter
-    assert "['kg_nodes'," in render_fn
-    assert "memory.kg_nodes" in render_fn
-    assert "PROCESS_KG_KINDS" in html
-    assert "memoryRowHtml('kg_node'" in render_fn
-
-
-def test_pwa_memory_tab_exists():
+def test_pwa_memory_panel_is_not_user_facing():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert 'data-context-tab="memory"' in html
-    assert "renderContextMemory" in html
-    assert "确定删除这条" in html
+    assert 'data-context-tab="memory"' not in html
+    assert "renderContextMemory" not in html
+    assert "renderContextMemoryData" not in html
+    assert "loadLocalContextMemory" not in html
+    assert "fetchContextMemoryWithTimeout" not in html
+    assert "data-memory-kind" not in html
+    assert "data-memory-delete-kind" not in html
+    assert "确定删除这条" not in html
+    assert "/memory/" not in html

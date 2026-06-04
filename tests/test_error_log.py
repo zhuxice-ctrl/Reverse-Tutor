@@ -186,9 +186,15 @@ async def test_goal_mode_does_not_write_error_log(db_sess, monkeypatch):
 
 def test_pwa_context_has_error_tab_and_top_recurrence_view():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    error_tab = html.split("async function renderContextErrors", 1)[1].split("function memoryTime", 1)[0]
+    prompt = html.split("# 输出格式（必须严格遵守", 1)[1].split("# 开场适配", 1)[0]
 
     assert 'data-context-tab="errors"' in html
     assert "renderContextErrors" in html
     assert "recurrence_count" in html
     assert "linked_episode_ids" in html
     assert "错因" in html
+    assert '"error_pattern": "考官验证失败时归纳出的短错因' in prompt
+    assert "misconception" in error_tab
+    assert "考官验证失败" in error_tab
+    assert "同一知识点+同一错因会累计出现次数" in error_tab
