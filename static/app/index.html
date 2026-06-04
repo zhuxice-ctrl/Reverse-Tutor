@@ -1223,6 +1223,9 @@
   .graph-fragment-deck {
     position: relative;
     overscroll-behavior: contain;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .graph-fragment-stack {
     position: relative;
@@ -1376,6 +1379,7 @@
   .text-amber-400 { color: var(--warn) !important; }
   .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .theme-choice {
+    min-width: 0;
     min-height: 62px;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -1399,6 +1403,9 @@
     background: var(--card-active-gradient) !important;
   }
   .theme-choice-title {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     font-size: 12px;
     font-weight: 650;
     line-height: 1.1;
@@ -1407,6 +1414,9 @@
     text-overflow: ellipsis;
   }
   .theme-choice-detail {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     font-size: 10px;
     line-height: 1.2;
     color: var(--muted);
@@ -2259,7 +2269,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.19.1 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.19.2 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -2661,8 +2671,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 40;
-const APP_VERSION_NAME = '0.19.1';
+const APP_VERSION_CODE = 41;
+const APP_VERSION_NAME = '0.19.2';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -8166,18 +8176,49 @@ async function renderSessionHome() {
       pop.dataset.sessionId = sid;
       const pinLabel = pop.querySelector('[data-session-action="pin"] span');
       if (pinLabel) pinLabel.textContent = pinnedSessionIds().includes(String(sid)) ? '取消置顶' : '置顶';
+      pop.classList.add('hidden');
+      pop.style.left = '-9999px';
+      pop.style.top = '-9999px';
+      pop.style.maxWidth = '';
+      pop.style.setProperty('--popover-arrow-x', '50%');
       const rect = card.getBoundingClientRect();
-      let top = rect.bottom + 4;
-      let left = Math.max(12, rect.left + rect.width / 2);
-      const pw = pop.offsetWidth || 180;
-      const ph = pop.offsetHeight || 40;
-      if (top + ph > window.innerHeight - 12) top = rect.top - ph - 4;
-      if (left + pw / 2 > window.innerWidth - 12) left = window.innerWidth - 12 - pw / 2;
-      if (left - pw / 2 < 12) left = 12 + pw / 2;
-      pop.style.left = left + 'px';
-      pop.style.top = top + 'px';
-      pop.dataset.side = (rect.bottom + ph > window.innerHeight - 12) ? 'above' : 'below';
-      pop.classList.remove('hidden');
+      const gap = 8;
+      const margin = 8;
+      const viewportLeft = Math.max(0, window.visualViewport?.offsetLeft || 0);
+      const viewportTop = Math.max(0, window.visualViewport?.offsetTop || 0);
+      const viewportWidth = Math.min(
+        window.visualViewport?.width || window.innerWidth,
+        document.documentElement.clientWidth || window.innerWidth,
+        window.innerWidth,
+        screen.width || Infinity
+      );
+      const viewportHeight = Math.min(
+        window.visualViewport?.height || window.innerHeight,
+        document.documentElement.clientHeight || window.innerHeight,
+        window.innerHeight
+      );
+      const viewportRight = viewportLeft + viewportWidth;
+      const viewportBottom = viewportTop + viewportHeight;
+      pop.style.maxWidth = `${Math.max(156, viewportWidth - margin * 2)}px`;
+      const popRect = pop.getBoundingClientRect();
+      const aboveSpace = rect.top - viewportTop - margin - gap;
+      const belowSpace = viewportBottom - rect.bottom - margin - gap;
+      const side = aboveSpace >= popRect.height || aboveSpace >= belowSpace ? 'above' : 'below';
+      let left = rect.left + rect.width / 2 - popRect.width / 2;
+      let top = side === 'above'
+        ? rect.top - gap - popRect.height
+        : rect.bottom + gap;
+      left = Math.min(Math.max(viewportLeft + margin, left), viewportRight - popRect.width - margin);
+      top = Math.min(Math.max(viewportTop + margin, top), viewportBottom - popRect.height - margin);
+      pop.style.left = `${Math.round(left)}px`;
+      pop.style.top = `${Math.round(top)}px`;
+      pop.dataset.side = side;
+      const arrowX = Math.min(
+        popRect.width - 18,
+        Math.max(18, rect.left + rect.width / 2 - left)
+      );
+      pop.style.setProperty('--popover-arrow-x', `${Math.round(arrowX)}px`);
+      requestAnimationFrame(() => pop.classList.remove('hidden'));
     };
     card.addEventListener('pointerdown', e => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -12577,6 +12618,7 @@ function cycleGraphFragmentDeck(delta) {
 
 function openGraphFragmentCard(card) {
   if (!card || !card.classList.contains('is-active')) return;
+  if (card.closest('[data-graph-fragment-deck]')?.dataset.graphFragmentDragging === '1') return;
   const ids = card.dataset.graphFragmentChat || '';
   if (!ids) return;
   if (card.dataset.graphFragmentOpening === '1') return;
@@ -12590,8 +12632,9 @@ function openGraphFragmentCard(card) {
 }
 
 let graphFragmentDeckWheelAt = 0;
-function bindGraphFragmentDeckWheel(deck) {
+function bindGraphFragmentDeckControls(deck) {
   if (!deck) return;
+  deck.dataset.graphFragmentDragging = '0';
   deck.onwheel = e => {
     if (Math.abs(e.deltaY) < 18) return;
     e.preventDefault();
@@ -12599,6 +12642,50 @@ function bindGraphFragmentDeckWheel(deck) {
     if (now - graphFragmentDeckWheelAt < 220) return;
     graphFragmentDeckWheelAt = now;
     cycleGraphFragmentDeck(e.deltaY > 0 ? 1 : -1);
+  };
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let moved = false;
+  deck.onpointerdown = e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pointerId = e.pointerId;
+    startX = e.clientX || 0;
+    startY = e.clientY || 0;
+    moved = false;
+    deck.dataset.graphFragmentDragging = '0';
+    try { deck.setPointerCapture?.(pointerId); } catch (_) {}
+  };
+  deck.onpointermove = e => {
+    if (pointerId !== e.pointerId) return;
+    const dx = (e.clientX || 0) - startX;
+    const dy = (e.clientY || 0) - startY;
+    if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      moved = true;
+      deck.dataset.graphFragmentDragging = '1';
+      e.preventDefault();
+    }
+  };
+  deck.onpointerup = e => {
+    if (pointerId !== e.pointerId) return;
+    const dx = (e.clientX || 0) - startX;
+    const dy = (e.clientY || 0) - startY;
+    try { deck.releasePointerCapture?.(pointerId); } catch (_) {}
+    pointerId = null;
+    if (moved && Math.abs(dy) > 30 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      cycleGraphFragmentDeck(dy < 0 ? 1 : -1);
+      setTimeout(() => { deck.dataset.graphFragmentDragging = '0'; }, 80);
+      return;
+    }
+    deck.dataset.graphFragmentDragging = '0';
+  };
+  deck.onpointercancel = e => {
+    if (pointerId === e.pointerId) {
+      try { deck.releasePointerCapture?.(pointerId); } catch (_) {}
+    }
+    pointerId = null;
+    moved = false;
+    deck.dataset.graphFragmentDragging = '0';
   };
 }
 
@@ -13213,7 +13300,7 @@ async function showGraphSheet(node) {
       openGraphFragmentCard(card);
     });
   });
-  bindGraphFragmentDeckWheel(body.querySelector('[data-graph-fragment-deck]'));
+  bindGraphFragmentDeckControls(body.querySelector('[data-graph-fragment-deck]'));
   body.scrollTop=0;
   requestAnimationFrame(()=>{
     overlay.classList.add('show');

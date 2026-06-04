@@ -1,21 +1,18 @@
 {
-  "versionCode": 40,
-  "versionName": "0.19.1",
+  "versionCode": 41,
+  "versionName": "0.19.2",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.1.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.2.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.1/Reverse-Tutor-v0.19.1.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.2/Reverse-Tutor-v0.19.2.apk"
   ],
-  "sha256": "6b2ec4e818d8c8780263f18d64847a736702ac0311b6fee4a11f053b5d684c5f",
+  "sha256": "be203fb8702afa35568ec9426abd132531fd8abd4f874084352f53f8579c809b",
   "publishedAt": "2026-06-05",
   "releaseNotes": [
-    "聊天窗口背景改为上浅下深的光晕渐变，并加入轻微白色斜线层次。",
-    "图片资料已合并到锚点：文件和图片统一按类型分类，不再保留独立图片页。",
-    "记忆面板精简为图谱视图，节点详情支持报告式阅读、拖拽展开和语义卡片回看。",
-    "会话管理弹窗调整为置顶、删除、重命名、导出；会话状态支持睡眠、在线、离线，并显示在列表和顶栏。",
-    "侧边栏改为备忘录分段，可点击横线新增段落，长按文本块删除。",
-    "恢复消息合并节奏和轻聊天 200-300 字左右的输出容量，修复退出会话后生成状态丢失导致无法继续回复的问题。",
-    "正式 APK 命名为 Reverse-Tutor-v0.19.1.apk。"
+    "修复手机端主题卡片里较长的主题说明文字超出卡片边界的问题。",
+    "修复手机端长按会话后，置顶、删除、重命名、导出弹窗可能跑到屏幕外的问题。",
+    "修复手机端图谱语义片段卡牌无法上下滑动切换的问题。",
+    "补丁 APK 命名为 Reverse-Tutor-v0.19.2.apk。"
   ]
 }

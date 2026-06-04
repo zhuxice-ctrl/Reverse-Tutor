@@ -374,6 +374,12 @@ def test_mobile_session_row_swipe_sets_presence_and_long_press_has_management_me
     assert "touchAction = 'pan-y'" in home_events
     assert "session-swipe-open" in home_events
     assert "handleSessionSwipeAction" in home_events
+    assert "pop.classList.add('hidden');" in home_events
+    assert "pop.style.left = '-9999px';" in home_events
+    assert "rect.left + rect.width / 2 - popRect.width / 2" in home_events
+    assert "viewportRight - popRect.width - margin" in home_events
+    assert "viewportBottom - popRect.height - margin" in home_events
+    assert "pop.style.setProperty('--popover-arrow-x'" in home_events
     assert "confirm('删除该会话及所有数据？')" in handler
     assert "deleteSessionById(sid)" in html
     assert "async function buildSessionExportPayload(sid=state.sid)" in html
@@ -437,6 +443,18 @@ def test_mobile_highlight_themes_match_reference_styles():
         assert "--texture-opacity: 0" in theme
         assert "repeating-linear-gradient" not in theme
         assert "linear-gradient(0deg" not in theme
+
+
+def test_mobile_theme_cards_clip_long_labels_on_small_screens():
+    html = mobile_html()
+    theme_css = html.split(".theme-grid", 1)[1].split(".native-config-select", 1)[0]
+
+    assert ".theme-choice {\n    min-width: 0;" in theme_css
+    assert ".theme-choice-title {\n    width: 100%;" in theme_css
+    assert ".theme-choice-detail {\n    width: 100%;" in theme_css
+    assert "min-width: 0;" in theme_css
+    assert "max-width: 100%;" in theme_css
+    assert "text-overflow: ellipsis;" in theme_css
 
 
 def test_mobile_chat_background_gradients_do_not_tile():

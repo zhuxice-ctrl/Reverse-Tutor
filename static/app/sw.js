@@ -5,7 +5,7 @@
  *   - LLM API 请求始终 network-only（不缓存）
  *   - 缓存版本随发布更新
  */
-const VERSION = 'rt-mobile-v0.19.1-40-session-graph-memo';
+const VERSION = 'rt-mobile-v0.19.2-41-mobile-ui-patch';
 const SHELL = [
   './',
   './index.html',

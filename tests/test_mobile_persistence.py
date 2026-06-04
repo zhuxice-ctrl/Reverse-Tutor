@@ -413,9 +413,9 @@ def test_mobile_chat_strips_model_thinking_from_visible_replies():
 def test_mobile_service_worker_cache_key_tracks_release_version():
     sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
 
-    assert "rt-mobile-v0.19.1-40-session-graph-memo" in sw
+    assert "rt-mobile-v0.19.2-41-mobile-ui-patch" in sw
     assert "v4-image-card" not in sw
-    assert "rt-mobile-v0.19.1-test.1" not in sw
+    assert "rt-mobile-v0.19.1-40-session-graph-memo" not in sw
 
 
 def test_mobile_graph_nodes_show_human_readable_analysis_status():
@@ -553,11 +553,18 @@ def test_mobile_graph_sheet_expanded_detail_reads_like_report_with_semantic_card
     assert "function graphFragmentCardHtml" in html
     assert "function graphFragmentDeckHtml" in html
     assert "function cycleGraphFragmentDeck" in html
-    assert "function bindGraphFragmentDeckWheel" in html
+    assert "function bindGraphFragmentDeckControls" in html
     assert "function graphReportSectionHtml" in html
     assert "data-graph-fragment-deck" in html
+    assert "touch-action: none;" in html
     assert "deck.onwheel" in html
     assert "e.deltaY > 0 ? 1 : -1" in html
+    assert "deck.onpointerdown" in html
+    assert "deck.onpointermove" in html
+    assert "deck.onpointerup" in html
+    assert "dy < 0 ? 1 : -1" in html
+    assert "dataset.graphFragmentDragging" in html
+    assert "card.closest('[data-graph-fragment-deck]')?.dataset.graphFragmentDragging === '1'" in html
     assert "min-height: 138px" in html
     assert "background: var(--panel-3)" in html
     assert "graph-fragment-index" not in html
