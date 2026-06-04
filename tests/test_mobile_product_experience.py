@@ -25,11 +25,27 @@ def test_mobile_header_uses_global_sidebar_and_top_right_new_entry():
     assert 'id="drawer-new"' not in drawer
     assert 'id="global-sidebar-theme-grid"' in drawer
     assert 'id="global-avatar-visible"' in drawer
-    assert 'id="global-sidebar-status"' in drawer
+    assert 'id="global-sidebar-memo"' in drawer
     sidebar_renderer = html.split("async function renderSessionDrawer", 1)[1].split("async function openDrawer", 1)[0]
     assert "API 状态" not in sidebar_renderer
     assert "当前会话" not in sidebar_renderer
-    assert "renderGlobalProactiveControls" in sidebar_renderer
+    assert "renderGlobalProactiveControls" not in sidebar_renderer
+    assert "renderSidebarMemo" in sidebar_renderer
+    assert "GLOBAL_SIDEBAR_MEMO_KEY" in html
+    assert "function sidebarMemoSegments" in html
+    assert "function renderSidebarMemo" in html
+    assert "function addSidebarMemoSegment" in html
+    assert "function saveSidebarMemoSegments" in html
+    assert "function openSidebarMemoDelete" in html
+    assert "function confirmSidebarMemoDelete" in html
+    assert 'id="sidebar-memo-delete-dialog"' in html
+    assert 'id="sidebar-memo-delete-confirm"' in html
+    assert 'id="sidebar-memo-delete-cancel"' in html
+    assert "data-sidebar-memo-section" in html
+    assert "data-sidebar-memo-delete-index" in html
+    assert "data-sidebar-memo-divider" in html
+    assert "data-sidebar-memo-text" in html
+    assert "备忘录" in html
     assert "全局主动对话设置" in html
     assert "全局离线：所有会话都不会主动发起对话。" in html
     assert "跟随会话窗原始设定未确定的默认为离线" in html
@@ -63,7 +79,8 @@ def test_mobile_session_thread_is_immersive_without_global_navigation():
     assert "document.body.classList.toggle('new-session-focus', inNewPage)" in header_fn
     assert "globalBtn?.classList.toggle('hidden', inSessionPage || inNewPage)" in header_fn
     assert "newBtn?.classList.toggle('hidden', inSessionPage || inNewPage)" in header_fn
-    assert "contextBtn?.classList.toggle('hidden', !inThread)" in header_fn
+    assert "const inReadOnlyBrowse = !!state.chatReadOnlyBrowse && inThread" in header_fn
+    assert "contextBtn?.classList.toggle('hidden', !inThread || inReadOnlyBrowse)" in header_fn
     assert "drawerBtn.innerHTML = inSessionPage ? '<i data-lucide=\"chevron-left\">返回</i>'" in header_fn
     assert "脉络" in html
 
@@ -93,7 +110,7 @@ def test_mobile_sessions_can_be_renamed_and_created_with_custom_title():
     html = mobile_html()
     rename_fn = html.split("async function renameSession", 1)[1].split("function chooseSessionAvatar", 1)[0]
 
-    assert 'data-session-swipe-action="rename"' in html
+    assert 'data-session-action="rename"' in html
     assert 'id="session-rename-sheet"' in html
     assert 'id="session-rename-title"' in html
     assert 'id="session-rename-save"' in html
@@ -126,9 +143,11 @@ def test_mobile_context_strategy_controls_are_visible_and_runtime_bound():
         "tone",
         "proactivity",
         "privacy_level",
-        "image_retention_days",
     ]:
         assert f'data-strategy-setting="{setting}"' in strategy_panel
+    assert 'data-strategy-setting="image_retention_days"' not in strategy_panel
+    assert 'id="setting-image-retention-days"' not in strategy_panel
+    assert "严格：只记录有学习证据的内容" in strategy_panel
     assert "s.settings = ENGINE.normalizeStrategySettings(raw)" in save_fn
     assert "formatStrategySettings(session.settings || {})" in prompt_fn
 
@@ -323,26 +342,42 @@ def test_mobile_context_image_import_creates_source_anchor():
     assert "source_detected_kps: row.detected_kps || []" in helper
     assert "图片资料" in helper
 
-def test_mobile_session_row_swipe_actions_are_separate_from_long_press_avatar_menu():
+def test_mobile_session_row_swipe_sets_presence_and_long_press_has_management_menu():
     html = mobile_html()
     popover = html.split('id="session-card-popover"', 1)[1].split("</div>", 1)[0]
     card_fn = html.split("const sessionCardHtml =", 1)[1].split("const pinnedCards =", 1)[0]
     home_events = html.split("home.querySelectorAll('[data-session-open]')", 1)[1].split("refreshIcons();", 1)[0]
     handler = html.split("async function handleSessionSwipeAction", 1)[1].split("async function openSessionWindow", 1)[0]
+    proactive_fn = html.split("async function maybeRunProactiveTurn", 1)[1].split("const CHAT_IMAGE_MAX_EDGE", 1)[0]
 
-    assert 'data-session-swipe-action="pin"' in card_fn
-    assert 'data-session-swipe-action="delete"' in card_fn
-    assert 'data-session-swipe-action="rename"' in card_fn
-    assert 'data-session-action="pin"' not in popover
-    assert 'data-session-action="rename"' not in popover
-    assert 'data-session-action="preset-export"' in popover
-    assert 'data-session-action="avatar"' in popover
-    assert 'data-session-action="avatar-clear"' in popover
+    assert 'data-session-swipe-action="sleep"' in card_fn
+    assert 'data-session-swipe-action="online"' in card_fn
+    assert 'data-session-swipe-action="offline"' in card_fn
+    assert 'data-session-swipe-action="pin"' not in card_fn
+    assert 'data-session-swipe-action="delete"' not in card_fn
+    assert 'data-session-swipe-action="rename"' not in card_fn
+    assert 'data-session-action="pin"' in popover
+    assert 'data-session-action="delete"' in popover
+    assert 'data-session-action="rename"' in popover
+    assert 'data-session-action="export"' in popover
+    assert 'data-session-action="preset-export"' not in popover
+    assert 'data-session-action="avatar"' not in popover
+    assert 'data-session-action="avatar-clear"' not in popover
+    assert "function sessionProactiveMode" in html
+    assert "function sessionStatusBadgeHtml" in html
+    assert "setSessionProactiveMode(sid, action)" in handler
+    assert "sessionStatusBadgeHtml(s, 'list')" in card_fn
+    assert "sessionStatusBadgeHtml(s, 'header')" in html
+    assert "const mode = sessionProactiveMode(session, cfg)" in proactive_fn
+    assert "ENGINE.run_proactive_turn(state.sid, mode)" in proactive_fn
+    assert "session.proactive_last_at = Date.now()" in proactive_fn
     assert "touchAction = 'pan-y'" in home_events
     assert "session-swipe-open" in home_events
     assert "handleSessionSwipeAction" in home_events
     assert "confirm('删除该会话及所有数据？')" in handler
-    assert "ENGINE.delete_session(sid)" in handler
+    assert "deleteSessionById(sid)" in html
+    assert "async function buildSessionExportPayload(sid=state.sid)" in html
+    assert "shareExportPayload(() => buildSessionExportPayload(sid))" in html
 
 
 def test_mobile_new_session_is_child_page_with_custom_preset_import_and_full_custom_page():
@@ -603,6 +638,7 @@ def test_mobile_preset_import_sanitizes_setting_values():
     assert "tone: new Set(['natural', 'calm', 'warm'])" in html
     assert "proactivity: new Set(['low', 'normal', 'high'])" in html
     assert "privacy_level: new Set(['standard', 'strict'])" in html
+    assert "rawSettings.image_retention_days" not in html
     assert "web_search_enabled = rawSettings.web_search_enabled === true" in html
     assert "kg_extraction_enabled = rawSettings.kg_extraction_enabled !== false" in html
 
@@ -642,24 +678,32 @@ def test_mobile_thinking_chain_is_public_strategy_only_and_animated():
     summary_fn = html.split("function renderProcessSummary", 1)[1].split("function renderCitedSources", 1)[0]
 
     assert "思考摘要" not in html
-    assert "思考链" in streaming_fn
+    assert "生成状态" in streaming_fn
+    assert "思考链" not in streaming_fn
     assert "可公开推理旁白" in streaming_fn
     assert "thinking..." in streaming_fn
     assert "data-thinking-monologue" in streaming_fn
-    assert "thinking-monologue live" in streaming_fn
+    assert "thinking-monologue live hidden" in streaming_fn
+    assert ".streaming-thinking-panel .thinking-monologue" in html
     assert "思考链" in summary_fn
     assert "可公开推理旁白" in summary_fn
     assert "function publicThinkingSentence" in html
     assert "function appendThinkingNarration" in html
     assert "function tickThinkingNarration" in html
     assert "function resetThinkingNarration" in html
+    assert "const STREAM_RENDER_INTERVAL_MS = 80;" in html
+    assert "const streamingRenderState = {" in html
+    assert "function renderStreamingBubbleNow" in html
+    assert "function flushStreamingBubbleRender" in html
+    assert "thinkingNarrationState.visible = thinkingNarrationState.target" in html
+    assert "setTimeout(tickThinkingNarration" not in html
     assert "function pauseStreamingThinking" in html
     assert "const THINKING_CHAIN_OPEN_KEY = 'rt-mobile-thinking-chain-open';" in html
     assert "function thinkingChainOpen" in html
     assert "function setThinkingChainOpen" in html
     assert "function bindThinkingPreference" in html
     assert "${thinkingChainOpen() ? 'open' : ''}" not in streaming_fn
-    assert 'details class="thinking-panel text-[11px] text-neutral-500 mb-2">' in streaming_fn
+    assert 'details class="thinking-panel streaming-thinking-panel text-[11px] text-neutral-500 mb-2">' in streaming_fn
     assert "bindThinkingPreference(bubble.querySelector('.thinking-panel'))" not in streaming_fn
     assert "${thinkingChainOpen() ? 'open' : ''}" in summary_fn
     assert "$$('.process-summary').forEach(bindThinkingPreference);" in html
@@ -671,10 +715,20 @@ def test_mobile_thinking_chain_is_public_strategy_only_and_animated():
     assert "thinking-monologue" in html
     assert "<dt>判断</dt>" not in summary_fn
     assert "<dt>依据</dt>" not in summary_fn
-    update_streaming_fn = html.split("function updateStreamingBubble", 1)[1].split("function finalizeStreamingBubble", 1)[0]
+    render_streaming_fn = html.split("function renderStreamingBubbleNow", 1)[1].split("function flushStreamingBubbleRender", 1)[0]
+    flush_streaming_fn = html.split("function flushStreamingBubbleRender", 1)[1].split("function updateStreamingBubble", 1)[0]
+    update_streaming_fn = html.split("function updateStreamingBubble", 1)[1].split("function pauseStreamingThinking", 1)[0]
     assert "thinkingChainOpen()" not in update_streaming_fn
-    assert "details.open = false" in update_streaming_fn
+    assert "details.open = false" in render_streaming_fn
+    update_thinking_fn = html.split("function updateThinkingStage", 1)[1].split("function resetStreamingRenderState", 1)[0]
+    assert "container.querySelector('.streaming-thinking-panel')" in update_thinking_fn
+    assert "details.open = false" in update_thinking_fn
+    assert "safeChatHtml(htmlText)" in render_streaming_fn
+    assert "renderStreamingBubbleNow(text)" in flush_streaming_fn
+    assert "STREAM_RENDER_INTERVAL_MS" in update_streaming_fn
+    assert "setTimeout(flushStreamingBubbleRender" in update_streaming_fn
     pause_streaming_fn = html.split("function pauseStreamingThinking", 1)[1].split("function finalizeStreamingBubble", 1)[0]
+    assert "flushStreamingBubbleRender();" in pause_streaming_fn
     assert "indicator.remove()" in pause_streaming_fn
     assert "details.open = false" in pause_streaming_fn
     assert "live.classList.remove('live')" in pause_streaming_fn

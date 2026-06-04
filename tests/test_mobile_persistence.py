@@ -410,12 +410,12 @@ def test_mobile_chat_strips_model_thinking_from_visible_replies():
     assert "safeChatHtml(content) {\n  return renderRichText(extractVisibleReplyText(content));" in html
 
 
-def test_mobile_service_worker_cache_key_is_not_changed_for_v4_image_card():
+def test_mobile_service_worker_cache_key_tracks_release_version():
     sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
 
-    assert "rt-mobile-v0.19.1-test.1-39-pwa-profile-long-text-only" in sw
+    assert "rt-mobile-v0.19.1-40-session-graph-memo" in sw
     assert "v4-image-card" not in sw
-    assert "rt-mobile-v0.19.1-test.1-40" not in sw
+    assert "rt-mobile-v0.19.1-test.1" not in sw
 
 
 def test_mobile_graph_nodes_show_human_readable_analysis_status():
@@ -539,6 +539,64 @@ def test_mobile_graph_sheet_detail_sections_and_bidirectional_node_jumps():
     assert "data-graph-detail-section=\"relations\"" in html
     assert "data-graph-node-jump" in html
     assert "showGraphSheet(target)" in html
+
+
+def test_mobile_graph_sheet_expanded_detail_reads_like_report_with_semantic_cards():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert ".graph-sheet.expanded .graph-compact-only" in html
+    assert ".graph-node-report" in html
+    assert ".graph-fragment-deck" in html
+    assert ".graph-fragment-card.is-active" in html
+    assert "function graphSheetReportHtml" in html
+    assert "function graphSemanticFragments" in html
+    assert "function graphFragmentCardHtml" in html
+    assert "function graphFragmentDeckHtml" in html
+    assert "function cycleGraphFragmentDeck" in html
+    assert "function bindGraphFragmentDeckWheel" in html
+    assert "function graphReportSectionHtml" in html
+    assert "data-graph-fragment-deck" in html
+    assert "deck.onwheel" in html
+    assert "e.deltaY > 0 ? 1 : -1" in html
+    assert "min-height: 138px" in html
+    assert "background: var(--panel-3)" in html
+    assert "graph-fragment-index" not in html
+    assert "鼠标上下滚动翻牌" not in html
+    assert "data-graph-fragment-prev" not in html
+    assert "data-graph-fragment-next" not in html
+    assert "graph-fragment-control" not in html
+    assert "data-graph-fragment-chat" in html
+    assert '<button type="button" data-graph-fragment-chat' not in html
+    assert 'html = `<div class="graph-compact-only">${html}</div>`;' in html
+    assert "graphSheetActionButtonsHtml(node)}</div>" not in html
+    assert "function jumpToGraphFragmentChat" in html
+    assert "graphSheetDetailTabsHtml" not in html
+    assert "data-graph-detail-tab" not in html
+    assert "graphSheetDetailHtml(node, digest, pairs)" in html
+
+
+def test_mobile_graph_fragment_cards_open_readonly_chat_browse():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    fragment_card = html.split("function graphFragmentCardHtml", 1)[1].split("function graphFragmentDeckHtml", 1)[0]
+
+    assert "const chatAttrs = ids ? ` data-graph-fragment-chat=" in fragment_card
+    assert "role=\"button\" tabindex=\"0\"" in fragment_card
+    assert "function openGraphFragmentCard" in html
+    assert "card.classList.add('is-opening')" in html
+    assert "jumpToGraphFragmentChat(ids, card.dataset.graphFragmentSid || state.sid)" in html
+    assert "state.chatReadOnlyBrowse = true" in html
+    assert "id=\"graph-browse-header-search\"" in html
+    assert "id=\"graph-browse-search\"" in html
+    assert "graphBrowseHeaderSearch?.classList.toggle('hidden', !inReadOnlyBrowse)" in html
+    assert "graphBrowseToolbarHtml" not in html
+    assert "data-graph-browse-return" not in html
+    assert "graph-browse-toolbar" not in html
+    assert "body.chat-readonly-browse #chat-composer" in html
+    assert "if (state.chatReadOnlyBrowse) return;" in html
+    assert "当前是只读回看，不能发起对话" in html
+    assert "function returnToGraphBrowseContext" in html
+    assert "state.contextTab = 'graph'" in html
+    assert "showGraphSheet(node)" in html
 
 
 def test_mobile_graph_sheet_source_jumps_open_context_anchors():
@@ -833,7 +891,7 @@ def test_mobile_queued_user_messages_are_visible_and_reused_for_next_turn():
     assert "quoted_preview" in restore_fn
     assert "meta.kind === 'queued_user_message'" in html
     assert "state.messageQueue.some(item => Number(item.message?.id) === Number(m.id))" in html
-    assert "scheduleMessageQueueProcessing(0)" in html
+    assert "scheduleMessageQueueProcessing();" in restore_fn
     assert "onUserStatusReady({ queuedUserMessages })" in html
     assert "reply_stream_completed: true" in html
     assert "onReplyStreamComplete({ queuedUserMessages })" in html
@@ -863,6 +921,16 @@ def test_mobile_regular_sends_are_processed_one_queued_turn_at_a_time():
     assert "COALESCE_INITIAL_DELAY_MS = 250" in html
     assert "COALESCE_MAX_WAIT_MS = 2000" in html
     assert "COALESCE_MAX_MESSAGES = 3" in html
+    assert "COALESCE_SEMANTIC_IDLE_MS = 700" in html
+    assert "COALESCE_OPEN_ENDED_HOLD_MS = 1200" in html
+    assert "COALESCE_FIRST_TURN_HOLD_MS = 1400" in html
+    assert "function queueRhythmDecision" in html
+    assert "function semanticMergeableQueueHeadCount" in html
+    assert "function shouldMergeQueuedByRhythm" in html
+    assert "function isQuickQueueBurst" in html
+    assert "function isOpenEndedQueueText" in html
+    assert "function isQueueContinuationText" in html
+    assert "function isNewQueueTopicText" in html
     assert "function queueCoalescedUserMessage" in html
     assert "function flushCoalescedUserMessages" in html
     assert "coalesce.items.length >= COALESCE_MAX_MESSAGES" in html
@@ -877,8 +945,16 @@ def test_mobile_regular_sends_are_processed_one_queued_turn_at_a_time():
     assert "scheduleMessageQueueProcessing();" in html
     assert "function takeMergeBatch" in html
     assert "const batch = takeMergeBatch();" in html
-    assert "state.messageQueue.splice(0, Math.min(readyCount, COALESCE_MAX_MESSAGES))" in html
+    assert "const decision = queueRhythmDecision(now)" in html
+    assert "if (!decision.readyCount) return [];" in html
+    assert "state.messageQueue.splice(0, Math.min(decision.readyCount, COALESCE_MAX_MESSAGES))" in html
+    assert "reason: 'first_turn_hold'" in html
+    assert "COALESCE_FIRST_TURN_HOLD_MS - age" in html
+    assert "isQuickQueueBurst(prev, next)" in html
+    assert "reason: 'semantic_split'" in html
     assert "state.messageQueue.splice(0)" not in html
+    assert "scheduleMessageQueueProcessing();" in html
+    assert "scheduleMessageQueueProcessing(0);" not in html.split("async function processMessageQueue", 1)[1].split("function renderQueueIndicator", 1)[0]
     assert "await submitChatText(txt);" not in html
 
 
@@ -912,10 +988,30 @@ def test_mobile_turn_route_uses_light_llm_chain_without_teaching_postprocessing(
     assert "TURN_ROUTE_SOURCE_OR_IMAGE" in route_fn
     assert "const studyControlPattern" in route_fn
     assert route_fn.index("studyControlPattern.test(compact)") < route_fn.index("compact.length <= 18")
+    assert "const metaExperiencePattern" in route_fn
+    assert "slow|lag|delay" in route_fn
+    assert "turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'meta_experience')" in route_fn
+    assert route_fn.index("metaExperiencePattern.test(compact)") < route_fn.index("studyPattern.test(compact)")
+    assert "const ambiguousShortWhyPattern" in route_fn
+    assert "turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'ambiguous_short_why')" in route_fn
+    assert route_fn.index("ambiguousShortWhyPattern.test(compact)") < route_fn.index("studyPattern.test(compact)")
     assert "不要强行教学" in light_prompt_fn
     assert "不要突然讲知识点" in light_prompt_fn
     assert "不要做掌握度判断" in light_prompt_fn
+    assert "最多 60 个中文字符" in light_prompt_fn
+    assert "const LIGHT_CHAT_MAX_TOKENS = 260;" in html
+    assert "const STUDY_STREAM_MAX_TOKENS = 600;" in html
+    assert "const MOCK_STREAM_INTERVAL_MS = 8;" in html
+    assert "const MOCK_STREAM_MIN_CHARS = 2;" in html
+    assert "const MOCK_STREAM_MAX_CHARS = 5;" in html
     assert "LLM.chat_text_stream(system, messages" in light_fn
+    assert "max_tokens: LIGHT_CHAT_MAX_TOKENS" in light_fn
+    assert "先短答，通常 1 到 2 句" in run_turn_fn
+    assert "max_tokens: STUDY_STREAM_MAX_TOKENS" in run_turn_fn
+    mock_stream_fn = html.split("async function* mock_stream_response", 1)[1].split("// === OpenAI", 1)[0]
+    assert "MOCK_STREAM_INTERVAL_MS + Math.random() * MOCK_STREAM_INTERVAL_MS" in mock_stream_fn
+    assert "chars.slice(i, next).join('')" in mock_stream_fn
+    assert "20 + Math.random() * 35" not in mock_stream_fn
     assert "chat_json_eval_only" not in light_fn
     assert "upsert_mastery" not in light_fn
     assert "maybe_extract_kg_from_turn" not in light_fn
@@ -970,14 +1066,19 @@ def test_mobile_generation_callbacks_are_scoped_to_original_session():
 
     assert "activeChatTurn: null" in html
     assert "function beginActiveChatTurn" in html
+    assert "function isOwnedActiveChatTurn" in html
+    assert "function isSessionGenerating" in html
     assert "function isActiveChatTurn" in html
     assert "function detachActiveChatTurnForSid" in html
     assert "const turnSid = state.sid;" in submit_fn
     assert "const activeTurn = beginActiveChatTurn(turnSid);" in submit_fn
     assert "ENGINE.run_turn(turnSid, txt" in submit_fn
     assert "if (!isActiveChatTurn(activeTurn)) return;" in submit_fn
-    assert "if (isActiveChatTurn(activeTurn))" in submit_fn
+    assert "if (isOwnedActiveChatTurn(activeTurn))" in submit_fn
     assert "clearActiveChatTurn(activeTurn)" in submit_fn
+    assert "state.currentTab === 'chat'" in html
+    assert "const generating = isSessionGenerating(session.id)" in html
+    assert "const generatingTag = meta.generating" in html
     assert "detachActiveChatTurnForSid(sid);" in delete_fn
     assert "detachActiveChatTurnForSid(sid);" in drawer_delete_fn
     assert "await turnSessionStillExists(sid)" in run_turn_fn
@@ -1030,13 +1131,19 @@ def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_
     assert "formatMergedQueueInput(batch)" in process_queue_fn
     assert "accepted === false" in process_queue_fn
     assert "if (state.messageQueue.length > 0)" in process_queue_fn
-    assert "scheduleMessageQueueProcessing(0)" in process_queue_fn
+    assert "scheduleMessageQueueProcessing();" in process_queue_fn
     assert "thinking..." in html
     assert "思考链" in html
     assert "可公开推理旁白" in html
     assert "function renderProcessMonologue" in html
     assert "function tickThinkingNarration" in html
     assert "function resetThinkingNarration" in html
+    assert "const STREAM_RENDER_INTERVAL_MS = 80;" in html
+    assert "const streamingRenderState = {" in html
+    assert "function renderStreamingBubbleNow" in html
+    assert "function flushStreamingBubbleRender" in html
+    assert "thinkingNarrationState.visible = thinkingNarrationState.target" in html
+    assert "setTimeout(tickThinkingNarration" not in html
     assert "const STREAM_EVAL_TIMEOUT_MS" in html
     assert "function promiseWithTimeout" in html
     assert "await promiseWithTimeout(evalPromise, STREAM_EVAL_TIMEOUT_MS" in run_turn_fn
@@ -1049,7 +1156,11 @@ def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_
     assert "localStorage.getItem(THINKING_CHAIN_OPEN_KEY) === '1'" in html
     assert "localStorage.setItem(THINKING_CHAIN_OPEN_KEY, open ? '1' : '0')" in html
     assert "${thinkingChainOpen() ? 'open' : ''}" not in streaming_fn
-    assert 'details class="thinking-panel text-[11px] text-neutral-500 mb-2">' in streaming_fn
+    assert 'details class="thinking-panel streaming-thinking-panel text-[11px] text-neutral-500 mb-2">' in streaming_fn
+    assert ">生成状态</summary>" in streaming_fn
+    assert ">思考链</summary>" not in streaming_fn
+    assert "thinking-monologue live hidden" in streaming_fn
+    assert ".streaming-thinking-panel .thinking-monologue" in html
     assert "bindThinkingPreference(bubble.querySelector('.thinking-panel'))" not in streaming_fn
     assert "$$('.process-summary').forEach(bindThinkingPreference);" in html
     assert ".thinking-dots::after" in html
@@ -1060,10 +1171,20 @@ def test_mobile_streaming_bubble_follows_newer_user_messages_and_shows_thinking_
     assert "<summary>本轮判断</summary>" not in process_summary
     assert "<dt>判断</dt>" not in process_summary
     assert "${thinkingChainOpen() ? 'open' : ''}" in process_summary
-    update_streaming_fn = html.split("function updateStreamingBubble", 1)[1].split("function finalizeStreamingBubble", 1)[0]
+    render_streaming_fn = html.split("function renderStreamingBubbleNow", 1)[1].split("function flushStreamingBubbleRender", 1)[0]
+    flush_streaming_fn = html.split("function flushStreamingBubbleRender", 1)[1].split("function updateStreamingBubble", 1)[0]
+    update_streaming_fn = html.split("function updateStreamingBubble", 1)[1].split("function pauseStreamingThinking", 1)[0]
     assert "thinkingChainOpen()" not in update_streaming_fn
-    assert "details.open = false" in update_streaming_fn
+    assert "details.open = false" in render_streaming_fn
+    update_thinking_fn = html.split("function updateThinkingStage", 1)[1].split("function resetStreamingRenderState", 1)[0]
+    assert "container.querySelector('.streaming-thinking-panel')" in update_thinking_fn
+    assert "details.open = false" in update_thinking_fn
+    assert "safeChatHtml(htmlText)" in render_streaming_fn
+    assert "renderStreamingBubbleNow(text)" in flush_streaming_fn
+    assert "STREAM_RENDER_INTERVAL_MS" in update_streaming_fn
+    assert "setTimeout(flushStreamingBubbleRender" in update_streaming_fn
     pause_streaming_fn = html.split("function pauseStreamingThinking", 1)[1].split("function finalizeStreamingBubble", 1)[0]
+    assert "flushStreamingBubbleRender();" in pause_streaming_fn
     assert "indicator.remove()" in pause_streaming_fn
     assert "details.open = false" in pause_streaming_fn
     assert "live.classList.remove('live')" in pause_streaming_fn

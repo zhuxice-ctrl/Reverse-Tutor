@@ -388,6 +388,7 @@ def _strategy_int(raw: Any, default: int = 3) -> int:
 
 def _normalize_strategy_settings(raw: dict[str, Any] | None = None) -> dict[str, Any]:
     settings = {**DEFAULT_STRATEGY_SETTINGS, **(raw or {})}
+    settings.pop("image_retention_days", None)
     for key in ("feedback_intensity", "probing_intensity", "scaffold_intensity"):
         settings[key] = _strategy_int(settings.get(key), DEFAULT_STRATEGY_SETTINGS[key])
     if settings.get("correction_timing") not in {"immediate", "summary_only"}:

@@ -5,7 +5,7 @@
 <h1 align="center">Reverse Tutor</h1>
 
 <p align="center">
-  把 AI 从“答案机器”变成会追问、会引用上下文、会实时回复的学生。
+  一个本地优先的反向教学与目标推进应用：让 AI 扮演学生，通过追问、图谱、锚点和备忘录把长期对话整理成可继续推进的学习线索。
 </p>
 
 <p align="center">
@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.18.0-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.19.1-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.18.0.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.1.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -36,23 +36,34 @@
 
 Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再只是向 AI 提问，而是让 AI 扮演学生、追问者、检查者或协作者。你需要把目标、知识或方案讲清楚，AI 会继续追问、复盘、记录锚点，并在后续对话里推动你把事情做完。
 
-它最初适合学习场景：用“教别人”的方式逼自己真正理解。现在也支持更宽泛的目标型使用，例如项目推进、方案打磨、习惯监督、面试训练、产品讨论和个人任务复盘。移动端走本地优先路线：会话、资料、API 配置保存在设备侧，APK 里还带后台回复服务。
+移动端走本地优先路线：会话、资料、API 配置、图谱节点和备忘录优先保存在设备侧。它最初适合学习场景：用“教别人”的方式逼自己真正理解；现在也支持项目推进、方案打磨、习惯监督、面试训练、产品讨论和个人任务复盘。APK 内置后台回复服务，离开聊天窗口后仍会继续处理已提交的回复。
 
 ## 核心能力
 
 | 能力 | 说明 |
 |---|---|
 | 反向教学对话 | AI 扮演你设定的人格，用追问和反馈逼近清晰表达，而不是直接替你完成。 |
-| 目标锚点 | 记录目标、要求、知识点和新增约束，减少长对话中的跑偏。 |
-| 资料知识库 | 支持 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 等资料导入，并进入检索和洞察图谱。 |
-| 洞察图谱 | 汇总掌握度、资料节点、随笔节点、重点和下一步动作，便于从聊天跳回结构化线索。 |
+| 目标锚点 | 记录目标、要求、知识点、图片资料和新增约束，减少长对话中的跑偏。 |
+| 资料知识库 | 支持 PDF、DOCX、TXT、Markdown、HTML、PPTX、EPUB 和图片资料导入，并统一进入锚点与图谱。 |
+| 洞察图谱 | 汇总掌握度、资料节点、历史错因、证据摘要和下一步动作；节点详情支持报告式阅读和聊天语义卡片回看。 |
 | 引用回复 | 长按消息可引用 AI 或自己的发言，让后续回复明确基于哪一句上下文。 |
 | 随笔、回档、删除 | 长按气泡可写随笔、从某条消息回档重生成，或永久删除单条消息及关联记忆。 |
 | 主动对话 | 在线模式下可按间隔主动发起提醒，离线模式保持静默，睡眠模式降低频率。 |
+| 会话状态 | 每个会话可独立设置睡眠、在线、离线，并在会话列表和聊天顶栏直接显示。 |
+| 备忘录侧栏 | 侧边栏提供分段备忘录，点击横线新增记录，长按文本块删除。 |
 | 多模型接入 | 移动端支持 OpenAI Chat API 与 Anthropic Messages API 两类协议，内置 DeepSeek、MiniMax、OpenAI、Qwen、Kimi、Groq、OpenRouter、Ollama、LM Studio 等预设。 |
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
+
+## v0.19.1 更新重点
+
+- 图谱成为主要记忆视图：节点详情改为报告式阅读，展开后支持语义卡片和只读聊天回看。
+- 图片资料并入锚点，文件和图片统一分类；移除独立图片页，减少页面切换卡顿。
+- 会话管理弹窗改为置顶、删除、重命名、导出；会话状态改为睡眠、在线、离线。
+- 侧边栏改为备忘录分段，点击横线新增记录，长按文本块弹窗删除。
+- 恢复连续消息的语义合并节奏和轻聊天输出容量，修复退出会话后生成状态丢失的问题。
+- 正式 APK 命名为 `Reverse-Tutor-v0.19.1.apk`。
 
 ## v0.18.0 更新重点
 
@@ -213,7 +224,7 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.18.0.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.1.apk
 - GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
 
 ## 应用更新
@@ -235,16 +246,16 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 37,
-  "versionName": "0.18.0",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.18.0.apk",
+  "versionCode": 40,
+  "versionName": "0.19.1",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.1.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.18.0/Reverse-Tutor-v0.18.0.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.1/Reverse-Tutor-v0.19.1.apk"
   ],
-  "publishedAt": "2026-05-27",
+  "publishedAt": "2026-06-05",
   "releaseNotes": [
-    "移动端离线引擎对齐学习 schema",
-    "过程摘要和复习软交织进入本地测试版"
+    "图谱详情改为报告式阅读和语义卡片回看",
+    "修复退出会话后生成状态丢失的问题"
   ]
 }
 ```

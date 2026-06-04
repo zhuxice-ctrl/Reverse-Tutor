@@ -1,17 +1,21 @@
 {
-  "versionCode": 38,
-  "versionName": "0.19.0",
+  "versionCode": 40,
+  "versionName": "0.19.1",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.0.apk",
-  "apkMirrors": [],
-  "sha256": "",
-  "publishedAt": "2026-05-29",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.1.apk",
+  "apkMirrors": [
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.1/Reverse-Tutor-v0.19.1.apk"
+  ],
+  "sha256": "6b2ec4e818d8c8780263f18d64847a736702ac0311b6fee4a11f053b5d684c5f",
+  "publishedAt": "2026-06-05",
   "releaseNotes": [
-    "新增反例追问式纠错：challenge / confused_student 保持学生口吻处理误解。",
-    "移动端掌握度改为证据门控：只说“懂了”不再提高掌握度。",
-    "修复用户先发消息时 AI 开场插到第一条的问题，连续发送会合并为一轮处理。",
-    "图谱记忆改为学习整理、历史错因、证据摘要和后续策略，不再只复制聊天记录。",
-    "本地 APK 命名为 Reverse-Tutor-v0.19.0.apk；本次只做本地测试，未推送 GitHub Release。"
+    "聊天窗口背景改为上浅下深的光晕渐变，并加入轻微白色斜线层次。",
+    "图片资料已合并到锚点：文件和图片统一按类型分类，不再保留独立图片页。",
+    "记忆面板精简为图谱视图，节点详情支持报告式阅读、拖拽展开和语义卡片回看。",
+    "会话管理弹窗调整为置顶、删除、重命名、导出；会话状态支持睡眠、在线、离线，并显示在列表和顶栏。",
+    "侧边栏改为备忘录分段，可点击横线新增段落，长按文本块删除。",
+    "恢复消息合并节奏和轻聊天 200-300 字左右的输出容量，修复退出会话后生成状态丢失导致无法继续回复的问题。",
+    "正式 APK 命名为 Reverse-Tutor-v0.19.1.apk。"
   ]
 }

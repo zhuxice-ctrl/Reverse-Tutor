@@ -106,11 +106,7 @@ class DocumentReq(BaseModel):
 
 
 def _image_retention_days(session: db.Session) -> int:
-    try:
-        days = int((session.settings() or {}).get("image_retention_days", 0) or 0)
-    except Exception:
-        days = 0
-    return max(0, min(days, 365))
+    return 0
 
 
 def _serialize_settings(session: db.Session) -> dict[str, Any]:

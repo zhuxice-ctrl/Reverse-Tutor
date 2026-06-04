@@ -316,6 +316,51 @@
     justify-content: center;
   }
   .chat-image-button svg { width: 19px; height: 19px; display: block; }
+  body.chat-readonly-browse #chat-composer {
+    display: none !important;
+  }
+  body.chat-readonly-browse header {
+    align-items: flex-start;
+  }
+  body.chat-readonly-browse #header-sub {
+    display: none;
+  }
+  .graph-browse-header-search {
+    margin-top: 6px;
+    width: 100%;
+  }
+  .graph-browse-search svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+  }
+  .graph-browse-search {
+    min-width: 0;
+    flex: 1;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+    border-radius: 8px;
+    background: var(--panel-3);
+    color: var(--muted);
+    padding: 0 9px;
+  }
+  .graph-browse-search input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .graph-browse-search-match {
+    outline: 2px solid color-mix(in srgb, var(--accent) 84%, white 8%);
+    outline-offset: 3px;
+    border-radius: 16px;
+  }
   .image-draft-card {
     margin-bottom: 8px;
     border: 1px solid var(--glass-line);
@@ -442,6 +487,10 @@
   .thinking-panel summary {
     cursor: pointer;
     list-style-position: inside;
+  }
+  .streaming-thinking-panel .thinking-safe-note,
+  .streaming-thinking-panel .thinking-monologue {
+    display: none;
   }
   .thinking-dots::after {
     content: '';
@@ -863,6 +912,57 @@
     background: var(--accent);
     font-weight: 700;
   }
+  .session-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 68px;
+    border-radius: 999px;
+    padding: 3px 7px;
+    border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+    color: var(--text-soft);
+    background: color-mix(in srgb, var(--panel-3) 88%, transparent);
+    font-size: 9px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .session-status-badge svg {
+    width: 10px;
+    height: 10px;
+  }
+  .session-status-badge.online {
+    color: #bbf7d0;
+    border-color: rgba(74, 222, 128, .42);
+    background: rgba(22, 101, 52, .22);
+  }
+  .session-status-badge.sleep {
+    color: #d8b4fe;
+    border-color: rgba(168, 85, 247, .38);
+    background: rgba(88, 28, 135, .22);
+  }
+  .session-status-badge.offline {
+    color: #d4d4d4;
+    border-color: rgba(163, 163, 163, .28);
+    background: rgba(64, 64, 64, .24);
+  }
+  .session-status-badge.header {
+    max-width: none;
+    padding: 3px 6px;
+    font-size: 10px;
+    transform: translateY(-1px);
+  }
+  .header-session-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .header-session-title-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .session-unread {
     position: absolute;
     right: 12px;
@@ -1074,6 +1174,134 @@
   .graph-sheet:not(.expanded) .graph-detail-only {
     display: none;
   }
+  .graph-sheet.expanded .graph-compact-only {
+    display: none;
+  }
+  .graph-node-report {
+    color: var(--text);
+    padding-bottom: 24px;
+  }
+  .graph-report-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--panel);
+    padding-bottom: 10px;
+  }
+  .graph-report-title {
+    margin-top: 2px;
+    font-size: 20px;
+    line-height: 1.18;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+  .graph-report-lead {
+    margin-top: 12px;
+    border-left: 3px solid color-mix(in srgb, var(--accent) 58%, transparent);
+    background: color-mix(in srgb, var(--panel-2) 56%, transparent);
+    border-radius: 0 8px 8px 0;
+    padding: 9px 11px;
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .graph-report-section {
+    margin-top: 18px;
+  }
+  .graph-report-section h3 {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .graph-report-section p,
+  .graph-report-section li {
+    color: var(--text-soft);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .graph-fragment-deck {
+    position: relative;
+    overscroll-behavior: contain;
+  }
+  .graph-fragment-stack {
+    position: relative;
+    min-height: 138px;
+    margin: 2px 0 2px;
+  }
+  .graph-fragment-card {
+    position: absolute;
+    inset: 0;
+    border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+    border-radius: 8px;
+    background: var(--panel-3);
+    padding: 10px;
+    box-shadow: 0 12px 26px rgba(0,0,0,.16);
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+    transform: translateY(14px) scale(.96);
+    transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+  }
+  .graph-fragment-card.is-active {
+    z-index: 4;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+  .graph-fragment-card.is-active:active,
+  .graph-fragment-card.is-opening {
+    transform: translateY(0) scale(1.018);
+    box-shadow: 0 14px 30px rgba(0,0,0,.22);
+  }
+  .graph-fragment-card.is-next {
+    z-index: 3;
+    opacity: 1;
+    transform: translateY(8px) translateX(8px) scale(.965) rotate(1deg);
+  }
+  .graph-fragment-card.is-after {
+    z-index: 2;
+    opacity: 1;
+    transform: translateY(16px) translateX(16px) scale(.93) rotate(2deg);
+  }
+  .graph-fragment-card:not(.is-active) > * {
+    opacity: 0;
+  }
+  .graph-fragment-card .eyebrow {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1;
+  }
+  .graph-fragment-card .title {
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+  .graph-fragment-card .summary {
+    margin-top: 7px;
+    color: var(--text-soft);
+    font-size: 12px;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .graph-report-link-list {
+    display: grid;
+    gap: 8px;
+  }
+  .graph-report-inline-link {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    padding: 9px 10px;
+    text-align: left;
+    font-size: 13px;
+  }
   .graph-sheet-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1259,6 +1487,106 @@
   .config-picker-caret { color: var(--muted); font-size: 18px; line-height: 1; flex: none; }
   .config-picker-caret svg { width: 18px; height: 18px; display: block; }
   .button-icon { width: 16px; height: 16px; flex: none; }
+  .sidebar-memo-panel {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sidebar-memo-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .sidebar-memo-title svg {
+    width: 15px;
+    height: 15px;
+  }
+  .sidebar-memo-section {
+    border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-2) 62%, transparent);
+    padding: 8px;
+  }
+  .sidebar-memo-section textarea {
+    width: 100%;
+    min-height: 84px;
+    border: 0;
+    outline: 0;
+    resize: vertical;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .sidebar-memo-section textarea::placeholder {
+    color: var(--muted);
+  }
+  .sidebar-memo-divider {
+    width: 100%;
+    min-height: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .sidebar-memo-divider::before,
+  .sidebar-memo-divider::after {
+    content: '';
+    height: 1px;
+    background: color-mix(in srgb, var(--line) 88%, transparent);
+  }
+  .sidebar-memo-divider:active {
+    color: var(--accent);
+  }
+  .sidebar-memo-section {
+    touch-action: pan-y;
+  }
+  .sidebar-memo-section.deleting {
+    border-color: color-mix(in srgb, #f87171 62%, var(--line));
+  }
+  .sidebar-memo-delete-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(0,0,0,.55);
+  }
+  .sidebar-memo-delete-dialog.hidden {
+    display: none;
+  }
+  .sidebar-memo-delete-card {
+    width: min(300px, 100%);
+    border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+    border-radius: 10px;
+    background: var(--panel);
+    box-shadow: 0 22px 48px rgba(0,0,0,.36);
+    padding: 14px;
+  }
+  .sidebar-memo-delete-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .sidebar-memo-delete-actions button {
+    min-height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .sidebar-memo-delete-actions .danger {
+    color: #fff;
+    border-color: rgba(185,28,28,.72);
+    background: #b91c1c;
+  }
   .icon-only svg { width: 22px; height: 22px; display: block; }
   #pwa-install:not(.hidden), #pwa-installed:not(.hidden) { display: flex; }
   .llm-config-card { padding: 14px !important; }
@@ -1631,6 +1959,12 @@
   <div class="flex-1 min-w-0">
     <div id="header-title" class="text-sm font-semibold truncate">Reverse Tutor</div>
     <div id="header-sub" class="text-[10px] text-neutral-500 truncate"></div>
+    <div id="graph-browse-header-search" class="graph-browse-header-search hidden">
+      <label class="graph-browse-search">
+        <i data-lucide="search"></i>
+        <input id="graph-browse-search" type="search" placeholder="搜索聊天记录" autocomplete="off">
+      </label>
+    </div>
   </div>
   <button id="learning-context-open" class="hidden text-xs px-3 py-1.5 rounded bg-emerald-700 active:bg-emerald-800 text-white font-medium">脉络</button>
   <button id="header-new-session" class="icon-only text-neutral-100 bg-emerald-700 active:bg-emerald-800 px-2" aria-label="新建会话"><i data-lucide="plus">+</i></button>
@@ -1641,7 +1975,7 @@
     <div class="p-3 border-b border-neutral-800 flex items-center justify-between gap-2">
       <div>
         <div class="text-sm font-semibold">全局侧边栏</div>
-        <div class="text-[10px] text-neutral-500">主题、头像显示和当前状态</div>
+        <div class="text-[10px] text-neutral-500">主题、头像显示和备忘录</div>
       </div>
       <button id="drawer-close" class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
     </div>
@@ -1655,8 +1989,19 @@
         <input id="global-avatar-visible" type="checkbox" class="accent-emerald-700">
       </label>
     </div>
-    <div id="global-sidebar-status" class="flex-1 scroll-y p-3 space-y-2 text-xs text-neutral-400"></div>
+    <div id="global-sidebar-memo" class="flex-1 scroll-y p-3 text-xs text-neutral-400"></div>
   </aside>
+</div>
+
+<div id="sidebar-memo-delete-dialog" class="sidebar-memo-delete-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="sidebar-memo-delete-title">
+  <div class="sidebar-memo-delete-card">
+    <div id="sidebar-memo-delete-title" class="text-sm font-semibold text-neutral-100">删除这段备忘录？</div>
+    <div class="text-xs text-neutral-500 mt-2 leading-relaxed">删除后只会移除当前分段，不影响其它备忘录内容。</div>
+    <div class="sidebar-memo-delete-actions">
+      <button id="sidebar-memo-delete-cancel" type="button">取消</button>
+      <button id="sidebar-memo-delete-confirm" type="button" class="danger">删除</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============== 主内容（按 view 切换）============== -->
@@ -1914,7 +2259,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.19.1-test.1 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.19.1 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -2167,9 +2512,10 @@
 </div>
 
 <div id="session-card-popover" class="message-action-popover hidden">
-  <button data-session-action="preset-export"><i data-lucide="download"></i><span>导出预设</span></button>
-  <button data-session-action="avatar"><i data-lucide="image-plus"></i><span>头像</span></button>
-  <button data-session-action="avatar-clear"><i data-lucide="trash-2"></i><span>清除头像</span></button>
+  <button data-session-action="pin"><i data-lucide="pin"></i><span>置顶</span></button>
+  <button data-session-action="delete"><i data-lucide="trash-2"></i><span>删除</span></button>
+  <button data-session-action="rename"><i data-lucide="pencil"></i><span>重命名</span></button>
+  <button data-session-action="export"><i data-lucide="download"></i><span>导出</span></button>
 </div>
 
 <div id="essay-note-sheet" class="choice-sheet-overlay hidden">
@@ -2276,6 +2622,11 @@ const state = {
   graphDetailLinks: [],
   graphSheetExpanded: false,
   graphSheetCompactTop: 0,
+  graphFragmentDeckIndex: 0,
+  chatReadOnlyBrowse: false,
+  graphBrowseReturn: null,
+  graphBrowseTargetIds: [],
+  graphBrowseSearch: '',
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
@@ -2310,20 +2661,29 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 39;
-const APP_VERSION_NAME = '0.19.1-test.1';
+const APP_VERSION_CODE = 40;
+const APP_VERSION_NAME = '0.19.1';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
 const LEGACY_UPDATE_FEED_URLS = [GITHUB_UPDATE_FEED_URL, GITHUB_LATEST_RELEASE_URL];
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
 const STREAM_EVAL_TIMEOUT_MS = 8000;
+const STREAM_RENDER_INTERVAL_MS = 80;
+const LIGHT_CHAT_MAX_TOKENS = 260;
+const STUDY_STREAM_MAX_TOKENS = 600;
+const MOCK_STREAM_INTERVAL_MS = 8;
+const MOCK_STREAM_MIN_CHARS = 2;
+const MOCK_STREAM_MAX_CHARS = 5;
 const TURN_ROUTE_CHAT_LIGHT = 'chat_light';
 const TURN_ROUTE_STUDY_FULL = 'study_full';
 const TURN_ROUTE_SOURCE_OR_IMAGE = 'source_or_image';
 const COALESCE_INITIAL_DELAY_MS = 250;
 const COALESCE_MAX_WAIT_MS = 2000;
 const COALESCE_MAX_MESSAGES = 3;
+const COALESCE_SEMANTIC_IDLE_MS = 700;
+const COALESCE_OPEN_ENDED_HOLD_MS = 1200;
+const COALESCE_FIRST_TURN_HOLD_MS = 1400;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
 const THINKING_CHAIN_OPEN_KEY = 'rt-mobile-thinking-chain-open';
 const LLM_LOCAL_CONFIG_KEY = 'rt-mobile-llm-local-config';
@@ -2347,6 +2707,7 @@ const SESSION_PINNED_KEY = 'rt-mobile-pinned-sessions';
 const SESSION_SWIPE_ACTION_WIDTH = 216;
 const SESSION_SWIPE_OPEN_THRESHOLD = 88;
 const GLOBAL_AVATARS_VISIBLE_KEY = 'rt-mobile-global-avatars-visible';
+const GLOBAL_SIDEBAR_MEMO_KEY = 'rt-mobile-global-sidebar-memo';
 const SESSION_PRESETS_KEY = 'rt-mobile-session-presets';
 const THEME_OPTIONS = [
   { id:'ink', label:'柔和黑色', detail:'默认低亮深色', metaColor:'#252927', swatches:['#252927','#303631','#78a084'] },
@@ -2363,6 +2724,7 @@ const PROACTIVE_MODES = {
   sleep: { label: '睡眠', intervalMs: 6 * 60 * 60 * 1000 },
   custom: { label: '自定义', custom: true },
 };
+const SESSION_PROACTIVE_MODES = ['sleep', 'online', 'offline'];
 const LLM_PROVIDERS = [
   { id:'custom', label:'手动填写', base_url:'', model:'', models:['glm-5.1','glm-4.5-air','deepseek-v4-flash','qwen-plus','moonshot-v1-8k','MiniMax-M2.7','local-model'], api_type:'openai', capability:'text', requires_key:true },
   { id:'free-glm', label:'免费 GLM', base_url:'https://open.bigmodel.cn/api/anthropic', model:'GLM-4.7-Flash', models:['GLM-4.7-Flash','glm-4.5-air','glm-4.6','glm-4-plus','glm-4-flash'], api_type:'anthropic', capability:'text', requires_key:true, json_mode:false },
@@ -2468,6 +2830,29 @@ function proactiveIntervalMs(mode, lastAt=0) {
     return meta.minIntervalMs + Math.round((meta.maxIntervalMs - meta.minIntervalMs) * seed);
   }
   return meta.intervalMs || Infinity;
+}
+
+function sessionProactiveMode(session, cfg=proactiveConfig()) {
+  const explicit = String(session?.proactive_mode || '').trim();
+  if (SESSION_PROACTIVE_MODES.includes(explicit)) return explicit;
+  const inherited = cfg.enabled && SESSION_PROACTIVE_MODES.includes(cfg.mode) ? cfg.mode : 'offline';
+  return inherited;
+}
+
+function sessionProactiveMeta(mode) {
+  const normalized = SESSION_PROACTIVE_MODES.includes(mode) ? mode : 'offline';
+  const map = {
+    sleep: { label: '睡眠', icon: 'moon' },
+    online: { label: '在线', icon: 'radio' },
+    offline: { label: '离线', icon: 'wifi-off' },
+  };
+  return { mode: normalized, ...(map[normalized] || map.offline) };
+}
+
+function sessionStatusBadgeHtml(session, variant='list') {
+  const meta = sessionProactiveMeta(sessionProactiveMode(session));
+  const cls = variant === 'header' ? ' header' : '';
+  return `<span class="session-status-badge ${esc(meta.mode)}${cls}" title="会话状态：${esc(meta.label)}"><i data-lucide="${esc(meta.icon)}"></i><span>${esc(meta.label)}</span></span>`;
 }
 
 function updateAutoEnabled() {
@@ -3930,9 +4315,15 @@ const LLM = (() => {
     for (let b = 0; b < bubbles.length; b++) {
       if (b > 0) yield { type: 'bubble_boundary' };
       const chars = [...bubbles[b]];
-      for (let i = 0; i < chars.length; i++) {
-        await new Promise(r => setTimeout(r, 20 + Math.random() * 35));
-        yield { delta: chars[i], accumulated: bubbles[b].slice(0, i + 1), bubbleIndex: b };
+      for (let i = 0; i < chars.length;) {
+        const step = Math.min(
+          chars.length - i,
+          MOCK_STREAM_MIN_CHARS + Math.floor(Math.random() * (MOCK_STREAM_MAX_CHARS - MOCK_STREAM_MIN_CHARS + 1))
+        );
+        await new Promise(r => setTimeout(r, MOCK_STREAM_INTERVAL_MS + Math.random() * MOCK_STREAM_INTERVAL_MS));
+        const next = i + step;
+        yield { delta: chars.slice(i, next).join(''), accumulated: chars.slice(0, next).join(''), bubbleIndex: b };
+        i = next;
       }
     }
     return response;
@@ -4797,7 +5188,6 @@ const ENGINE = (() => {
     proactivity: 'normal',
     privacy_level: 'standard',
     scaffold_intensity: 3,
-    image_retention_days: 0,
     web_search_enabled: false,
     kg_extraction_enabled: true,
     kg_blacklist: [],
@@ -5056,7 +5446,7 @@ const ENGINE = (() => {
     s.feedback_intensity = clampStrategyInt(s.feedback_intensity, 3);
     s.probing_intensity = clampStrategyInt(s.probing_intensity, 3);
     s.scaffold_intensity = clampStrategyInt(s.scaffold_intensity, 3);
-    s.image_retention_days = Math.max(0, Math.min(365, parseInt(s.image_retention_days || 0, 10) || 0));
+    delete s.image_retention_days;
     if (!['immediate', 'summary_only'].includes(s.correction_timing)) s.correction_timing = 'immediate';
     if (!['gentle', 'balanced', 'persistent'].includes(s.correction_persistence)) s.correction_persistence = 'balanced';
     if (!['low', 'normal', 'high'].includes(s.review_frequency)) s.review_frequency = 'normal';
@@ -6265,6 +6655,10 @@ function supportsBackgroundChat(cfg) {
     if (pureGreetingPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'pure_greeting');
     const studyControlPattern = /^(继续|下一步|下一题|再来|再讲|接着|继续学|继续讲|往下|开始吧|来一题|出题|考我|复习)$/i;
     if (studyControlPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'study_control');
+    const metaExperiencePattern = /(说话.*慢|输出.*慢|回复.*慢|生成.*慢|太慢|慢死|卡顿|延迟|等.*久|速度|反应.*慢|加载.*慢|slow|lag|delay)/i;
+    if (compact.length <= 48 && metaExperiencePattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'meta_experience');
+    const ambiguousShortWhyPattern = /^(为什么啊?|为啥啊?|咋了|怎么了|why)[。！？!?~～,.，\s]*$/i;
+    if (compact.length <= 8 && ambiguousShortWhyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'ambiguous_short_why');
     const studyPattern = /(讲|解释|为什么|怎么做|怎么解|题|公式|概念|定义|证明|推导|错因|纠错|批改|作业|考试|复习|知识点|教材|资料|例题|步骤|答案|算|函数|方程|导数|积分|概率|代码|bug|报错|语法|算法|图像|图片|OCR|识别|懂了|明白了|会了|不会|不懂|没懂|验证|检测|考我|继续学|下一题)/i;
     if (studyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'explicit_study_request');
     const sourceRequestPattern = /(资料|文档|文件|PDF|pdf|来源|引用|原文|课本|教材|上传|附件)/i;
@@ -6308,7 +6702,7 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
 - 不要突然讲知识点。
 - 不要做掌握度判断。
 - 如果用户只是寒暄、犹豫、情绪表达或短句补充，就像真实聊天一样接住，不要把每句话都变成学习任务。
-- 回复保持短而生动，通常 1 到 2 句；只输出学生 AI 的自然语言，不输出 JSON、metadata、评价字段或思考过程。`;
+- 回复保持短而生动，通常 1 句，最多 60 个中文字符；只输出学生 AI 的自然语言，不输出 JSON、metadata、评价字段或思考过程。`;
   }
 
   async function runLightChatTurn({
@@ -6338,12 +6732,12 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
     const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
     if (quotedContext) messages.push({ role: 'system', content: quotedContext });
-    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；不要输出 JSON、标题、列表模板或分析字段。' });
+    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；短问短答，通常 1 句，最多 60 个中文字符；不要输出 JSON、标题、列表模板或分析字段。' });
     if (typeof opts.onThinkingStage === 'function') {
       opts.onThinkingStage({ stage: '自然接话', detail: '按人设和最近上下文组织一句自然回复' });
     }
 
-    const streamObj = LLM.chat_text_stream(system, messages, { temperature: 0.85, max_tokens: 260 });
+    const streamObj = LLM.chat_text_stream(system, messages, { temperature: 0.85, max_tokens: LIGHT_CHAT_MAX_TOKENS });
     let currentBubbleText = '';
     try {
       if (typeof opts.onBubbleStart === 'function') opts.onBubbleStart(0);
@@ -6575,9 +6969,9 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
       if (typeof opts.onThinkingStage === 'function') opts.onThinkingStage({ stage: '组织回复', detail: '结合主线、资料和当前问题' });
 
       const evalSystem = systemStream + '\n\n# 输出要求\n只输出 evaluation、action、anchor_updates 三个字段，**不要**包含 reply 字段。严格 JSON，以 { 开头。';
-      const replySystem = systemStream + '\n\n# 输出要求\n你现在是角色扮演，就输出你（学生）要说的自然语言回复。**不要**输出 JSON、不要 markdown 代码块、不要 evaluation、不要 action 字段。就正常说话。';
+      const replySystem = systemStream + '\n\n# 输出要求\n你现在是角色扮演，就输出你（学生）要说的自然语言回复。**不要**输出 JSON、不要 markdown 代码块、不要 evaluation、不要 action 字段。就正常说话。先短答，通常 1 到 2 句；只有用户明确要求详细讲解时才展开。';
 
-      const streamObj = LLM.chat_text_stream(replySystem, messagesStream, { temperature: 0.85, max_tokens: 600 });
+      const streamObj = LLM.chat_text_stream(replySystem, messagesStream, { temperature: 0.85, max_tokens: STUDY_STREAM_MAX_TOKENS });
       const evalPromise = streamObj.mockResponse
         ? Promise.resolve(streamObj.mockResponse)
         : LLM.chat_json_eval_only(evalSystem, messagesStream, { temperature: 0.85, max_tokens: 400 });
@@ -7157,7 +7551,6 @@ function sanitizePresetSettings(raw={}) {
   settings.feedback_intensity = presetSettingInt(rawSettings.feedback_intensity, 3, 1, 5);
   settings.probing_intensity = presetSettingInt(rawSettings.probing_intensity, 3, 1, 5);
   settings.scaffold_intensity = presetSettingInt(rawSettings.scaffold_intensity, 3, 1, 5);
-  settings.image_retention_days = presetSettingInt(rawSettings.image_retention_days, 0, 0, 365);
   Object.entries(PRESET_SETTING_ENUMS).forEach(([key, allowed]) => {
     const value = String(rawSettings[key] || '').trim();
     if (allowed.has(value)) settings[key] = value;
@@ -7440,6 +7833,12 @@ async function sessionListMeta(session) {
   const unreadCount = visible.filter(m => m.role === 'assistant' && (m.created_at || 0) > lastReadAt).length;
   const notes = anchors.filter(a => a.kind === 'note').length;
   const sources = anchors.filter(a => a.kind === 'source').length;
+  const generating = isSessionGenerating(session.id) || messages.some(m => {
+    const meta = m.meta || {};
+    const status = m.status || meta.status || '';
+    if (meta.kind === 'native_background_pending' && status === 'pending') return true;
+    return m.role === 'user' && meta.kind === 'queued_user_message' && ['pending', 'processing'].includes(status);
+  });
   const searchText = [
     session.title,
     session.persona?.role,
@@ -7453,6 +7852,7 @@ async function sessionListMeta(session) {
     last,
     notes,
     sources,
+    generating,
     searchText,
     unreadCount,
     preview: last ? String(last.content || '').replace(/\s+/g, ' ').trim().slice(0, 84) : '还没有聊天记录，点开后开始这一节。',
@@ -7526,6 +7926,38 @@ async function updateSessionAvatar(sid, patch) {
   if (state.sid === sid) await refreshHeader();
   await renderSessionHome();
   if (state.currentTab === 'settings') await renderSettings();
+}
+
+async function setSessionProactiveMode(sid, mode) {
+  if (!sid || !SESSION_PROACTIVE_MODES.includes(mode)) return false;
+  const session = await DB.get('sessions', sid);
+  if (!session) return false;
+  session.proactive_mode = mode;
+  session.proactive_mode_updated_at = Date.now();
+  await DB.put('sessions', session);
+  if (state.sid === sid) await refreshHeader();
+  await renderSessionHome();
+  await renderSessionDrawer();
+  toast(`会话已设为${sessionProactiveMeta(mode).label}`);
+  return true;
+}
+
+async function deleteSessionById(sid) {
+  if (!sid) return false;
+  if (!confirm('删除该会话及所有数据？')) return false;
+  detachActiveChatTurnForSid(sid);
+  await ENGINE.delete_session(sid);
+  if (state.sid === sid) {
+    state.sid = null;
+    state.chatScreen = 'list';
+    await DB.kvSet('current_sid', null);
+  }
+  await refreshHeader();
+  await renderSessionHome();
+  await renderSessionDrawer();
+  renderChat();
+  toast('会话已删除');
+  return true;
 }
 
 async function renameSession(sid) {
@@ -7639,24 +8071,27 @@ async function renderSessionHome() {
     const live = pinned ? '<span class="session-tag live">置顶</span>' : (idx === 0 ? '<span class="session-tag live">最近</span>' : '');
     const sourceTag = meta.sources ? `<span class="session-tag">资料 ${meta.sources}</span>` : '';
     const noteTag = meta.notes ? `<span class="session-tag">随笔 ${meta.notes}</span>` : '';
+    const generatingTag = meta.generating ? '<span class="session-tag">生成中</span>' : '';
     const sid = esc(s.id);
     return `
       <div class="session-swipe-row" data-session-row="${sid}">
         <div class="session-swipe-actions" aria-hidden="true">
-          <button type="button" data-session-swipe-action="pin" data-session-id="${sid}"><i data-lucide="pin"></i><span>置顶</span></button>
-          <button type="button" class="danger" data-session-swipe-action="delete" data-session-id="${sid}"><i data-lucide="trash-2"></i><span>删除</span></button>
-          <button type="button" data-session-swipe-action="rename" data-session-id="${sid}"><i data-lucide="pencil"></i><span>重命名</span></button>
+          <button type="button" data-session-swipe-action="sleep" data-session-id="${sid}"><i data-lucide="moon"></i><span>睡眠</span></button>
+          <button type="button" data-session-swipe-action="online" data-session-id="${sid}"><i data-lucide="radio"></i><span>在线</span></button>
+          <button type="button" data-session-swipe-action="offline" data-session-id="${sid}"><i data-lucide="wifi-off"></i><span>离线</span></button>
         </div>
         <article class="session-card ${active} ${pinned ? 'pinned' : ''} ${avatarHidden}" data-session-open="${sid}">
           ${sessionAvatarHtml(s, visualIndex)}
           <div class="flex items-center gap-2 min-w-0">
             <div class="session-name flex-1 min-w-0 truncate">${esc(s.title || '未命名会话')}</div>
+            ${sessionStatusBadgeHtml(s, 'list')}
             <div class="text-[10px] text-neutral-500 shrink-0">${esc(formatSessionTime(meta.time))}</div>
           </div>
           <div class="session-preview mt-1">${esc(meta.preview)}</div>
           <div class="flex items-center gap-1.5 mt-2 min-w-0">
             ${live}
             <span class="session-tag">${esc(s.persona?.goal || '学习窗口')}</span>
+            ${generatingTag}
             ${sourceTag}
             ${noteTag}
           </div>
@@ -7729,6 +8164,8 @@ async function renderSessionHome() {
       const pop = $('#session-card-popover');
       if (!pop) return;
       pop.dataset.sessionId = sid;
+      const pinLabel = pop.querySelector('[data-session-action="pin"] span');
+      if (pinLabel) pinLabel.textContent = pinnedSessionIds().includes(String(sid)) ? '取消置顶' : '置顶';
       const rect = card.getBoundingClientRect();
       let top = rect.bottom + 4;
       let left = Math.max(12, rect.left + rect.width / 2);
@@ -7828,6 +8265,10 @@ function closeSessionSwipeRows(except=null) {
 async function handleSessionSwipeAction(action, sid) {
   if (!sid) return;
   closeSessionSwipeRows();
+  if (SESSION_PROACTIVE_MODES.includes(action)) {
+    await setSessionProactiveMode(sid, action);
+    return;
+  }
   if (action === 'pin') {
     const pinned = togglePinnedSession(sid);
     toast(pinned ? '已置顶会话' : '已取消置顶');
@@ -7872,6 +8313,7 @@ function promiseWithTimeout(promise, timeoutMs, fallbackFactory) {
 async function openSessionWindow(sid) {
   if (!sid) return;
   const previousSid = state.sid;
+  clearGraphChatBrowseState();
   if (previousSid && previousSid !== sid) {
     await markSessionRead(previousSid);
     detachActiveChatTurnForSid(previousSid);
@@ -7892,6 +8334,7 @@ async function openSessionWindow(sid) {
 
 async function showSessionHome() {
   if (state.sid) await markSessionRead(state.sid);
+  clearGraphChatBrowseState();
   state.chatScreen = 'list';
   state.contextEditingNoteId = null;
   state.sessionSearchFocused = false;
@@ -7902,6 +8345,7 @@ async function showSessionHome() {
 
 function switchTab(name) {
   state.currentTab = name;
+  syncGraphBrowseReadOnlyUi();
   $$('[data-view]').forEach(v => v.classList.toggle('hidden', v.dataset.view !== name));
   $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   refreshHeader();
@@ -7931,20 +8375,27 @@ async function refreshHeader() {
   const drawerBtn = $('#drawer-open');
   const globalBtn = $('#global-sidebar-open');
   const newBtn = $('#header-new-session');
+  const graphBrowseHeaderSearch = $('#graph-browse-header-search');
   const inThread = state.currentTab === 'chat' && state.chatScreen === 'thread' && !!state.sid;
   const inContext = state.currentTab === 'chat' && state.chatScreen === 'context' && !!state.sid;
+  const inReadOnlyBrowse = !!state.chatReadOnlyBrowse && inThread;
   const inNewPage = state.currentTab === 'new-session';
   const inSessionPage = inThread || inContext;
   document.body.classList.toggle('session-focus', inSessionPage);
   document.body.classList.toggle('new-session-focus', inNewPage);
-  contextBtn?.classList.toggle('hidden', !inThread);
+  contextBtn?.classList.toggle('hidden', !inThread || inReadOnlyBrowse);
+  graphBrowseHeaderSearch?.classList.toggle('hidden', !inReadOnlyBrowse);
+  const graphBrowseInput = $('#graph-browse-search');
+  if (graphBrowseInput && graphBrowseInput.value !== (state.graphBrowseSearch || '')) {
+    graphBrowseInput.value = state.graphBrowseSearch || '';
+  }
   globalBtn?.classList.toggle('hidden', inSessionPage || inNewPage);
   $('#header-mode')?.classList.toggle('hidden', inSessionPage || inNewPage);
   newBtn?.classList.toggle('hidden', inSessionPage || inNewPage);
   if (drawerBtn) {
     drawerBtn.classList.toggle('hidden', !(inSessionPage || inNewPage));
     drawerBtn.innerHTML = inSessionPage ? '<i data-lucide="chevron-left">返回</i>' : '<i data-lucide="chevron-left">返回</i>';
-    drawerBtn.setAttribute('aria-label', inNewPage ? '返回上一页' : (inContext ? '返回聊天' : (inThread ? '返回会话列表' : '打开会话抽屉')));
+    drawerBtn.setAttribute('aria-label', inNewPage ? '返回上一页' : (inReadOnlyBrowse ? '返回知识卡' : (inContext ? '返回聊天' : (inThread ? '返回会话列表' : '打开会话抽屉'))));
   }
   if (inNewPage) {
     $('#header-title').textContent = '新建会话';
@@ -7978,10 +8429,18 @@ async function refreshHeader() {
     return;
   }
 
+  if (inReadOnlyBrowse) {
+    const s = await DB.get('sessions', state.sid);
+    $('#header-title').textContent = '聊天记录回看';
+    $('#header-sub').textContent = s?.title || '只读浏览';
+    refreshIcons();
+    return;
+  }
+
   if (state.sid) {
     const s = await DB.get('sessions', state.sid);
     if (s) {
-      $('#header-title').textContent = s.title;
+      $('#header-title').innerHTML = `<span class="header-session-title-row"><span class="header-session-title-text">${esc(s.title || '未命名会话')}</span>${sessionStatusBadgeHtml(s, 'header')}</span>`;
       $('#header-sub').textContent = `${s.persona.role} · ${s.persona.goal}`;
     }
   } else {
@@ -8009,11 +8468,11 @@ function getOrCreateStreamingBubble() {
     bubble.className = 'flex justify-start';
     bubble.innerHTML = `<div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
       <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">thinking...<span class="thinking-dots"></span></span></div>
-      <details class="thinking-panel text-[11px] text-neutral-500 mb-2">
-        <summary class="cursor-pointer select-none text-neutral-400">思考链</summary>
+      <details class="thinking-panel streaming-thinking-panel text-[11px] text-neutral-500 mb-2">
+        <summary class="cursor-pointer select-none text-neutral-400">生成状态</summary>
         <div class="thinking-safe-note">可公开推理旁白，不展示模型隐藏推理。</div>
         <div class="thinking-stage mt-1">thinking... 理解问题</div>
-        <div class="thinking-monologue live" data-thinking-monologue></div>
+        <div class="thinking-monologue live hidden" data-thinking-monologue></div>
       </details>
       <div class="md text-sm stream-content"></div></div>`;
     $('#chat').appendChild(bubble);
@@ -8041,6 +8500,11 @@ const thinkingNarrationState = {
   visible: '',
   target: '',
   seen: new Set(),
+};
+const streamingRenderState = {
+  timer: null,
+  lastAt: 0,
+  pendingText: null,
 };
 
 function resetThinkingNarration() {
@@ -8080,15 +8544,9 @@ function tickThinkingNarration() {
     resetThinkingNarration();
     return;
   }
-  if (thinkingNarrationState.visible.length >= thinkingNarrationState.target.length) {
-    thinkingNarrationState.timer = null;
-    return;
-  }
-  const remaining = thinkingNarrationState.target.length - thinkingNarrationState.visible.length;
-  const step = remaining > 48 ? 2 : 1;
-  thinkingNarrationState.visible = thinkingNarrationState.target.slice(0, thinkingNarrationState.visible.length + step);
+  thinkingNarrationState.visible = thinkingNarrationState.target;
   el.textContent = thinkingNarrationState.visible;
-  thinkingNarrationState.timer = setTimeout(tickThinkingNarration, 24);
+  thinkingNarrationState.timer = null;
 }
 
 function appendThinkingNarration(stage, detail='') {
@@ -8106,13 +8564,22 @@ function appendThinkingNarration(stage, detail='') {
 function updateThinkingStage(stage, detail='') {
   const wasNearBottom = isChatNearBottom();
   const { container } = getOrCreateStreamingBubble();
+  const details = container.querySelector('.streaming-thinking-panel');
+  if (details) details.open = false;
   const stageEl = container.querySelector('.thinking-stage');
   if (stageEl) stageEl.textContent = detail ? `thinking... ${stage}：${detail}` : `thinking... ${stage}`;
   appendThinkingNarration(stage, detail || '');
   keepChatTailVisible(0, { wasNearBottom });
 }
 
-function updateStreamingBubble(htmlText) {
+function resetStreamingRenderState() {
+  if (streamingRenderState.timer) clearTimeout(streamingRenderState.timer);
+  streamingRenderState.timer = null;
+  streamingRenderState.lastAt = 0;
+  streamingRenderState.pendingText = null;
+}
+
+function renderStreamingBubbleNow(htmlText) {
   const wasNearBottom = isChatNearBottom();
   const { container, content } = getOrCreateStreamingBubble();
   const details = container.querySelector('.thinking-panel');
@@ -8121,9 +8588,32 @@ function updateStreamingBubble(htmlText) {
   keepChatTailVisible(0, { wasNearBottom });
 }
 
+function flushStreamingBubbleRender() {
+  if (streamingRenderState.timer) clearTimeout(streamingRenderState.timer);
+  streamingRenderState.timer = null;
+  if (streamingRenderState.pendingText == null) return;
+  const text = streamingRenderState.pendingText;
+  streamingRenderState.pendingText = null;
+  streamingRenderState.lastAt = Date.now();
+  renderStreamingBubbleNow(text);
+}
+
+function updateStreamingBubble(htmlText, opts={}) {
+  streamingRenderState.pendingText = htmlText || '';
+  const elapsed = Date.now() - streamingRenderState.lastAt;
+  if (opts.force || elapsed >= STREAM_RENDER_INTERVAL_MS) {
+    flushStreamingBubbleRender();
+    return;
+  }
+  if (!streamingRenderState.timer) {
+    streamingRenderState.timer = setTimeout(flushStreamingBubbleRender, Math.max(0, STREAM_RENDER_INTERVAL_MS - elapsed));
+  }
+}
+
 function pauseStreamingThinking() {
   const bubble = $('#streaming-bubble');
   if (!bubble) return;
+  flushStreamingBubbleRender();
   const details = bubble.querySelector('.thinking-panel');
   if (details) details.open = false;
   const live = bubble.querySelector('[data-thinking-monologue]');
@@ -8138,6 +8628,7 @@ function pauseStreamingThinking() {
 function finalizeStreamingBubble() {
   const bubble = $('#streaming-bubble');
   if (bubble) {
+    flushStreamingBubbleRender();
     const live = bubble.querySelector('[data-thinking-monologue]');
     if (live) live.classList.remove('live');
     resetThinkingNarration();
@@ -8145,10 +8636,12 @@ function finalizeStreamingBubble() {
     if (indicator) indicator.remove();
     bubble.removeAttribute('id');
   }
+  resetStreamingRenderState();
 }
 
 function removeStreamingBubble() {
   resetThinkingNarration();
+  resetStreamingRenderState();
   const bubble = $('#streaming-bubble');
   if (bubble) bubble.remove();
 }
@@ -8352,6 +8845,99 @@ function renderCitedSources(message={}, meta={}) {
     </div>`;
 }
 
+function isGraphChatBrowse() {
+  return !!state.chatReadOnlyBrowse
+    && state.currentTab === 'chat'
+    && state.chatScreen === 'thread'
+    && !!state.sid;
+}
+
+function syncGraphBrowseReadOnlyUi() {
+  const active = isGraphChatBrowse();
+  document.body.classList.toggle('chat-readonly-browse', active);
+  $('#graph-browse-header-search')?.classList.toggle('hidden', !active);
+  $('#chat-input')?.toggleAttribute('disabled', active);
+  $('#chat-send')?.toggleAttribute('disabled', active);
+  $('#chat-image-pick')?.toggleAttribute('disabled', active);
+  if (active) closeMessageActionPopover();
+}
+
+function clearGraphChatBrowseState() {
+  state.chatReadOnlyBrowse = false;
+  state.graphBrowseReturn = null;
+  state.graphBrowseTargetIds = [];
+  state.graphBrowseSearch = '';
+  syncGraphBrowseReadOnlyUi();
+}
+
+function applyGraphBrowseSearch(query=state.graphBrowseSearch, opts={}) {
+  const q = String(query || '').trim().toLowerCase();
+  const bubbles = Array.from($$('#chat [data-message-id]'));
+  bubbles.forEach(el => el.classList.remove('graph-browse-search-match'));
+  if (!q) return [];
+  const matches = bubbles.filter(el => String(el.textContent || '').toLowerCase().includes(q));
+  matches.forEach(el => el.classList.add('graph-browse-search-match'));
+  if (opts.scroll && matches[0]) matches[0].scrollIntoView({ behavior:'smooth', block:'center' });
+  return matches;
+}
+
+function focusNextGraphBrowseMatch() {
+  const matches = applyGraphBrowseSearch(state.graphBrowseSearch);
+  if (!matches.length) return;
+  const chatRect = $('#chat')?.getBoundingClientRect();
+  const top = (chatRect?.top || 0) + 42;
+  const next = matches.find(el => el.getBoundingClientRect().top > top) || matches[0];
+  next.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function bindGraphBrowseControls() {
+  const input = $('#graph-browse-search');
+  if (input) {
+    input.oninput = e => {
+      state.graphBrowseSearch = e.target.value;
+      applyGraphBrowseSearch(state.graphBrowseSearch, { scroll: true });
+    };
+    input.onkeydown = e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        focusNextGraphBrowseMatch();
+      }
+    };
+  }
+  applyGraphBrowseSearch(state.graphBrowseSearch);
+}
+
+async function returnToGraphBrowseContext() {
+  const returnCtx = state.graphBrowseReturn || {};
+  const nodeKey = returnCtx.nodeKey || '';
+  const expanded = !!returnCtx.expanded;
+  state.chatReadOnlyBrowse = false;
+  state.graphBrowseReturn = null;
+  state.graphBrowseTargetIds = [];
+  state.graphBrowseSearch = '';
+  syncGraphBrowseReadOnlyUi();
+  if (returnCtx.sid && returnCtx.sid !== state.sid) {
+    state.sid = returnCtx.sid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  if (returnCtx.tab === 'insights') {
+    switchTab('insights');
+    await renderInsights();
+  } else {
+    state.contextTab = 'graph';
+    state.chatScreen = 'context';
+    switchTab('chat');
+    await renderChat();
+  }
+  if (nodeKey) {
+    const node = (state.graphDetailNodes || []).find(n => String(n.key) === String(nodeKey));
+    if (node) {
+      await showGraphSheet(node);
+      if (expanded) expandGraphSheet();
+    }
+  }
+}
+
 // --- Chat ---
 async function renderChat() {
   const chat = $('#chat');
@@ -8364,6 +8950,8 @@ async function renderChat() {
   home?.classList.toggle('hidden', !showingList);
   thread?.classList.toggle('hidden', !showingThread);
   contextPage?.classList.toggle('hidden', !showingContext);
+  const readOnlyBrowse = isGraphChatBrowse();
+  syncGraphBrowseReadOnlyUi();
   await refreshHeader();
   if (showingList) {
     await renderSessionHome();
@@ -8428,7 +9016,7 @@ async function renderChat() {
           ${bubblePos}
           ${ev.user_emotion ? `· ${esc(ev.user_emotion)}` : ''}
         </div>` : '';
-      const failedActions = failed ? `
+      const failedActions = failed && !readOnlyBrowse ? `
         <div class="text-[11px] text-red-200 mt-2 leading-relaxed">
           发送失败：${esc(msgMeta.error || '网络或模型服务异常')}
           <div class="message-failed-actions">
@@ -8457,52 +9045,56 @@ async function renderChat() {
     }).join('');
   chat.innerHTML = banner + (html || '<div class="text-xs text-neutral-500 text-center mt-10">学生 AI 还没说话。点 "发送" 它会先开场……或者发一句 "开始吧"</div>');
   // Show queued pending messages indicator
-  if (state.messageQueue.length) {
+  if (!readOnlyBrowse && state.messageQueue.length) {
     const pendingDiv = document.createElement('div');
     pendingDiv.className = 'text-[11px] text-amber-400 text-center mt-1';
     pendingDiv.textContent = `⏳ ${state.messageQueue.length} 条消息待发送`;
     chat.appendChild(pendingDiv);
   }
   $$('.process-summary').forEach(bindThinkingPreference);
-  $$('#chat [data-message-id]').forEach(el => {
-    el.addEventListener('contextmenu', async e => {
-      e.preventDefault();
-      const id = Number(el.dataset.messageId);
-      const msg = msgs.find(x => Number(x.id) === id);
-      if (msg) openMessageActionSheet(msg, el);
-    });
-    let pressTimer = null;
-    el.addEventListener('touchstart', () => {
-      el.classList.add('message-pressing');
-      pressTimer = setTimeout(() => {
+  if (readOnlyBrowse) {
+    bindGraphBrowseControls();
+  } else {
+    $$('#chat [data-message-id]').forEach(el => {
+      el.addEventListener('contextmenu', async e => {
+        e.preventDefault();
         const id = Number(el.dataset.messageId);
         const msg = msgs.find(x => Number(x.id) === id);
         if (msg) openMessageActionSheet(msg, el);
-      }, 620);
-    }, { passive:true });
-    el.addEventListener('touchend', () => {
-      clearTimeout(pressTimer);
-      el.classList.remove('message-pressing');
-    }, { passive:true });
-    el.addEventListener('touchmove', () => {
-      clearTimeout(pressTimer);
-      el.classList.remove('message-pressing');
-    }, { passive:true });
-    el.addEventListener('touchcancel', () => {
-      clearTimeout(pressTimer);
-      el.classList.remove('message-pressing');
-    }, { passive:true });
-  });
-  $$('#chat [data-retry-message]').forEach(btn => btn.addEventListener('click', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    retryFailedMessage(Number(btn.dataset.retryMessage));
-  }));
-  $$('#chat [data-edit-message]').forEach(btn => btn.addEventListener('click', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    restoreFailedMessageDraft(Number(btn.dataset.editMessage));
-  }));
+      });
+      let pressTimer = null;
+      el.addEventListener('touchstart', () => {
+        el.classList.add('message-pressing');
+        pressTimer = setTimeout(() => {
+          const id = Number(el.dataset.messageId);
+          const msg = msgs.find(x => Number(x.id) === id);
+          if (msg) openMessageActionSheet(msg, el);
+        }, 620);
+      }, { passive:true });
+      el.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+        el.classList.remove('message-pressing');
+      }, { passive:true });
+      el.addEventListener('touchmove', () => {
+        clearTimeout(pressTimer);
+        el.classList.remove('message-pressing');
+      }, { passive:true });
+      el.addEventListener('touchcancel', () => {
+        clearTimeout(pressTimer);
+        el.classList.remove('message-pressing');
+      }, { passive:true });
+    });
+    $$('#chat [data-retry-message]').forEach(btn => btn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      retryFailedMessage(Number(btn.dataset.retryMessage));
+    }));
+    $$('#chat [data-edit-message]').forEach(btn => btn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      restoreFailedMessageDraft(Number(btn.dataset.editMessage));
+    }));
+  }
   refreshIcons();
   keepChatTailVisible(0, { wasNearBottom });
 }
@@ -8610,6 +9202,7 @@ function setMessageActionAnchor(anchorEl) {
 }
 
 function openMessageActionSheet(message, anchorEl=null) {
+  if (state.chatReadOnlyBrowse) return;
   if (!message || message.role === 'system') return;
   state.selectedActionMessage = message;
   const resolvedAnchor = anchorEl || document.querySelector(`[data-message-id="${message.id}"]`);
@@ -8619,6 +9212,7 @@ function openMessageActionSheet(message, anchorEl=null) {
 }
 
 async function handleMessageAction(action) {
+  if (state.chatReadOnlyBrowse) return closeMessageActionPopover();
   const msg = state.selectedActionMessage;
   state.selectedActionMessage = null;
   closeMessageActionPopover();
@@ -8741,11 +9335,20 @@ function beginActiveChatTurn(sid) {
   return activeTurn;
 }
 
-function isActiveChatTurn(activeTurn) {
+function isOwnedActiveChatTurn(activeTurn) {
   return !!activeTurn
     && state.activeChatTurn?.sid === activeTurn.sid
-    && state.activeChatTurn?.token === activeTurn.token
+    && state.activeChatTurn?.token === activeTurn.token;
+}
+
+function isSessionGenerating(sid) {
+  return !!sid && state.isGenerating && state.activeChatTurn?.sid === sid;
+}
+
+function isActiveChatTurn(activeTurn) {
+  return isOwnedActiveChatTurn(activeTurn)
     && state.sid === activeTurn.sid
+    && state.currentTab === 'chat'
     && state.chatScreen === 'thread';
 }
 
@@ -8782,6 +9385,51 @@ function canMergeQueuedItems(first, next) {
   return true;
 }
 
+function queuedItemText(item) {
+  return String(item?.message?.content || item?.text || '').replace(/\s+/g, ' ').trim();
+}
+
+function isNewQueueTopicText(text) {
+  const clean = String(text || '').replace(/\s+/g, '').trim();
+  return /^(换个话题|新问题|另一个问题|先不说这个|不说这个|回到|另外问|重新来|算了)/i.test(clean);
+}
+
+function isQueueContinuationText(text) {
+  const clean = String(text || '').replace(/\s+/g, '').trim();
+  return /^(还有|而且|另外|然后|就是|比如|比如说|也就是|或者|补充|等下|对了|我是说|我的意思是|不是|不对|说错了|换句话|继续|接着)/i.test(clean);
+}
+
+function isOpenEndedQueueText(text) {
+  const clean = String(text || '').replace(/\s+/g, '').trim();
+  if (!clean) return false;
+  if (/[，,、：:；;（(]$/.test(clean)) return true;
+  if (/(就是|比如|因为|所以|但是|然后|还有|我想说|意思是|举个例子|例如)$/.test(clean)) return true;
+  if (/^(为什么啊?|为啥啊?|怎么说|啥意思|比如|比如啊|你教教|你说呢|展开说说|\?|？)$/i.test(clean)) return true;
+  return clean.length <= 8 && /[啊呀呢吧吗嘛呃额嗯?？]$/.test(clean);
+}
+
+function isQuickQueueBurst(prev, next) {
+  if (!canMergeQueuedItems(prev, next)) return false;
+  const prevText = queuedItemText(prev);
+  const nextText = queuedItemText(next);
+  if (!prevText || !nextText || isNewQueueTopicText(nextText)) return false;
+  const gap = queuedItemTime(next) - queuedItemTime(prev);
+  return gap >= 0 && gap <= COALESCE_FIRST_TURN_HOLD_MS && nextText.length <= 80;
+}
+
+function shouldMergeQueuedByRhythm(prev, next) {
+  if (!canMergeQueuedItems(prev, next)) return false;
+  const prevText = queuedItemText(prev);
+  const nextText = queuedItemText(next);
+  if (!prevText || !nextText || isNewQueueTopicText(nextText)) return false;
+  const gap = queuedItemTime(next) - queuedItemTime(prev);
+  if (gap > COALESCE_MAX_WAIT_MS) return false;
+  if (isQuickQueueBurst(prev, next)) return true;
+  if (isQueueContinuationText(nextText) || isOpenEndedQueueText(prevText)) return true;
+  if (prevText.length <= 12 && nextText.length <= 40 && gap <= COALESCE_OPEN_ENDED_HOLD_MS) return true;
+  return !/[。！？!?…]$/.test(prevText) && nextText.length <= 40 && gap <= COALESCE_OPEN_ENDED_HOLD_MS;
+}
+
 function mergeableQueueHeadCount() {
   if (!state.messageQueue.length) return 0;
   let count = 1;
@@ -8793,23 +9441,55 @@ function mergeableQueueHeadCount() {
   return count;
 }
 
+function semanticMergeableQueueHeadCount() {
+  if (!state.messageQueue.length) return 0;
+  let count = 1;
+  for (let i = 1; i < state.messageQueue.length && count < COALESCE_MAX_MESSAGES; i++) {
+    if (!shouldMergeQueuedByRhythm(state.messageQueue[i - 1], state.messageQueue[i])) break;
+    count += 1;
+  }
+  return count;
+}
+
+function queueRhythmDecision(now=Date.now()) {
+  if (!state.messageQueue.length) return { readyCount: 0, waitMs: 0, reason: 'empty' };
+  const headCount = mergeableQueueHeadCount();
+  if (!headCount) return { readyCount: 0, waitMs: 0, reason: 'blocked' };
+  const firstAt = queuedItemTime(state.messageQueue[0]);
+  const age = now - firstAt;
+  if (headCount >= COALESCE_MAX_MESSAGES || age >= COALESCE_MAX_WAIT_MS) {
+    return { readyCount: Math.min(headCount, COALESCE_MAX_MESSAGES), waitMs: 0, reason: 'limit' };
+  }
+  const semanticCount = semanticMergeableQueueHeadCount();
+  if (semanticCount >= 2) {
+    const lastAt = queuedItemTime(state.messageQueue[semanticCount - 1]);
+    const idle = now - lastAt;
+    if (idle < COALESCE_SEMANTIC_IDLE_MS) {
+      return { readyCount: 0, waitMs: COALESCE_SEMANTIC_IDLE_MS - idle, reason: 'semantic_idle' };
+    }
+    return { readyCount: semanticCount, waitMs: 0, reason: 'semantic_merge' };
+  }
+  if (isOpenEndedQueueText(queuedItemText(state.messageQueue[0])) && age < COALESCE_OPEN_ENDED_HOLD_MS) {
+    return { readyCount: 0, waitMs: COALESCE_OPEN_ENDED_HOLD_MS - age, reason: 'open_ended_hold' };
+  }
+  if (age < COALESCE_FIRST_TURN_HOLD_MS) {
+    return { readyCount: 0, waitMs: COALESCE_FIRST_TURN_HOLD_MS - age, reason: 'first_turn_hold' };
+  }
+  if (headCount > 1) return { readyCount: 1, waitMs: 0, reason: 'semantic_split' };
+  return { readyCount: 1, waitMs: 0, reason: 'single_ready' };
+}
+
 function nextQueueProcessDelay(now=Date.now()) {
   if (!state.messageQueue.length) return 0;
-  const headCount = mergeableQueueHeadCount();
-  if (headCount >= COALESCE_MAX_MESSAGES) return 0;
-  const firstAt = queuedItemTime(state.messageQueue[0]);
-  const lastAt = queuedItemTime(state.messageQueue[Math.max(0, headCount - 1)]);
-  const dueAt = Math.min(firstAt + COALESCE_MAX_WAIT_MS, lastAt + COALESCE_INITIAL_DELAY_MS);
-  return Math.max(0, dueAt - now);
+  const decision = queueRhythmDecision(now);
+  return decision.readyCount > 0 ? 0 : Math.max(0, decision.waitMs || COALESCE_INITIAL_DELAY_MS);
 }
 
 function takeMergeBatch(now=Date.now()) {
   if (!state.messageQueue.length) return [];
-  const firstAt = queuedItemTime(state.messageQueue[0]);
-  const headCount = mergeableQueueHeadCount();
-  const waitReached = now - firstAt >= COALESCE_MAX_WAIT_MS;
-  const readyCount = headCount >= COALESCE_MAX_MESSAGES || waitReached ? headCount : Math.max(1, headCount);
-  return state.messageQueue.splice(0, Math.min(readyCount, COALESCE_MAX_MESSAGES));
+  const decision = queueRhythmDecision(now);
+  if (!decision.readyCount) return [];
+  return state.messageQueue.splice(0, Math.min(decision.readyCount, COALESCE_MAX_MESSAGES));
 }
 
 function formatMergedQueueInput(batch=[]) {
@@ -8832,7 +9512,9 @@ function queueCoalescedUserMessage(item) {
   }
   if (coalesce.timer) clearTimeout(coalesce.timer);
   const remainingMaxWait = Math.max(0, COALESCE_MAX_WAIT_MS - (Date.now() - coalesce.firstAt));
-  coalesce.timer = setTimeout(() => flushCoalescedUserMessages(), Math.min(COALESCE_INITIAL_DELAY_MS, remainingMaxWait));
+  const rhythmDelay = nextQueueProcessDelay(now);
+  const delay = Math.max(COALESCE_INITIAL_DELAY_MS, rhythmDelay || COALESCE_INITIAL_DELAY_MS);
+  coalesce.timer = setTimeout(() => flushCoalescedUserMessages(), Math.min(delay, remainingMaxWait));
 }
 
 function flushCoalescedUserMessages() {
@@ -8844,6 +9526,7 @@ function flushCoalescedUserMessages() {
 }
 
 async function submitChatText(txt, opts={}) {
+  if (state.chatReadOnlyBrowse) { toast('当前是只读回看，不能发起对话'); return false; }
   const turnSid = state.sid;
   if (!turnSid) { toast('先去 设置 创建一个会话'); return false; }
   await importNativeBackgroundTurns({ silent: true });
@@ -8857,8 +9540,10 @@ async function submitChatText(txt, opts={}) {
   if (opts.clearInput !== false) setChatInputValue('', false);
   const activeTurn = beginActiveChatTurn(turnSid);
   setChatSending(true);
-  removeStreamingBubble();
-  updateThinkingStage('理解问题', '正在读取你的输入');
+  if (isActiveChatTurn(activeTurn)) {
+    removeStreamingBubble();
+    updateThinkingStage('理解问题', '正在读取你的输入');
+  }
   try {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
     await ENGINE.run_turn(turnSid, txt, async () => {
@@ -8912,12 +9597,12 @@ async function submitChatText(txt, opts={}) {
     }
     return true;
   } finally {
-    if (isActiveChatTurn(activeTurn)) {
+    if (isOwnedActiveChatTurn(activeTurn)) {
       setChatSending(false);
       clearActiveChatTurn(activeTurn);
       await renderChat();
       refreshHeader();
-      scheduleMessageQueueProcessing(0);
+      scheduleMessageQueueProcessing();
     } else {
       clearActiveChatTurn(activeTurn);
     }
@@ -8934,6 +9619,7 @@ async function hasPendingNativeBackgroundTurn(sid) {
 }
 
 async function sendMessage(opts={}) {
+  if (state.chatReadOnlyBrowse) { toast('当前是只读回看，不能发起对话'); return; }
   const activeImageDraft = opts.imageDraft || chatImageDraft || null;
   const attachment = activeImageDraft?.dataUrl ? chatImageAttachmentFromDraft(activeImageDraft) : null;
   const inputText = $('#chat-input').value.trim();
@@ -9020,7 +9706,7 @@ async function restorePendingMessageQueue(sid=state.sid) {
   }
   if (restored) {
     renderQueueIndicator();
-    scheduleMessageQueueProcessing(0);
+    scheduleMessageQueueProcessing();
   }
   return restored;
 }
@@ -9031,7 +9717,7 @@ async function processMessageQueue() {
   try {
     if (await hasPendingNativeBackgroundTurn(state.sid)) { renderQueueIndicator(); return; }
     const batch = takeMergeBatch();
-    if (!batch.length) { renderQueueIndicator(); return; }
+    if (!batch.length) { renderQueueIndicator(); scheduleMessageQueueProcessing(); return; }
     const queuedUserMessages = batch.map(item => item.message).filter(Boolean);
     const combinedText = formatMergedQueueInput(batch);
     if (!combinedText) { renderQueueIndicator(); return; }
@@ -9054,7 +9740,7 @@ async function processMessageQueue() {
     renderQueueIndicator();
   }
   if (state.messageQueue.length > 0) {
-    scheduleMessageQueueProcessing(0);
+    scheduleMessageQueueProcessing();
   }
 }
 
@@ -9128,8 +9814,12 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
   if (maybeRunProactiveTurn._running) return { triggered: false, reason: 'running' };
   if (!state.sid || document.visibilityState !== 'visible') return { triggered: false, reason: 'not_visible' };
   const cfg = proactiveConfig();
-  if (!cfg.enabled && !force) return { triggered: false, reason: 'disabled' };
-  const modeMeta = PROACTIVE_MODES[cfg.mode] || PROACTIVE_MODES.offline;
+  const session = await DB.get('sessions', state.sid);
+  if (!session) return { triggered: false, reason: 'missing_session' };
+  const explicitSessionMode = SESSION_PROACTIVE_MODES.includes(String(session.proactive_mode || ''));
+  const mode = sessionProactiveMode(session, cfg);
+  if (!explicitSessionMode && !cfg.enabled && !force) return { triggered: false, reason: 'disabled' };
+  const modeMeta = PROACTIVE_MODES[mode] || PROACTIVE_MODES.offline;
   if (modeMeta.disabled && !force) return { triggered: false, reason: 'mode_disabled' };
   const now = Date.now();
   const msgs = (await DB.bySid('messages', state.sid))
@@ -9137,19 +9827,22 @@ async function maybeRunProactiveTurn({ reason='resume', force=false } = {}) {
     .sort((a,b)=>(a.created_at||0)-(b.created_at||0));
   if (!msgs.length) return { triggered: false, reason: 'empty_session' };
   const last = msgs[msgs.length - 1];
-  const quietFor = now - Math.max(cfg.lastAt || 0, last.created_at || 0);
-  const intervalMs = proactiveIntervalMs(cfg.mode, cfg.lastAt || last.created_at || now);
+  const lastProactiveAt = session.proactive_last_at || cfg.lastAt || 0;
+  const quietFor = now - Math.max(lastProactiveAt, last.created_at || 0);
+  const intervalMs = proactiveIntervalMs(mode, lastProactiveAt || last.created_at || now);
   if (!force && quietFor < intervalMs) {
     return { triggered: false, reason: 'too_soon' };
   }
   maybeRunProactiveTurn._running = true;
   try {
-    const result = await ENGINE.run_proactive_turn(state.sid, cfg.mode);
+    const result = await ENGINE.run_proactive_turn(state.sid, mode);
+    session.proactive_last_at = Date.now();
+    await DB.put('sessions', session);
     setProactiveConfig({ lastAt: Date.now() });
     await renderChat();
     renderProactiveSettings();
     notifyAssistantReply('主动对话', result.reply, 4200, { source: 'proactive' });
-    return { triggered: true, reason, mode: cfg.mode };
+    return { triggered: true, reason, mode };
   } catch (err) {
     console.warn('proactive turn failed', err);
     return { triggered: false, reason: 'error', error: String(err.message || err) };
@@ -10636,8 +11329,7 @@ function strategySettingsPanelHtml(session) {
           <label class="block"><span class="text-neutral-400">复习频率</span><select id="setting-review-frequency" data-strategy-setting="review_frequency" class="strategy-select">${strategyOption('low', st.review_frequency, '低')}${strategyOption('normal', st.review_frequency, '正常')}${strategyOption('high', st.review_frequency, '高')}</select></label>
           <label class="block"><span class="text-neutral-400">语气</span><select id="setting-tone" data-strategy-setting="tone" class="strategy-select">${strategyOption('natural', st.tone, '自然')}${strategyOption('calm', st.tone, '冷静')}${strategyOption('warm', st.tone, '温和')}</select></label>
           <label class="block"><span class="text-neutral-400">主动性</span><select id="setting-proactivity" data-strategy-setting="proactivity" class="strategy-select">${strategyOption('low', st.proactivity, '低')}${strategyOption('normal', st.proactivity, '正常')}${strategyOption('high', st.proactivity, '高')}</select></label>
-          <label class="block"><span class="text-neutral-400">隐私级别</span><select id="setting-privacy-level" data-strategy-setting="privacy_level" class="strategy-select">${strategyOption('standard', st.privacy_level, '标准')}${strategyOption('strict', st.privacy_level, '严格')}</select></label>
-          <label class="block"><span class="text-neutral-400">保留原图 N 天</span><input id="setting-image-retention-days" data-strategy-setting="image_retention_days" type="number" min="0" max="365" value="${st.image_retention_days}" class="strategy-number"></label>
+          <label class="block"><span class="text-neutral-400">隐私级别</span><select id="setting-privacy-level" data-strategy-setting="privacy_level" class="strategy-select">${strategyOption('standard', st.privacy_level, '标准')}${strategyOption('strict', st.privacy_level, '严格')}</select><span class="block text-[11px] text-neutral-500 leading-relaxed mt-1">标准：正常记录学习偏好、错因和掌握进度；严格：只记录有学习证据的内容，尽量不扩展私人生活细节。</span></label>
         </div>
         <div class="flex items-center justify-between gap-2">
           <div id="setting-strategy-status" class="text-[11px] text-neutral-500">已绑定到当前会话</div>
@@ -11754,14 +12446,249 @@ function graphSheetSourcesHtml(node) {
   </div>`;
 }
 
-function graphSheetDetailHtml(node, digest) {
-  return `<div class="graph-detail-only">
-    ${graphSheetLearningStatusHtml(node)}
-    ${graphSheetEvidenceHtml(node, digest)}
-    ${graphSheetStrategyHtml(node, digest)}
-    ${graphSheetRelationsHtml(node)}
-    ${graphSheetSourcesHtml(node)}
+function graphReportSectionHtml(title, body, attrs='') {
+  const content = String(body || '').trim();
+  if (!content) return '';
+  return `<section class="graph-report-section" ${attrs}>
+    <h3>${esc(title)}</h3>
+    ${content}
+  </section>`;
+}
+
+function graphPairIds(pair) {
+  return [pair?.user?.id, pair?.ai?.id].filter(Boolean).map(String);
+}
+
+function graphSemanticFragments(node, digest, pairs=[]) {
+  const buckets = new Map();
+  const representativeIds = (pairs || []).flatMap(graphPairIds).slice(-8);
+  const add = (key, title, summary, opts={}) => {
+    const text = String(summary || '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    const current = buckets.get(key) || {
+      key,
+      title,
+      kind: opts.kind || '语义片段',
+      priority: opts.priority || 6,
+      summaries: [],
+      ids: [],
+      count: 0,
+      latestId: 0,
+    };
+    if (!current.summaries.some(s => normalizeGraphTopic(s) === normalizeGraphTopic(text))) {
+      current.summaries.push(text);
+    }
+    current.ids.push(...(opts.ids || []).map(String));
+    current.count += Math.max(1, Number(opts.count || 1));
+    current.latestId = Math.max(current.latestId, ...current.ids.map(id => Number(id) || 0), 0);
+    current.priority = Math.min(current.priority, opts.priority || current.priority);
+    buckets.set(key, current);
+  };
+
+  for (const err of digest?.errors || []) {
+    add('mistake', '暴露过需要回看的错因', err, { ids: representativeIds, kind:'错因片段', priority:1, count: pairs.length || 1 });
+  }
+  for (const ev of digest?.evidence || []) {
+    const weak = /无实质|不足|没有|仅回复|确认类/.test(String(ev));
+    add(weak ? 'thin-evidence' : 'evidence', weak ? '掌握证据还不够厚' : '形成了可引用的学习证据', ev, { ids: representativeIds, kind:'证据片段', priority: weak ? 3 : 2, count: pairs.length || 1 });
+  }
+  for (const step of digest?.nextSteps || []) {
+    add('next-step', '下一步已经比较明确', step, { ids: representativeIds, kind:'策略片段', priority:2, count: pairs.length || 1 });
+  }
+
+  for (const pair of pairs || []) {
+    const ids = graphPairIds(pair);
+    const userText = String(pair?.user?.content || '');
+    const actType = pair?.act?.type || '';
+    const correctness = Number(pair?.ev?.correctness || 0);
+    const depth = Number(pair?.ev?.depth || 0);
+    const misconception = pair?.ev?.misconception || pair?.ev?.error_pattern || '';
+    if (misconception) {
+      add('mistake', '暴露过需要回看的错因', misconception, { ids, kind:'错因片段', priority:1 });
+    } else if (correctness >= .65 || depth >= .55) {
+      add('mastery', '出现过比较像掌握证据的表达', '相关回合里已经出现较完整的解释、判断或练习表现，可以作为后续复盘依据。', { ids, kind:'掌握片段', priority:2 });
+    } else if (actType === 'challenge') {
+      add('challenge', '需要用反例或追问拉回理解', '这一组对话更像纠偏线索，适合保留为后续追问或反例提醒。', { ids, kind:'纠偏片段', priority:2 });
+    } else if (/\[图片\]|漂亮|好看|界面|GUI|像素/.test(userText)) {
+      add('off-track', '对话短暂偏离主线', '片段里出现和当前学习目标关系较弱的内容，需要自然拉回主线。', { ids, kind:'上下文片段', priority:5 });
+    } else {
+      add('context', '目标确认和上下文铺垫', '这些回合更像目标确认、接收或铺垫，还不能单独证明掌握。', { ids, kind:'上下文片段', priority:6 });
+    }
+  }
+
+  return Array.from(buckets.values())
+    .map(f => ({
+      ...f,
+      ids: Array.from(new Set(f.ids)).slice(-8),
+      summary: f.summaries.slice(0, 2).join('；'),
+    }))
+    .sort((a,b)=>(a.priority-b.priority) || (b.latestId-a.latestId))
+    .slice(0, 6);
+}
+
+function graphFragmentCardHtml(fragment, index, total, sourceSid=state.sid) {
+  const ids = (fragment.ids || []).join(',');
+  const activeIndex = total ? ((state.graphFragmentDeckIndex % total) + total) % total : 0;
+  const offset = total ? (index - activeIndex + total) % total : 0;
+  const deckClass = offset === 0 ? 'is-active' : offset === 1 ? 'is-next' : offset === 2 ? 'is-after' : '';
+  const chatAttrs = ids ? ` data-graph-fragment-chat="${esc(ids)}" data-graph-fragment-sid="${esc(String(sourceSid || ''))}" role="button" tabindex="0"` : '';
+  return `<article class="graph-fragment-card ${deckClass}" data-graph-fragment-card="${index}"${chatAttrs}>
+    <div class="eyebrow">语义片段 ${index + 1}/${total} · ${esc(fragment.kind || '聊天证据')}</div>
+    <div class="title">${esc(fragment.title)}</div>
+    <div class="summary">${renderRichText(fragment.summary || '')}</div>
+    <div class="mt-3 flex items-center justify-between gap-2">
+      <span class="text-[10px] text-neutral-500">关联 ${fragment.count || fragment.ids?.length || 1} 条聊天</span>
+    </div>
+  </article>`;
+}
+
+function graphFragmentDeckHtml(fragments, sourceSid=state.sid) {
+  const total = fragments.length;
+  if (!total) return '';
+  state.graphFragmentDeckIndex = ((state.graphFragmentDeckIndex || 0) % total + total) % total;
+  return `<div class="graph-fragment-deck" data-graph-fragment-deck data-graph-fragment-total="${total}">
+    <div class="graph-fragment-stack">${fragments.map((f,i) => graphFragmentCardHtml(f, i, total, sourceSid)).join('')}</div>
   </div>`;
+}
+
+function syncGraphFragmentDeck(deck=$('#graph-sheet-body')?.querySelector('.graph-fragment-deck')) {
+  const total = Number(deck?.dataset.graphFragmentTotal || 0);
+  if (!deck || !total) return;
+  const activeIndex = ((state.graphFragmentDeckIndex || 0) % total + total) % total;
+  deck.querySelectorAll('[data-graph-fragment-card]').forEach(card => {
+    const index = Number(card.dataset.graphFragmentCard || 0);
+    const offset = (index - activeIndex + total) % total;
+    card.classList.toggle('is-active', offset === 0);
+    card.classList.toggle('is-next', offset === 1);
+    card.classList.toggle('is-after', offset === 2);
+    if (offset !== 0) {
+      card.classList.remove('is-opening');
+      card.dataset.graphFragmentOpening = '0';
+    }
+  });
+}
+
+function cycleGraphFragmentDeck(delta) {
+  const total = Number($('#graph-sheet-body')?.querySelector('.graph-fragment-deck')?.dataset.graphFragmentTotal || 0);
+  if (!total) return;
+  state.graphFragmentDeckIndex = ((state.graphFragmentDeckIndex || 0) + delta + total) % total;
+  syncGraphFragmentDeck();
+}
+
+function openGraphFragmentCard(card) {
+  if (!card || !card.classList.contains('is-active')) return;
+  const ids = card.dataset.graphFragmentChat || '';
+  if (!ids) return;
+  if (card.dataset.graphFragmentOpening === '1') return;
+  card.dataset.graphFragmentOpening = '1';
+  card.classList.add('is-opening');
+  setTimeout(() => {
+    card.dataset.graphFragmentOpening = '0';
+    card.classList.remove('is-opening');
+    jumpToGraphFragmentChat(ids, card.dataset.graphFragmentSid || state.sid);
+  }, 110);
+}
+
+let graphFragmentDeckWheelAt = 0;
+function bindGraphFragmentDeckWheel(deck) {
+  if (!deck) return;
+  deck.onwheel = e => {
+    if (Math.abs(e.deltaY) < 18) return;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - graphFragmentDeckWheelAt < 220) return;
+    graphFragmentDeckWheelAt = now;
+    cycleGraphFragmentDeck(e.deltaY > 0 ? 1 : -1);
+  };
+}
+
+function graphReportLead(node, digest, pairs=[]) {
+  const candidates = [
+    digest?.status,
+    node?.summary,
+    node?.memoryExpansion?.summary,
+    node?.preview,
+    node?.content,
+  ].filter(Boolean);
+  const text = graphUniqueClean(candidates, 1)[0];
+  if (text) return String(text).slice(0, 180);
+  if (pairs.length) return '这个节点已经有相关对话记录，但还需要继续沉淀更清晰的证据。';
+  return '这个节点目前主要代表一条图谱关系，后续命中更多对话后会自然补充内容。';
+}
+
+function graphLearningNarrativeHtml(node) {
+  const parts = [];
+  if (node?.nodeType) parts.push(`这是一个${graphNodeTypeLabel(node)}。`);
+  if (node?.nodeType === 'kp') {
+    parts.push(`当前掌握度 ${Math.round(Number(node.level || 0) * 100)}%。`);
+    if (Number.isFinite(Number(node.last_correctness))) parts.push(`最近正确度 ${Number(node.last_correctness || 0).toFixed(2)}。`);
+    if (Number.isFinite(Number(node.last_depth))) parts.push(`最近深度 ${Number(node.last_depth || 0).toFixed(2)}。`);
+    if (node.attempts) parts.push(`累计 ${node.attempts} 轮相关练习。`);
+  }
+  if (node?.memoryStatus) parts.push(`资料分析状态：${memoryStatusLabel(node.memoryStatus, node.nodeType)}。`);
+  return parts.length ? `<p>${esc(parts.join(''))}</p>` : '';
+}
+
+function graphEvidenceReportHtml(node, digest) {
+  const items = graphUniqueClean([
+    ...(digest?.evidence || []),
+    node?.summary,
+    node?.memoryExpansion?.summary,
+    node?.preview,
+  ], 4);
+  if (!items.length) return '';
+  return `<ul class="list-disc pl-5 space-y-1">${items.map(item => `<li>${renderRichText(String(item).slice(0, 220))}</li>`).join('')}</ul>`;
+}
+
+function graphStrategyReportHtml(node, digest) {
+  const items = graphUniqueClean([
+    ...(digest?.nextSteps || []),
+    ...(node?.memoryExpansion?.teacher_questions || []),
+  ], 3);
+  if (!items.length) return '';
+  return `<ul class="list-disc pl-5 space-y-1">${items.map(item => `<li>${renderRichText(String(item).slice(0, 220))}</li>`).join('')}</ul>`;
+}
+
+function graphRelationsReportHtml(node) {
+  const relations = graphNodeRelations(node).slice(0, 5);
+  if (!relations.length) return '';
+  return `<div class="graph-report-link-list">${relations.map(rel => `<button type="button" data-graph-node-jump="${esc(String(rel.node.key))}" class="graph-report-inline-link">
+    [[${esc(graphNodeTitle(rel.node))}]]
+    <span class="meta">${esc(graphLinkKindLabel(rel.kind))} · ${esc(graphNodeTypeLabel(rel.node))}</span>
+  </button>`).join('')}</div>`;
+}
+
+function graphSourcesReportHtml(node) {
+  const targets = graphNodeSourceTargets(node).slice(0, 4);
+  if (!targets.length) return '';
+  return `<div class="graph-report-link-list">${targets.map(target => `<button type="button" data-graph-source-anchor="${esc(target.sourceId)}" data-graph-open-source="${esc(target.sourceId)}" data-graph-source-sid="${esc(String(target.sid || ''))}" class="graph-report-inline-link">
+    [[${esc(target.label)}]]
+    <span class="meta">${esc(String(target.sourceType || 'doc').toUpperCase())}</span>
+  </button>`).join('')}</div>`;
+}
+
+function graphSheetReportHtml(node, digest, pairs=[]) {
+  const fragments = graphSemanticFragments(node, digest, pairs);
+  const fragmentHtml = fragments.length
+    ? graphFragmentDeckHtml(fragments, node?.sid || state.sid)
+    : '';
+  return `<article class="graph-node-report">
+    <header class="graph-report-head">
+      <div class="text-[11px] text-neutral-500">${esc(graphNodeTypeLabel(node))}</div>
+      <h2 class="graph-report-title">${esc(graphNodeTitle(node))}</h2>
+      <blockquote class="graph-report-lead">${renderRichText(graphReportLead(node, digest, pairs))}</blockquote>
+    </header>
+    ${graphReportSectionHtml('学习状态', graphLearningNarrativeHtml(node), 'data-graph-detail-section="learning-status"')}
+    ${graphReportSectionHtml('语义片段', fragmentHtml, 'data-graph-detail-section="semantic-fragments"')}
+    ${fragments.length ? '' : graphReportSectionHtml('证据', graphEvidenceReportHtml(node, digest), 'data-graph-detail-section="evidence"')}
+    ${fragments.length ? '' : graphReportSectionHtml('下一步', graphStrategyReportHtml(node, digest), 'data-graph-detail-section="strategy"')}
+    ${graphReportSectionHtml('相关节点', graphRelationsReportHtml(node), 'data-graph-detail-section="relations"')}
+    ${graphReportSectionHtml('来源资料', graphSourcesReportHtml(node), 'data-graph-detail-section="sources"')}
+  </article>`;
+}
+
+function graphSheetDetailHtml(node, digest, pairs=[]) {
+  return `<div class="graph-detail-only">${graphSheetReportHtml(node, digest, pairs)}</div>`;
 }
 
 function expandGraphSheet() {
@@ -11911,6 +12838,37 @@ async function jumpToGraphSheetNode(key) {
   expandGraphSheet();
 }
 
+async function jumpToGraphFragmentChat(idText, sourceSid=state.sid) {
+  const ids = String(idText || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!ids.length) { toast('这个语义片段还没有可定位的聊天记录'); return; }
+  state.graphBrowseReturn = {
+    tab: state.currentTab,
+    chatScreen: state.chatScreen,
+    contextTab: state.contextTab,
+    sid: state.sid,
+    nodeKey: state.graphEditingNode?.key || state.graphSelected || '',
+    expanded: state.graphSheetExpanded,
+  };
+  state.chatReadOnlyBrowse = true;
+  state.graphBrowseTargetIds = ids;
+  state.graphBrowseSearch = '';
+  hideGraphSheet();
+  if (sourceSid && sourceSid !== state.sid) {
+    state.sid = sourceSid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  state.chatScreen = 'thread';
+  switchTab('chat');
+  await renderChat();
+  requestAnimationFrame(() => {
+    const target = ids.map(id => $(`#chat [data-message-id="${id}"]`)).filter(Boolean).pop();
+    if (!target) { toast('对应聊天记录可能已被摘要压缩'); return; }
+    target.scrollIntoView({ behavior:'smooth', block:'center' });
+    target.classList.add('message-jump-highlight');
+    setTimeout(() => target.classList.remove('message-jump-highlight'), 1800);
+  });
+}
+
 async function jumpToGraphSourceAnchor(sourceId, sourceSid=state.sid) {
   if (!sourceId) { toast('没有找到来源锚点'); return; }
   hideGraphSheet();
@@ -12001,6 +12959,7 @@ async function saveGraphNodeEdit() {
 async function showGraphSheet(node) {
   const overlay=$('#graph-sheet-overlay'), sheet=$('#graph-sheet'), body=$('#graph-sheet-body');
   if (!node) { hideGraphSheet(); return; }
+  if (state.graphEditingNode?.key !== node.key) state.graphFragmentDeckIndex = 0;
   state.graphEditingNode = node;
 
   // Fetch all messages for this session, sorted chronologically
@@ -12235,8 +13194,8 @@ async function showGraphSheet(node) {
     }
   }
 
-  html += graphSheetActionButtonsHtml(node);
-  html += graphSheetDetailHtml(node, digest);
+  html = `<div class="graph-compact-only">${html}</div>`;
+  html += graphSheetDetailHtml(node, digest, pairs);
   body.innerHTML=html;
   if (state.currentTab === 'insights') {
     body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.remove());
@@ -12246,6 +13205,15 @@ async function showGraphSheet(node) {
   body.querySelectorAll('[data-graph-expand-detail]').forEach(btn => btn.addEventListener('click', expandGraphSheet));
   body.querySelectorAll('[data-graph-node-jump]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSheetNode(btn.dataset.graphNodeJump)));
   body.querySelectorAll('[data-graph-source-anchor]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSourceAnchor(btn.dataset.graphSourceAnchor, btn.dataset.graphSourceSid || state.sid)));
+  body.querySelectorAll('.graph-fragment-card[data-graph-fragment-chat]').forEach(card => {
+    card.addEventListener('click', () => openGraphFragmentCard(card));
+    card.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      openGraphFragmentCard(card);
+    });
+  });
+  bindGraphFragmentDeckWheel(body.querySelector('[data-graph-fragment-deck]'));
   body.scrollTop=0;
   requestAnimationFrame(()=>{
     overlay.classList.add('show');
@@ -13069,20 +14037,25 @@ $('#message-action-popover').addEventListener('click', e => {
   e.stopPropagation();
   handleMessageAction(btn.dataset.messageAction);
 });
-$('#session-card-popover').addEventListener('click', e => {
+$('#session-card-popover').addEventListener('click', async e => {
   const btn = e.target.closest('[data-session-action]');
   if (!btn) return;
   e.stopPropagation();
-  const sid = $('#session-card-popover')?.dataset?.sessionId;
+  const pop = $('#session-card-popover');
+  const sid = pop?.dataset?.sessionId;
   if (!sid) return;
-  if (btn.dataset.sessionAction === 'preset-export') {
-    exportSessionPreset(sid);
-  } else if (btn.dataset.sessionAction === 'avatar') {
-    chooseSessionAvatar(sid);
-  } else if (btn.dataset.sessionAction === 'avatar-clear') {
-    updateSessionAvatar(sid, { avatar_image: '' }).then(() => toast('头像已清除'));
+  pop.classList.add('hidden');
+  if (btn.dataset.sessionAction === 'pin') {
+    const pinned = togglePinnedSession(sid);
+    toast(pinned ? '已置顶会话' : '已取消置顶');
+    await renderSessionHome();
+  } else if (btn.dataset.sessionAction === 'delete') {
+    await deleteSessionById(sid);
+  } else if (btn.dataset.sessionAction === 'rename') {
+    await renameSession(sid);
+  } else if (btn.dataset.sessionAction === 'export') {
+    shareExportPayload(() => buildSessionExportPayload(sid));
   }
-  $('#session-card-popover').classList.add('hidden');
 });
 document.addEventListener('pointerdown', e => {
   if (!e.target.closest('.session-swipe-row')) closeSessionSwipeRows();
@@ -13202,11 +14175,160 @@ $$('[data-context-tab]').forEach(btn => btn.addEventListener('click', async () =
 $('#graph-editor-close').addEventListener('click', closeGraphNodeEditor);
 $('#graph-source-node-editor').addEventListener('click', e => { if (e.target.id === 'graph-source-node-editor') closeGraphNodeEditor(); });
 $('#graph-editor-save').addEventListener('click', saveGraphNodeEdit);
+$('#sidebar-memo-delete-cancel')?.addEventListener('click', closeSidebarMemoDelete);
+$('#sidebar-memo-delete-confirm')?.addEventListener('click', confirmSidebarMemoDelete);
+$('#sidebar-memo-delete-dialog')?.addEventListener('click', e => {
+  if (e.target.id === 'sidebar-memo-delete-dialog') closeSidebarMemoDelete();
+});
 
 // 数据导入导出
 
+function sidebarMemoSegments() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(GLOBAL_SIDEBAR_MEMO_KEY) || '[]');
+    if (Array.isArray(parsed)) {
+      const rows = parsed.map(x => String(x || '')).slice(0, 80);
+      return rows.length ? rows : [''];
+    }
+  } catch (_) {}
+  return [''];
+}
+
+function saveSidebarMemoSegments(segments) {
+  const rows = (Array.isArray(segments) ? segments : [''])
+    .map(x => String(x || ''))
+    .slice(0, 80);
+  localStorage.setItem(GLOBAL_SIDEBAR_MEMO_KEY, JSON.stringify(rows.length ? rows : ['']));
+}
+
+function autoGrowSidebarMemo(textarea) {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.max(84, textarea.scrollHeight) + 'px';
+}
+
+function openSidebarMemoDelete(index) {
+  const dialog = $('#sidebar-memo-delete-dialog');
+  if (!dialog) return;
+  dialog.dataset.sidebarMemoDeleteIndex = String(index);
+  $$('.sidebar-memo-section.deleting').forEach(el => el.classList.remove('deleting'));
+  $(`[data-sidebar-memo-section="${index}"]`)?.classList.add('deleting');
+  dialog.classList.remove('hidden');
+}
+
+function closeSidebarMemoDelete() {
+  const dialog = $('#sidebar-memo-delete-dialog');
+  if (!dialog) return;
+  dialog.classList.add('hidden');
+  delete dialog.dataset.sidebarMemoDeleteIndex;
+  $$('.sidebar-memo-section.deleting').forEach(el => el.classList.remove('deleting'));
+}
+
+function confirmSidebarMemoDelete() {
+  const dialog = $('#sidebar-memo-delete-dialog');
+  const index = Number(dialog?.dataset?.sidebarMemoDeleteIndex ?? -1);
+  if (!Number.isFinite(index) || index < 0) return closeSidebarMemoDelete();
+  const rows = sidebarMemoSegments();
+  if (rows.length <= 1) {
+    rows[0] = '';
+  } else {
+    rows.splice(index, 1);
+  }
+  saveSidebarMemoSegments(rows);
+  closeSidebarMemoDelete();
+  renderSidebarMemo($('#global-sidebar-memo'), Math.min(index, rows.length - 1));
+}
+
+function bindSidebarMemoDeleteGesture(section) {
+  if (!section) return;
+  let timer = null;
+  let pointerId = null;
+  let startX = 0;
+  let startY = 0;
+  const clear = () => { if (timer) clearTimeout(timer); timer = null; };
+  const index = () => Number(section.dataset.sidebarMemoDeleteIndex || 0);
+  section.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pointerId = e.pointerId;
+    startX = e.clientX || 0;
+    startY = e.clientY || 0;
+    clear();
+    timer = setTimeout(() => openSidebarMemoDelete(index()), 620);
+    try { section.setPointerCapture?.(pointerId); } catch (_) {}
+  });
+  section.addEventListener('pointermove', e => {
+    if (pointerId !== e.pointerId) return;
+    if (Math.abs((e.clientX || 0) - startX) > 10 || Math.abs((e.clientY || 0) - startY) > 10) clear();
+  });
+  section.addEventListener('pointerup', e => {
+    clear();
+    if (pointerId === e.pointerId) {
+      try { section.releasePointerCapture?.(pointerId); } catch (_) {}
+    }
+    pointerId = null;
+  });
+  section.addEventListener('pointercancel', () => { clear(); pointerId = null; });
+  section.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    clear();
+    openSidebarMemoDelete(index());
+  });
+}
+
+function bindSidebarMemoControls(container, focusIndex=null) {
+  if (!container) return;
+  container.querySelectorAll('[data-sidebar-memo-text]').forEach(textarea => {
+    autoGrowSidebarMemo(textarea);
+    textarea.addEventListener('input', () => {
+      const rows = sidebarMemoSegments();
+      rows[Number(textarea.dataset.sidebarMemoText || 0)] = textarea.value;
+      saveSidebarMemoSegments(rows);
+      autoGrowSidebarMemo(textarea);
+    });
+  });
+  container.querySelectorAll('[data-sidebar-memo-divider]').forEach(btn => {
+    btn.addEventListener('click', () => addSidebarMemoSegment(Number(btn.dataset.sidebarMemoDivider || 0)));
+  });
+  container.querySelectorAll('[data-sidebar-memo-section]').forEach(section => bindSidebarMemoDeleteGesture(section));
+  if (Number.isFinite(focusIndex)) {
+    requestAnimationFrame(() => {
+      const field = container.querySelector(`[data-sidebar-memo-text="${focusIndex}"]`);
+      field?.focus();
+      field?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+}
+
+function renderSidebarMemo(container=$('#global-sidebar-memo'), focusIndex=null) {
+  if (!container) return;
+  const rows = sidebarMemoSegments();
+  container.innerHTML = `
+    <div class="sidebar-memo-panel">
+      <div>
+        <div class="sidebar-memo-title"><i data-lucide="notebook-tabs"></i><span>备忘录</span></div>
+        <div class="text-[11px] text-neutral-500 leading-relaxed mt-1">点击横线新增分段，内容会自动保存在本机。</div>
+      </div>
+      ${rows.map((text, idx) => `
+        <section class="sidebar-memo-section" data-sidebar-memo-section="${idx}" data-sidebar-memo-delete-index="${idx}">
+          <textarea data-sidebar-memo-text="${idx}" placeholder="记录一个提醒、想法或待办">${esc(text)}</textarea>
+        </section>
+        <button type="button" class="sidebar-memo-divider" data-sidebar-memo-divider="${idx}" aria-label="新增备忘录分段"><span>新增分段</span></button>
+      `).join('')}
+    </div>`;
+  bindSidebarMemoControls(container, focusIndex);
+  refreshIcons();
+}
+
+function addSidebarMemoSegment(index=0) {
+  const rows = sidebarMemoSegments();
+  const at = Math.max(0, Math.min(rows.length, Number(index || 0) + 1));
+  rows.splice(at, 0, '');
+  saveSidebarMemoSegments(rows);
+  renderSidebarMemo($('#global-sidebar-memo'), at);
+}
+
 async function renderSessionDrawer() {
-  const list = $('#global-sidebar-status');
+  const list = $('#global-sidebar-memo');
   renderThemeChoices();
   const avatarToggle = $('#global-avatar-visible');
   if (avatarToggle) {
@@ -13214,14 +14336,7 @@ async function renderSessionDrawer() {
     avatarToggle.onchange = e => setGlobalAvatarsVisible(e.target.checked);
   }
   state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
-  list.innerHTML = `
-    ${renderGlobalProactiveControls()}
-    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-1">
-      <div class="text-[11px] text-neutral-500">全局状态</div>
-      <div>会话 ${state.sessions.length} 个</div>
-      <div>头像显示：${globalAvatarsVisible() ? '开启' : '关闭'}</div>
-    </div>`;
-  bindGlobalProactiveControls();
+  renderSidebarMemo(list);
   refreshIcons();
 }
 
@@ -13299,6 +14414,10 @@ function navigateBackInApp(opts={}) {
   if (closeTopLayerForBack()) return true;
   if (state.currentTab === 'new-session') {
     closeNew();
+    return true;
+  }
+  if (state.chatReadOnlyBrowse && state.currentTab === 'chat' && state.chatScreen === 'thread') {
+    returnToGraphBrowseContext();
     return true;
   }
   if (state.currentTab === 'chat' && state.chatScreen === 'context') {
@@ -13427,13 +14546,13 @@ function buildSessionGraphSnapshot(session, messages, anchors, mastery, opts={})
   };
 }
 
-async function buildSessionExportPayload() {
-  if (!state.sid) throw new Error('先打开一个聊天窗口');
-  const session = await DB.get('sessions', state.sid);
+async function buildSessionExportPayload(sid=state.sid) {
+  if (!sid) throw new Error('先打开一个聊天窗口');
+  const session = await DB.get('sessions', sid);
   if (!session) throw new Error('当前聊天窗口不存在');
-  const messages = sortById(await DB.bySid('messages', state.sid));
-  const anchors = sortById(await DB.bySid('anchors', state.sid));
-  const mastery = sortById(await DB.bySid('mastery', state.sid));
+  const messages = sortById(await DB.bySid('messages', sid));
+  const anchors = sortById(await DB.bySid('anchors', sid));
+  const mastery = sortById(await DB.bySid('mastery', sid));
   const payload = {
     version: 1,
     type: 'session_export',
@@ -13445,7 +14564,7 @@ async function buildSessionExportPayload() {
     graph: buildSessionGraphSnapshot(session, messages, anchors, mastery, { includeContent: false }),
   };
   const jsonStr = JSON.stringify(payload, null, 2);
-  const fileName = `reverse-tutor-session-${exportSlug(session.title, state.sid)}-${exportDateStamp()}.json`;
+  const fileName = `reverse-tutor-session-${exportSlug(session.title, sid)}-${exportDateStamp()}.json`;
   return { jsonStr, fileName, title: '反转家教当前聊天窗口' };
 }
 

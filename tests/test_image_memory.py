@@ -120,14 +120,14 @@ async def test_upload_list_and_detail_return_card_ready_image_contract(client, m
 
     assert upload.status_code == 200
     uploaded = upload.json()
-    _assert_card_ready_image(uploaded, sid=sid, mime="image/webp", text=text, kps=kps, retained=True)
+    _assert_card_ready_image(uploaded, sid=sid, mime="image/webp", text=text, kps=kps, retained=False)
     assert "original_path" not in uploaded
 
     listed_response = await client.get(f"/api/sessions/{sid}/images")
     assert listed_response.status_code == 200
     listed = listed_response.json()
     assert listed == [uploaded]
-    _assert_card_ready_image(listed[0], sid=sid, mime="image/webp", text=text, kps=kps, retained=True)
+    _assert_card_ready_image(listed[0], sid=sid, mime="image/webp", text=text, kps=kps, retained=False)
     assert "original_path" not in listed[0]
 
     detail_response = await client.get(f"/api/sessions/{sid}/images/{uploaded['image_id']}")
@@ -135,8 +135,7 @@ async def test_upload_list_and_detail_return_card_ready_image_contract(client, m
     detail = detail_response.json()
     assert set(detail) == IMAGE_CARD_KEYS | {"original_path"}
     assert {key: detail[key] for key in IMAGE_CARD_KEYS} == uploaded
-    assert detail["original_path"]
-    assert Path(detail["original_path"]).exists()
+    assert detail["original_path"] is None
 
 
 async def test_memory_images_use_card_ready_shape_without_original_path(client, monkeypatch):
@@ -156,17 +155,16 @@ async def test_memory_images_use_card_ready_shape_without_original_path(client, 
     assert "original_path" not in card
 
 
-async def test_upload_image_with_retention_keeps_until_expiry(client, db_sess, monkeypatch):
+async def test_upload_image_ignores_legacy_retention_setting(client, db_sess, monkeypatch):
     _patch_vision(monkeypatch)
     sid = await _session(client, settings={"image_retention_days": 7})
 
-    before = datetime.utcnow()
     r = await _upload(client, sid)
 
     row = db.get_image_extract(db_sess, sid, r.json()["image_id"])
-    assert row.retained_until is not None
-    assert before + timedelta(days=6, hours=23) <= row.retained_until <= before + timedelta(days=7, minutes=1)
-    assert row.original_path and Path(row.original_path).exists()
+    assert row.retained_until is None
+    assert row.original_path is None
+    assert not any((server.IMAGE_DATA_DIR / sid).glob("*"))
 
 
 def test_purge_expired_images_removes_only_expired(db_sess, tmp_path):
@@ -203,13 +201,11 @@ async def test_delete_image_cascade_removes_disk_and_db(client, db_sess, monkeyp
     sid = await _session(client, settings={"image_retention_days": 7})
     body = (await _upload(client, sid)).json()
     row = db.get_image_extract(db_sess, sid, body["image_id"])
-    path = Path(row.original_path)
-    assert path.exists()
+    assert row.original_path is None
 
     r = await client.delete(f"/api/sessions/{sid}/images/{body['image_id']}")
 
     assert r.status_code == 200
-    assert not path.exists()
     assert db.get_image_extract(db_sess, sid, body["image_id"]) is None
 
 
@@ -219,15 +215,13 @@ async def test_delete_session_cascades_images(client, db_sess, monkeypatch):
     sid_b = await _session(client, settings={"image_retention_days": 7})
     image_a = (await _upload(client, sid_a)).json()["image_id"]
     image_b = (await _upload(client, sid_b)).json()["image_id"]
-    path_a = Path(db.get_image_extract(db_sess, sid_a, image_a).original_path)
-    path_b = Path(db.get_image_extract(db_sess, sid_b, image_b).original_path)
+    assert db.get_image_extract(db_sess, sid_a, image_a).original_path is None
+    assert db.get_image_extract(db_sess, sid_b, image_b).original_path is None
 
     await client.delete(f"/api/sessions/{sid_a}")
 
     assert db.get_image_extract(db_sess, sid_a, image_a) is None
-    assert not path_a.exists()
     assert db.get_image_extract(db_sess, sid_b, image_b) is not None
-    assert path_b.exists()
 
 
 async def test_oversize_or_unsupported_mime_rejected(client, monkeypatch):
