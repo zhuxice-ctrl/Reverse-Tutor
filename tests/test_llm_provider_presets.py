@@ -335,7 +335,8 @@ def test_mobile_proactive_conversation_has_global_modes_and_local_dispatch():
     assert "offline: { label: '离线', disabled: true }" in html
     assert "custom: { label: '自定义'" in html
     assert "PROACTIVE_CUSTOM_MINUTES_KEY" in html
-    assert "global-proactive-custom-minutes" in html
+    assert "global-proactive-custom-minutes" not in html
+    assert "跟随会话窗原始设定未确定的默认为离线" in html
     assert "mode_disabled" in html
     assert "proactiveIntervalMs" in html
     assert "function proactiveConfig" in html

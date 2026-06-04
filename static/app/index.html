@@ -427,6 +427,17 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+  .thinking-monologue {
+    margin-top: 6px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .thinking-monologue.live::after {
+    content: '▍';
+    color: var(--accent);
+    animation: thinkingCursor 0.9s steps(2, start) infinite;
+  }
   .thinking-panel summary {
     cursor: pointer;
     list-style-position: inside;
@@ -442,6 +453,10 @@
     25% { content: '.'; }
     50% { content: '..'; }
     75%, 100% { content: '...'; }
+  }
+  @keyframes thinkingCursor {
+    0%, 45% { opacity: 1; }
+    46%, 100% { opacity: 0; }
   }
   .cited-sources {
     margin-top: 8px;
@@ -1155,6 +1170,20 @@
   }
   .segmented-control::-webkit-scrollbar, .model-chip-row::-webkit-scrollbar { display: none; }
   .segmented-scroll { scroll-snap-type: x proximity; }
+  .global-proactive-mode-panel { touch-action: pan-y; }
+  .global-proactive-mode-strip {
+    gap: 5px;
+    padding-left: 0;
+    padding-right: 0;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+  }
+  .global-proactive-mode-strip .seg-option {
+    flex: 1 0 68px;
+    min-width: 68px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
   .seg-option {
     flex: 0 0 auto;
     min-width: 86px;
@@ -2079,6 +2108,8 @@ const state = {
   importedPreset: null,
   newReturnRoute: null,
   messageQueue: [],
+  pendingCoalesce: null,
+  activeChatTurn: null,
   isGenerating: false,
   queueProcessing: false,
 };
@@ -2103,7 +2134,15 @@ const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/R
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
 const LEGACY_UPDATE_FEED_URLS = [GITHUB_UPDATE_FEED_URL, GITHUB_LATEST_RELEASE_URL];
 const UPDATE_CHECK_TIMEOUT_MS = 8000;
+const STREAM_EVAL_TIMEOUT_MS = 8000;
+const TURN_ROUTE_CHAT_LIGHT = 'chat_light';
+const TURN_ROUTE_STUDY_FULL = 'study_full';
+const TURN_ROUTE_SOURCE_OR_IMAGE = 'source_or_image';
+const COALESCE_INITIAL_DELAY_MS = 250;
+const COALESCE_MAX_WAIT_MS = 2000;
+const COALESCE_MAX_MESSAGES = 3;
 const LLM_CONFIG_KEY = 'rt-mobile-llm-config';
+const THINKING_CHAIN_OPEN_KEY = 'rt-mobile-thinking-chain-open';
 const LLM_LOCAL_CONFIG_KEY = 'rt-mobile-llm-local-config';
 const LLM_CONFIG_PROFILES_KEY = 'rt-mobile-llm-config-profiles';
 const FREE_DEFAULT_LLM_CONFIG = {
@@ -3126,25 +3165,11 @@ function shapeReplyBubbles(text, maxBubbles=3) {
   if (!raw) return [];
 
   const explicit = raw.split(/\s*\|\|\|\s*/).map(s => s.trim()).filter(Boolean);
-  const source = explicit.length > 1 ? explicit : [raw];
+  if (explicit.length <= 1) return [raw];
+  const source = explicit;
   const chunks = [];
   for (const block of source) {
-    if (block.length <= 120 || /^```/.test(block.trim())) {
-      chunks.push(block);
-      continue;
-    }
-    const parts = block.match(/[^。！？!?…]+[。！？!?…]*/g) || [block];
-    let buf = '';
-    for (const part of parts) {
-      const next = (buf + part).trim();
-      if (buf && next.length > 140) {
-        chunks.push(buf.trim());
-        buf = part;
-      } else {
-        buf = next;
-      }
-    }
-    if (buf.trim()) chunks.push(buf.trim());
+    if (block) chunks.push(block);
   }
 
   if (chunks.length <= maxBubbles) return chunks;
@@ -3267,6 +3292,92 @@ function stripModelThinkingText(content) {
   return s;
 }
 
+function parseJsonObjectCandidate(text) {
+  let s = stripModelThinkingText(text);
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) s = fence[1].trim();
+  const attempts = [s];
+  const first = s.indexOf('{');
+  const last = s.lastIndexOf('}');
+  if (first >= 0 && last > first) attempts.push(s.slice(first, last + 1));
+  if (first >= 0) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = first; i < s.length; i++) {
+      const ch = s[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = inString; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          attempts.push(s.slice(first, i + 1));
+          break;
+        }
+      }
+    }
+  }
+  for (const raw of attempts) {
+    const cand = String(raw || '').trim();
+    if (!cand) continue;
+    try { return JSON.parse(cand); } catch(e) {}
+    try { return JSON.parse(cand.replace(/,(\s*[}\]])/g, '$1')); } catch(e) {}
+  }
+  return null;
+}
+
+function extractPartialJsonStringField(text, field='reply') {
+  const s = String(text || '');
+  const marker = new RegExp(`"${field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:\\s*"`, 'i');
+  const match = marker.exec(s);
+  if (!match) return '';
+  let out = '';
+  let escaped = false;
+  for (let i = match.index + match[0].length; i < s.length; i++) {
+    const ch = s[i];
+    if (escaped) {
+      const map = { n: '\n', r: '\r', t: '\t', '"': '"', '\\': '\\', '/': '/' };
+      if (ch === 'u' && /^[0-9a-fA-F]{4}$/.test(s.slice(i + 1, i + 5))) {
+        out += String.fromCharCode(parseInt(s.slice(i + 1, i + 5), 16));
+        i += 4;
+      } else {
+        out += map[ch] ?? ch;
+      }
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') { escaped = true; continue; }
+    if (ch === '"') return out;
+    out += ch;
+  }
+  return out;
+}
+
+function isLikelyStructuredModelPayload(text) {
+  const s = stripModelThinkingText(text);
+  if (!s) return false;
+  if (/^\s*```json/i.test(s)) return true;
+  if (/^\s*\{/.test(s) && /"(evaluation|action|reply|anchor_updates)"\s*:/.test(s)) return true;
+  return /"(evaluation|action)"\s*:\s*\{[\s\S]{0,1200}"reply"\s*:/.test(s);
+}
+
+function extractVisibleReplyText(text, { partial=false } = {}) {
+  const clean = stripModelThinkingText(text);
+  if (!clean) return '';
+  const parsed = parseJsonObjectCandidate(clean);
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const reply = stripModelThinkingText(parsed.reply || parsed.message || parsed.content || '');
+    if (reply) return reply.trim();
+  }
+  if (partial && isLikelyStructuredModelPayload(clean)) {
+    return stripModelThinkingText(extractPartialJsonStringField(clean, 'reply')).trim();
+  }
+  return isLikelyStructuredModelPayload(clean) ? '' : clean;
+}
+
 function renderRichText(content) {
   const text = String(content || '');
   const parts = [];
@@ -3288,7 +3399,7 @@ function renderRichText(content) {
 }
 
 function safeChatHtml(content) {
-  return renderRichText(stripModelThinkingText(content));
+  return renderRichText(extractVisibleReplyText(content));
 }
 
 function normalizeChatImageAttachments(raw=[]) {
@@ -4910,14 +5021,14 @@ ${format_actions()}
     const mode = inferConversationMode(session);
     const concise = kind === 'proactive'
       ? '只说 1 句，最多 90 个中文字符。'
-      : '说 1 到 3 句，最多 160 个中文字符；除非用户明确要求长解释。';
+      : '默认 1 到 2 句，最多 120 个中文字符；除非用户明确要求长解释。';
     return `# Post-History Instructions
 - 只写学生 AI 的下一次回复，不写用户/老师的台词，不替用户行动、感受或决定。
 - 尊重用户自主权：用户说不会、拒绝、索要不现实内容或偏离目标时，先承接情绪，再用角色关系把话题推回一个现实可回应的小目标。
 - 当前 mode: ${mode}。${mode === 'goal_support' ? '不要把非学习目标强行改成教学/知识点讲解；围绕人格、关系和目标自然推进。' : '可以请教、追问或复述，但每次只推进一个具体知识点。'}
 - 如果用户主动偏离主线，先判断关联性：无关时先解决当前问题，弱相关时先回答再自然桥接回目标，强相关时继续推进主线。不要硬拽用户回“中点”。
 - 如果用户输入的是模糊术语、英文拼写不完整或自己也不确定的概念，先给出最可能解释并反问确认，而不是直接判定没听懂。
-- 回复像即时聊天：${concise}不要连续输出多个独立段落，不要重复称呼或重复同一个请求。
+- 回复像即时聊天：${concise}按实际内容需要输出，不要为了凑气泡扩写；不要连续输出多个独立段落，不要重复称呼或重复同一个请求。
 - 输出仍然只能是一个 JSON 对象，reply 字段放最终自然语言回复。`;
   }
 
@@ -5665,6 +5776,10 @@ ${format_actions()}
     return record;
   }
 
+  async function turnSessionStillExists(sid) {
+    return !!(sid && await DB.get('sessions', sid));
+  }
+
   async function queue_pending_user_message(sid, content, quoted=null, extraMeta={}) {
     return add_message(sid, 'user', content, {
       kind: 'queued_user_message',
@@ -5794,6 +5909,10 @@ function supportsBackgroundChat(cfg) {
     for (const job of jobs) {
       const jobId = job.job_id || '';
       if (!jobId || !job.sid) continue;
+      if (!await DB.get('sessions', job.sid)) {
+        await NativeBackgroundLlm.clearCompletedTurn(jobId);
+        continue;
+      }
       const sidMessages = await DB.bySid('messages', job.sid);
       const pending = sidMessages.find(m =>
         (m.meta || {}).native_background_job_id === jobId &&
@@ -5900,6 +6019,200 @@ function supportsBackgroundChat(cfg) {
     return { imported, lastReply };
   }
 
+  function turnRouteDecision(route, reason='') {
+    return { route, reason };
+  }
+
+  function buildLearningContextState({ session=null, msgs=[] } = {}) {
+    const recent = (msgs || []).filter(m => m && m.role !== 'system').slice(-6);
+    const lastAssistant = recent.slice().reverse().find(m => m.role === 'assistant') || null;
+    const lastAction = lastAssistant?.meta?.action || {};
+    const lastActionType = String(lastAction.type || '').toLowerCase();
+    const lastAssistantText = String(lastAssistant?.content || '').replace(/\s+/g, '');
+    const teachingActionPattern = /^(ask|challenge|practice|review|explain|examiner_verify|hint|correct|teach|source|quiz|question|drill)/i;
+    const assistantLearningPromptPattern = /(从哪|哪一步|卡在哪|卡住|哪里不会|先试|试一题|继续|下一步|要不要|你想|选择|安排|开始|复习|考你|解释|题|知识点|目标|学习|资料|公式|推导|纠错|错因)/i;
+    const lastAssistantPromptedLearning = !!(lastAssistant && (
+      teachingActionPattern.test(lastActionType) ||
+      !!lastAction.knowledge_point ||
+      assistantLearningPromptPattern.test(lastAssistantText)
+    ));
+    const hasRecentStudyMeta = recent.some(m => {
+      const meta = m.meta || {};
+      const action = meta.action || {};
+      const route = String(meta.turn_route || '');
+      return route === TURN_ROUTE_STUDY_FULL ||
+        route === TURN_ROUTE_SOURCE_OR_IMAGE ||
+        teachingActionPattern.test(String(action.type || '').toLowerCase()) ||
+        !!action.knowledge_point;
+    });
+    const conversationMode = inferConversationMode(session);
+    const active = Boolean(
+      lastAssistantPromptedLearning ||
+      hasRecentStudyMeta ||
+      (conversationMode === 'learning' && !lastAssistant)
+    );
+    return {
+      active,
+      conversationMode,
+      lastAssistantPromptedLearning,
+      hasRecentStudyMeta,
+      lastActionType,
+    };
+  }
+
+  function inferTurnRoute({ session=null, userInput='', attachments=[], quoted=null, learningContext=null } = {}) {
+    const text = String(userInput || '').trim();
+    const quoteMeta = quoted?.meta || {};
+    const quotedHasImage = messageImageAttachments(quoted || {}).length > 0 || normalizeChatImageAttachments(quoteMeta.attachments || []).length > 0;
+    if ((attachments || []).length || quotedHasImage) {
+      return turnRouteDecision(TURN_ROUTE_SOURCE_OR_IMAGE, 'attachment_or_quoted_image');
+    }
+    if (quoted?.id) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'quoted_reply');
+    if (!text) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'empty_opening');
+
+    const compact = text.replace(/\s+/g, '');
+    const conversationMode = inferConversationMode(session);
+    const pureGreetingPattern = /^(你好|嗨|哈喽|在吗|早|早安|晚安|谢谢|谢了|哈哈|嘿嘿)[。！？!?~～,.，\s]*$/i;
+    if (pureGreetingPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'pure_greeting');
+    const studyControlPattern = /^(继续|下一步|下一题|再来|再讲|接着|继续学|继续讲|往下|开始吧|来一题|出题|考我|复习)$/i;
+    if (studyControlPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'study_control');
+    const studyPattern = /(讲|解释|为什么|怎么做|怎么解|题|公式|概念|定义|证明|推导|错因|纠错|批改|作业|考试|复习|知识点|教材|资料|例题|步骤|答案|算|函数|方程|导数|积分|概率|代码|bug|报错|语法|算法|图像|图片|OCR|识别|懂了|明白了|会了|不会|不懂|没懂|验证|检测|考我|继续学|下一题)/i;
+    if (studyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'explicit_study_request');
+    const sourceRequestPattern = /(资料|文档|文件|PDF|pdf|来源|引用|原文|课本|教材|上传|附件)/i;
+    if (sourceRequestPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_SOURCE_OR_IMAGE, 'source_request');
+    const implicitLearningHandoffPattern = /^(随便|都行|不知道|我也不知道|看看你吧|看你|你安排|按你的来|你决定|从头来|从头开始|先从简单的来|听你的)[。！？!?~～,.，\s]*$/i;
+    if (learningContext?.active && implicitLearningHandoffPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'implicit_learning_handoff');
+
+    const casualPattern = /^(你好|嗨|哈喽|在吗|嗯|哦|好|行|可以|随便|都行|不知道|我也不知道|看看你吧|看你|还好|没事|算了|晚安|早|早安|谢谢|谢了|哈哈|嘿嘿|无聊|有点累|不想学|先聊聊|陪我聊|你说呢|你觉得呢)[。！？!?~～,.，\s]*$/i;
+    if (compact.length <= 28 && casualPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'short_casual');
+    if (compact.length <= 18) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'short_text');
+    if (conversationMode !== 'learning' && compact.length <= 60) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'goal_support_short_text');
+    return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'default_learning_route');
+  }
+
+  function buildLightChatSystemPrompt(session, summary_text='') {
+    const p = session?.persona || {};
+    const mode = inferConversationMode(session);
+    const runtime_profile_hint = String(session?.runtime_profile_hint || buildRuntimeProfileHint(session?.profile_summary || {
+      tags: session?.profile_tags || [],
+      description: session?.profile_description || '',
+    })).trim();
+    return `你是「反转家教 AI」里的学生 AI，当前只处理自然聊天回合，不进入完整教学链。
+
+# 人设
+- 角色: ${p.role || ''}
+- 目标: ${p.goal || ''}
+- 性格: ${p.personality || ''}
+- 当前 mode: ${mode}
+
+# 核心自述
+${session?.core_self || '（未设置）'}
+
+# 用户画像提示
+${runtime_profile_hint || '（无）'}
+
+${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
+
+# 轻量聊天规则
+- 仍然按人设、关系和最近上下文自然回复，不要套固定模板。
+- 不要强行教学。
+- 不要突然讲知识点。
+- 不要做掌握度判断。
+- 如果用户只是寒暄、犹豫、情绪表达或短句补充，就像真实聊天一样接住，不要把每句话都变成学习任务。
+- 回复保持短而生动，通常 1 到 2 句；只输出学生 AI 的自然语言，不输出 JSON、metadata、评价字段或思考过程。`;
+  }
+
+  async function runLightChatTurn({
+    sid,
+    session,
+    msgs,
+    summary_text='',
+    skip_id=0,
+    effectiveUserInput='',
+    promptUserInput=null,
+    quoted=null,
+    currentInputMessageIds=[],
+    currentInputAttachments=[],
+    sourceMessage=null,
+    assistantLogicalBase=Date.now() + 0.5,
+    turnRouteReason='',
+    turnId,
+    markQueuedUserMessages,
+    opts={},
+  }) {
+    const system = buildLightChatSystemPrompt(session, summary_text);
+    const messages = build_messages(msgs, promptUserInput, skip_id, {
+      exclude_ids: currentInputMessageIds,
+      current_input_attachments: currentInputAttachments,
+    });
+    const currentInputInstruction = formatCurrentInputInstruction(promptUserInput);
+    if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
+    const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
+    if (quotedContext) messages.push({ role: 'system', content: quotedContext });
+    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；不要输出 JSON、标题、列表模板或分析字段。' });
+    if (typeof opts.onThinkingStage === 'function') {
+      opts.onThinkingStage({ stage: '自然接话', detail: '按人设和最近上下文组织一句自然回复' });
+    }
+
+    const streamObj = LLM.chat_text_stream(system, messages, { temperature: 0.85, max_tokens: 260 });
+    let currentBubbleText = '';
+    try {
+      if (typeof opts.onBubbleStart === 'function') opts.onBubbleStart(0);
+      if (typeof opts.onThinkingStage === 'function') opts.onThinkingStage({ stage: '开始输出', detail: '正在生成轻量聊天回复' });
+      for await (const chunk of streamObj) {
+        if (chunk.type === 'bubble_boundary') continue;
+        currentBubbleText += chunk.delta || '';
+        if (typeof opts.onStreamToken === 'function') {
+          const accumulated = chunk.accumulated || streamObj.fullText();
+          const visible = extractVisibleReplyText(accumulated || currentBubbleText, { partial: true });
+          opts.onStreamToken({ delta: chunk.delta || '', accumulated: visible, rawAccumulated: accumulated, bubbleIndex: 0 });
+        }
+      }
+    } catch (streamErr) {
+      console.warn('light chat streaming interrupted', streamErr);
+      if (typeof opts.onError === 'function') opts.onError(streamErr);
+    }
+    if (typeof opts.onReplyStreamComplete === 'function') {
+      opts.onReplyStreamComplete({ queuedUserMessages: opts.queuedUserMessages || [] });
+    }
+
+    const fullReply = extractVisibleReplyText(streamObj.fullText() || currentBubbleText);
+    const reply = (fullReply || '').trim() || '（我停了一下）你刚才那句我接住了，我们慢慢说。';
+    const bubbles = shapeReplyBubbles(reply, 1);
+    const action = { type: 'emote', student_role: 'casual_student', note: 'chat_light' };
+    const evaluation = {};
+    if (!await turnSessionStillExists(sid)) {
+      return { reply: '', action, evaluation, bubbles: [], turn_route: TURN_ROUTE_CHAT_LIGHT, cancelled: true };
+    }
+    for (let i = 0; i < bubbles.length; i++) {
+      if (i > 0 && typeof opts.onBubbleStart === 'function') opts.onBubbleStart(i);
+      if (typeof opts.onBubbleComplete === 'function') opts.onBubbleComplete(i, bubbles[i]);
+      await add_message(sid, 'assistant', bubbles[i], {
+        action,
+        evaluation,
+        turn_id: turnId,
+        reply_to_message_id: sourceMessage ? sourceMessage.id : null,
+        source_message_id: sourceMessage ? sourceMessage.id : null,
+        message_index: i,
+        message_total: bubbles.length,
+        logical_created_at: assistantLogicalBase + (i / 100),
+        turn_route: TURN_ROUTE_CHAT_LIGHT,
+        turn_route_reason: turnRouteReason,
+        source:'foreground_llm',
+        status: 'completed',
+      });
+    }
+    if (typeof markQueuedUserMessages === 'function') {
+      await markQueuedUserMessages('completed', { completed_at: Date.now(), turn_route: TURN_ROUTE_CHAT_LIGHT, turn_route_reason: turnRouteReason });
+    }
+    if (typeof opts.onUserStatusReady === 'function') {
+      opts.onUserStatusReady({ queuedUserMessages: opts.queuedUserMessages || [] });
+    }
+    const result = { reply, action, evaluation, bubbles, turn_route: TURN_ROUTE_CHAT_LIGHT, turn_route_reason: turnRouteReason };
+    if (typeof opts.onTurnComplete === 'function') opts.onTurnComplete(result);
+    return result;
+  }
+
   async function tryQueueNativeTurnEarly(sid, user_input, sourceMessage, quoted, turnMeta={}) {
     try {
       if ((turnMeta.currentInputAttachments || []).length) return null;
@@ -5993,9 +6306,46 @@ function supportsBackgroundChat(cfg) {
     }
     try {
     const sourceMessage = userMessage || opts.sourceMessage || null;
+    const assistantLogicalBase = (sourceMessage ? conversationSortValue(sourceMessage) : Date.now()) + 0.5;
     const currentInputMessageIds = queuedUserMessages.map(m => Number(m.id)).filter(Number.isFinite);
     const currentInputAttachments = queuedUserMessages.flatMap(m => messageImageAttachments(m));
     const promptUserInput = currentInputMessageIds.length ? effectiveUserInput : null;
+    const routeSession = await DB.get('sessions', sid);
+    const routeMsgs = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
+    const routeSummary = find_latest_summary(routeMsgs);
+    const routeSkipId = routeSummary ? (routeSummary.meta.summarized_until_id || 0) : 0;
+    const routeSummaryText = routeSummary ? routeSummary.content : '';
+    const learningContext = buildLearningContextState({ session: routeSession, msgs: routeMsgs });
+    const routeDecision = inferTurnRoute({
+      session: routeSession,
+      userInput: effectiveUserInput,
+      attachments: currentInputAttachments,
+      quoted,
+      learningContext,
+    });
+    const route = routeDecision.route || routeDecision;
+    const routeReason = routeDecision.reason || '';
+    if (route === TURN_ROUTE_CHAT_LIGHT) {
+      await renderUserOnce();
+      return await runLightChatTurn({
+        sid,
+        session: routeSession,
+        msgs: routeMsgs,
+        summary_text: routeSummaryText,
+        skip_id: routeSkipId,
+        effectiveUserInput,
+        promptUserInput,
+        quoted,
+        currentInputMessageIds,
+        currentInputAttachments,
+        sourceMessage,
+        assistantLogicalBase,
+        turnRouteReason: routeReason,
+        turnId,
+        markQueuedUserMessages,
+        opts: { ...opts, queuedUserMessages },
+      });
+    }
     const nativeQueued = await tryQueueNativeTurnEarly(sid, effectiveUserInput, sourceMessage, quoted, { turnId, clientMsgId, currentInputMessageIds, currentInputAttachments });
     if (nativeQueued) {
       await markQueuedUserMessages('completed', { completed_at: Date.now(), native_background: true });
@@ -6051,17 +6401,32 @@ function supportsBackgroundChat(cfg) {
           if (chunk.type === 'bubble_boundary') continue;
           currentBubbleText += chunk.delta;
           if (typeof opts.onStreamToken === 'function') {
-            opts.onStreamToken({ delta: chunk.delta, accumulated: chunk.accumulated || streamObj.fullText(), bubbleIndex: 0 });
+            const accumulated = chunk.accumulated || streamObj.fullText();
+            const visible = extractVisibleReplyText(accumulated || currentBubbleText, { partial: true });
+            opts.onStreamToken({ delta: chunk.delta, accumulated: visible, rawAccumulated: accumulated, bubbleIndex: 0 });
           }
         }
       } catch (streamErr) {
         console.warn('streaming interrupted', streamErr);
         if (typeof opts.onError === 'function') opts.onError(streamErr);
       }
+      await markQueuedUserMessages('completed', { completed_at: Date.now(), reply_stream_completed: true });
+      if (typeof opts.onReplyStreamComplete === 'function') {
+        opts.onReplyStreamComplete({ queuedUserMessages });
+      }
+      if (typeof opts.onUserStatusReady === 'function') {
+        opts.onUserStatusReady({ queuedUserMessages });
+      }
 
       let ev = {}, ac = {}, updates = [];
       try {
-        const evalResult = await evalPromise;
+        const evalResult = await promiseWithTimeout(evalPromise, STREAM_EVAL_TIMEOUT_MS, () => ({
+          evaluation: {},
+          action: { type: 'ask', note: 'eval timed out' },
+          anchor_updates: [],
+          timed_out: true,
+        }));
+        if (evalResult?.timed_out) console.warn('eval timed out; continuing with fallback metadata');
         ev = cleanEvaluation(evalResult.evaluation || {});
         ac = normalizeAction(evalResult.action || {}, '自由回复');
         updates = evalResult.anchor_updates || [];
@@ -6074,10 +6439,13 @@ function supportsBackgroundChat(cfg) {
         opts.onMetadataReady({ evaluation: ev, action: ac, anchor_updates: updates });
       }
 
-      const fullReply = stripModelThinkingText(streamObj.fullText() || currentBubbleText);
+      const fullReply = extractVisibleReplyText(streamObj.fullText() || currentBubbleText);
       const reply = (fullReply||'').trim() || '（……我有点走神了，你刚才说啥？）';
-      const bubbles = shapeReplyBubbles(reply, 3);
+      const bubbles = shapeReplyBubbles(reply, 1);
       let assistantEpisodeId = null;
+      if (!await turnSessionStillExists(sid)) {
+        return { reply: '', action: ac, evaluation: ev, bubbles: [], cancelled: true };
+      }
       for (let i = 0; i < bubbles.length; i++) {
         if (i > 0 && typeof opts.onBubbleStart === 'function') opts.onBubbleStart(i);
         if (typeof opts.onBubbleComplete === 'function') opts.onBubbleComplete(i, bubbles[i]);
@@ -6087,6 +6455,9 @@ function supportsBackgroundChat(cfg) {
           reply_to_message_id: sourceMessage ? sourceMessage.id : null,
           source_message_id: sourceMessage ? sourceMessage.id : null,
           message_index: i, message_total: bubbles.length,
+          logical_created_at: assistantLogicalBase + (i / 100),
+          turn_route: route === TURN_ROUTE_SOURCE_OR_IMAGE ? TURN_ROUTE_SOURCE_OR_IMAGE : TURN_ROUTE_STUDY_FULL,
+          turn_route_reason: routeReason,
           source:'foreground_llm', status: 'completed',
         });
         if (!assistantEpisodeId) assistantEpisodeId = savedAssistant.id;
@@ -6112,10 +6483,10 @@ function supportsBackgroundChat(cfg) {
           source_turn_id: turnId, source_message_id: sourceMessage ? sourceMessage.id : null,
         });
       }
-      await markQueuedUserMessages('completed', { completed_at: Date.now() });
+      await markQueuedUserMessages('completed', { postprocess_completed_at: Date.now(), turn_route: route === TURN_ROUTE_SOURCE_OR_IMAGE ? TURN_ROUTE_SOURCE_OR_IMAGE : TURN_ROUTE_STUDY_FULL, turn_route_reason: routeReason });
       await expandSourceMemoryBranches(anchors, sourceSnippets, effectiveUserInput);
 
-      const result = { reply, action: ac, evaluation: ev, bubbles };
+      const result = { reply, action: ac, evaluation: ev, bubbles, turn_route: route === TURN_ROUTE_SOURCE_OR_IMAGE ? TURN_ROUTE_SOURCE_OR_IMAGE : TURN_ROUTE_STUDY_FULL, turn_route_reason: routeReason };
       if (typeof opts.onTurnComplete === 'function') opts.onTurnComplete(result);
       return result;
     }
@@ -6139,6 +6510,9 @@ function supportsBackgroundChat(cfg) {
 
     const bubbles = shapeReplyBubbles(reply, 1);
     let assistantEpisodeId = null;
+    if (!await turnSessionStillExists(sid)) {
+      return { reply: '', action: ac, evaluation: ev, bubbles: [], cancelled: true };
+    }
     for (let i = 0; i < bubbles.length; i++) {
       const savedAssistant = await add_message(sid, 'assistant', bubbles[i], {
         action: ac,
@@ -6148,6 +6522,9 @@ function supportsBackgroundChat(cfg) {
         source_message_id: sourceMessage ? sourceMessage.id : null,
         message_index: i,
         message_total: bubbles.length,
+        logical_created_at: assistantLogicalBase + (i / 100),
+        turn_route: route === TURN_ROUTE_SOURCE_OR_IMAGE ? TURN_ROUTE_SOURCE_OR_IMAGE : TURN_ROUTE_STUDY_FULL,
+        turn_route_reason: routeReason,
         source:'foreground_llm',
         status: 'completed',
       });
@@ -6175,9 +6552,9 @@ function supportsBackgroundChat(cfg) {
         source_message_id: sourceMessage ? sourceMessage.id : null,
       });
     }
-    await markQueuedUserMessages('completed', { completed_at: Date.now() });
+    await markQueuedUserMessages('completed', { completed_at: Date.now(), turn_route: route === TURN_ROUTE_SOURCE_OR_IMAGE ? TURN_ROUTE_SOURCE_OR_IMAGE : TURN_ROUTE_STUDY_FULL, turn_route_reason: routeReason });
     await expandSourceMemoryBranches(anchors, sourceSnippets, effectiveUserInput);
-    return { reply, action: ac, evaluation: ev };
+    return { reply, action: ac, evaluation: ev, turn_route: route === TURN_ROUTE_SOURCE_OR_IMAGE ? TURN_ROUTE_SOURCE_OR_IMAGE : TURN_ROUTE_STUDY_FULL, turn_route_reason: routeReason };
     } catch (err) {
       const failedMessages = queuedUserMessages.length ? queuedUserMessages : (userMessage ? [userMessage] : []);
       for (const msg of failedMessages) {
@@ -7247,6 +7624,7 @@ async function handleSessionSwipeAction(action, sid) {
   }
   if (action === 'delete') {
     if (!confirm('删除该会话及所有数据？')) return;
+    detachActiveChatTurnForSid(sid);
     await ENGINE.delete_session(sid);
     if (state.sid === sid) {
       state.sid = null;
@@ -7261,15 +7639,36 @@ async function handleSessionSwipeAction(action, sid) {
   }
 }
 
+function promiseWithTimeout(promise, timeoutMs, fallbackFactory) {
+  let timer = null;
+  return Promise.race([
+    Promise.resolve(promise).finally(() => {
+      if (timer) clearTimeout(timer);
+    }),
+    new Promise(resolve => {
+      timer = setTimeout(() => {
+        resolve(typeof fallbackFactory === 'function' ? fallbackFactory() : fallbackFactory);
+      }, timeoutMs);
+    }),
+  ]);
+}
+
 async function openSessionWindow(sid) {
   if (!sid) return;
-  if (state.sid && state.sid !== sid) await markSessionRead(state.sid);
+  const previousSid = state.sid;
+  if (previousSid && previousSid !== sid) {
+    await markSessionRead(previousSid);
+    detachActiveChatTurnForSid(previousSid);
+    state.messageQueue = [];
+    clearPendingCoalesceTimer();
+  }
   state.sid = sid;
   state.chatScreen = 'thread';
   state.contextEditingNoteId = null;
   state.sessionSearchFocused = false;
   await DB.kvSet('current_sid', state.sid);
   await markSessionRead(sid);
+  await restorePendingMessageQueue(state.sid);
   switchTab('chat');
   await refreshHeader();
   await renderChat();
@@ -7381,7 +7780,7 @@ async function refreshHeader() {
 function moveStreamingBubbleToTail() {
   const chat = $('#chat');
   const bubble = $('#streaming-bubble');
-  if (chat && bubble && bubble.parentElement === chat && chat.lastElementChild !== bubble) {
+  if (chat && bubble && !bubble.parentElement) {
     chat.appendChild(bubble);
   }
 }
@@ -7394,10 +7793,11 @@ function getOrCreateStreamingBubble() {
     bubble.className = 'flex justify-start';
     bubble.innerHTML = `<div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
       <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="streaming-indicator text-emerald-400">thinking...<span class="thinking-dots"></span></span></div>
-      <details class="thinking-panel text-[11px] text-neutral-500 mb-2" open>
+      <details class="thinking-panel text-[11px] text-neutral-500 mb-2">
         <summary class="cursor-pointer select-none text-neutral-400">思考链</summary>
-        <div class="thinking-safe-note">公开策略链，只展示检索、策略和下一步，不展示隐藏推理。</div>
+        <div class="thinking-safe-note">可公开推理旁白，不展示模型隐藏推理。</div>
         <div class="thinking-stage mt-1">thinking... 理解问题</div>
+        <div class="thinking-monologue live" data-thinking-monologue></div>
       </details>
       <div class="md text-sm stream-content"></div></div>`;
     $('#chat').appendChild(bubble);
@@ -7406,11 +7806,93 @@ function getOrCreateStreamingBubble() {
   return { container: bubble, content: bubble.querySelector('.stream-content'), indicator: bubble.querySelector('.streaming-indicator') };
 }
 
+function thinkingChainOpen() {
+  return localStorage.getItem(THINKING_CHAIN_OPEN_KEY) === '1';
+}
+
+function setThinkingChainOpen(open) {
+  localStorage.setItem(THINKING_CHAIN_OPEN_KEY, open ? '1' : '0');
+}
+
+function bindThinkingPreference(details) {
+  if (!details || details.dataset.thinkingPreferenceBound === '1') return;
+  details.dataset.thinkingPreferenceBound = '1';
+  details.addEventListener('toggle', () => setThinkingChainOpen(details.open));
+}
+
+const thinkingNarrationState = {
+  timer: null,
+  visible: '',
+  target: '',
+  seen: new Set(),
+};
+
+function resetThinkingNarration() {
+  if (thinkingNarrationState.timer) clearTimeout(thinkingNarrationState.timer);
+  thinkingNarrationState.timer = null;
+  thinkingNarrationState.visible = '';
+  thinkingNarrationState.target = '';
+  thinkingNarrationState.seen = new Set();
+}
+
+function publicThinkingSentence(stage, detail='') {
+  const cleanStage = String(stage || '').trim() || '理解问题';
+  const cleanDetail = String(detail || '').replace(/\s+/g, ' ').trim();
+  if (cleanStage === '检索资料') {
+    const hit = cleanDetail.match(/命中\s*(\d+)\s*个片段/);
+    return hit
+      ? `我脑子里先过一遍资料线索，命中了 ${hit[1]} 个片段；先别急着照搬，得挑真正能支撑回复的部分。`
+      : '我先在资料和记忆里扫一遍，看有没有能接上这句话的线索；没有就按当前对话自己判断。';
+  }
+  if (cleanStage === '组织回复') {
+    return '现在把主线、资料线索和学生人设拼到一起；回复要像学生自然开口，不能像系统报告。';
+  }
+  if (cleanStage === '开始输出') {
+    return '可以开口了。先用一句自然的话接住老师的问题，再顺手把话题带到下一步。';
+  }
+  if (cleanStage === '理解问题') {
+    return cleanDetail.includes('读取')
+      ? '我先不急着答，先把老师刚发来的话过一遍：这是在问知识，还是在看我会不会顺着主线继续。'
+      : '这句话先放到当前学习目标里看一眼，判断它是强相关、弱相关，还是需要先单独接住。';
+  }
+  return cleanDetail ? `我心里先处理「${cleanStage}」这一步：${cleanDetail}。` : `我心里先处理「${cleanStage}」这一步。`;
+}
+
+function tickThinkingNarration() {
+  const el = $('[data-thinking-monologue]');
+  if (!el) {
+    resetThinkingNarration();
+    return;
+  }
+  if (thinkingNarrationState.visible.length >= thinkingNarrationState.target.length) {
+    thinkingNarrationState.timer = null;
+    return;
+  }
+  const remaining = thinkingNarrationState.target.length - thinkingNarrationState.visible.length;
+  const step = remaining > 48 ? 2 : 1;
+  thinkingNarrationState.visible = thinkingNarrationState.target.slice(0, thinkingNarrationState.visible.length + step);
+  el.textContent = thinkingNarrationState.visible;
+  thinkingNarrationState.timer = setTimeout(tickThinkingNarration, 24);
+}
+
+function appendThinkingNarration(stage, detail='') {
+  const { container } = getOrCreateStreamingBubble();
+  const el = container.querySelector('[data-thinking-monologue]');
+  if (!el) return;
+  const key = `${stage || ''}:${detail || ''}`;
+  if (thinkingNarrationState.seen.has(key)) return;
+  thinkingNarrationState.seen.add(key);
+  const sentence = publicThinkingSentence(stage, detail);
+  thinkingNarrationState.target += (thinkingNarrationState.target ? '\n' : '') + sentence;
+  if (!thinkingNarrationState.timer) tickThinkingNarration();
+}
+
 function updateThinkingStage(stage, detail='') {
   const wasNearBottom = isChatNearBottom();
   const { container } = getOrCreateStreamingBubble();
   const stageEl = container.querySelector('.thinking-stage');
   if (stageEl) stageEl.textContent = detail ? `thinking... ${stage}：${detail}` : `thinking... ${stage}`;
+  appendThinkingNarration(stage, detail || '');
   keepChatTailVisible(0, { wasNearBottom });
 }
 
@@ -7423,9 +7905,26 @@ function updateStreamingBubble(htmlText) {
   keepChatTailVisible(0, { wasNearBottom });
 }
 
+function pauseStreamingThinking() {
+  const bubble = $('#streaming-bubble');
+  if (!bubble) return;
+  const details = bubble.querySelector('.thinking-panel');
+  if (details) details.open = false;
+  const live = bubble.querySelector('[data-thinking-monologue]');
+  if (live) live.classList.remove('live');
+  const stage = bubble.querySelector('.thinking-stage');
+  if (stage) stage.textContent = '回复已生成，正在整理记录';
+  const indicator = bubble.querySelector('.streaming-indicator');
+  if (indicator) indicator.remove();
+  resetThinkingNarration();
+}
+
 function finalizeStreamingBubble() {
   const bubble = $('#streaming-bubble');
   if (bubble) {
+    const live = bubble.querySelector('[data-thinking-monologue]');
+    if (live) live.classList.remove('live');
+    resetThinkingNarration();
     const indicator = bubble.querySelector('.streaming-indicator');
     if (indicator) indicator.remove();
     bubble.removeAttribute('id');
@@ -7433,6 +7932,7 @@ function finalizeStreamingBubble() {
 }
 
 function removeStreamingBubble() {
+  resetThinkingNarration();
   const bubble = $('#streaming-bubble');
   if (bubble) bubble.remove();
 }
@@ -7458,7 +7958,7 @@ function queuedUserStatusLabel(message) {
   if (meta.kind !== 'queued_user_message') return '';
   const status = message.status || meta.status || 'pending';
   if (status === 'pending') return '待处理';
-  if (status === 'processing') return '处理中';
+  if (status === 'processing') return (state.isGenerating || state.queueProcessing) ? '处理中' : '';
   return '';
 }
 
@@ -7472,7 +7972,7 @@ function appendQueuedUserMessageBubble(message) {
       引用 ${esc(meta.quoted_role === 'assistant' ? '学生 AI' : '你')}：${esc(meta.quoted_preview || '')}
     </div>` : '';
   const statusLabel = queuedUserStatusLabel(message);
-  const statusBlock = statusLabel ? `<div class="text-[10px] text-amber-300 mt-1">${statusLabel}</div>` : '';
+  const statusBlock = statusLabel ? `<div class="queued-status text-[10px] text-amber-300 mt-1">${statusLabel}</div>` : '';
   const row = document.createElement('div');
   row.className = 'flex justify-end';
   row.id = `msg-${message.id}`;
@@ -7485,8 +7985,118 @@ function appendQueuedUserMessageBubble(message) {
       ${statusBlock}
     </div>`;
   chat.appendChild(row);
-  moveStreamingBubbleToTail();
   keepChatTailVisible(0, { wasNearBottom });
+}
+
+function clearQueuedUserStatusBadges(messages=[]) {
+  for (const msg of messages) {
+    if (!msg || !msg.id) continue;
+    const bubble = $(`[data-message-id="${Number(msg.id)}"]`);
+    bubble?.querySelectorAll('.queued-status').forEach(el => el.remove());
+  }
+}
+
+function compactProcessSummaryText(value) {
+  return String(value || '')
+    .replace(/[#*_`>\-]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function processSummaryField(summary, labels=[]) {
+  const lines = String(summary || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    for (const label of labels) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = line.match(new RegExp(`^${escaped}\\s*[:：]\\s*(.+)$`));
+      if (match) return compactProcessSummaryText(match[1]);
+    }
+  }
+  return '';
+}
+
+function actionReadable(type) {
+  const map = {
+    ask: '主动抛出一个问题',
+    probe: '继续追问用户的解释',
+    challenge: '用反例检查当前理解',
+    confused_student: '用困惑学生的反应暴露卡点',
+    explain_back: '请用户把思路复述出来',
+    advance: '推进到下一步',
+    summarize: '做一个阶段小结',
+    answer: '先回答当前问题',
+    free_reply: '自然回应当前输入',
+  };
+  return map[type] || (type ? `执行 ${type}` : '根据用户下一句再调整');
+}
+
+function studentRoleReadable(role) {
+  const map = {
+    probing_student: '追问型学生',
+    challenge_student: '较真型学生',
+    confused_student: '困惑学生',
+    companion: '陪伴式学生',
+    goal_partner: '目标伙伴',
+  };
+  return map[role] || role || '';
+}
+
+function scoreReadable(value, label) {
+  if (value === undefined || value === null || value === '') return '';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  if (n >= 0.75) return `${label}较高`;
+  if (n >= 0.45) return `${label}中等`;
+  if (n > 0) return `${label}偏低`;
+  return `${label}还没有形成`;
+}
+
+function evidenceReadable(evidence={}) {
+  const type = String(evidence.type || 'none');
+  const status = String(evidence.status || 'none');
+  const reason = compactProcessSummaryText(evidence.reason || '');
+  const typeMap = {
+    none: '这轮还没形成足够的掌握度证据',
+    explanation: '这轮有解释型证据',
+    transfer: '这轮有迁移应用证据',
+    delayed_retrieval: '这轮有延迟回忆证据',
+    correction: '这轮有纠错证据',
+    retrieval: '这轮有检索证据',
+  };
+  const statusMap = { passed: '通过', failed: '未通过', none: '未形成' };
+  const base = typeMap[type] || `这轮证据类型是 ${type}`;
+  if (type === 'none') return reason ? `${base}，原因是${reason}` : base;
+  return `${base}，状态是${statusMap[status] || status}${reason ? `，原因是${reason}` : ''}`;
+}
+
+function renderProcessMonologue(meta={}, action={}, evaluation={}) {
+  const a = action || {};
+  const ev = evaluation || {};
+  const evidence = ev.evidence_for_mastery || {};
+  const ids = meta.evidence_episode_ids || [];
+  const summary = meta.process_summary || '';
+  const judgment = processSummaryField(summary, ['当前判断', '本轮判断', '当前任务', '感知到的情绪'])
+    || compactProcessSummaryText(summary)
+    || ev.entry_status
+    || '先判断用户这句话和当前主线的关系';
+  const basis = processSummaryField(summary, ['使用依据', '依据', '阻塞点', '是否引导'])
+    || evidenceReadable(evidence);
+  const strategy = processSummaryField(summary, ['本轮策略', '策略', '本轮动作', '边界检查'])
+    || actionReadable(a.type);
+  const next = processSummaryField(summary, ['下一步', '下一步交付'])
+    || compactProcessSummaryText(a.note || '')
+    || (a.type === 'probe' ? '继续追问用户的解释' : '根据用户下一句再调整');
+  const role = studentRoleReadable(a.student_role);
+  const kp = compactProcessSummaryText(a.knowledge_point || '');
+  const score = [scoreReadable(ev.correctness, '正确性'), scoreReadable(ev.depth, '展开深度')].filter(Boolean).join('，');
+  const episodes = ids.length ? `这轮证据会挂到 ${ids.map(id => `#${String(id)}`).join('、')}，方便后续复习和追踪。` : '';
+  return [
+    `我先看用户这句话和当前学习目标的关系，判断为：${judgment}。`,
+    `能参考的依据是：${basis}${score ? `；${score}` : ''}。`,
+    `所以这一轮我会${role ? `用${role}的口吻` : ''}${strategy}${kp ? `，焦点放在「${kp}」` : ''}。`,
+    `接下来先${next}。`,
+    episodes,
+  ].filter(Boolean).join('\n');
 }
 
 function renderProcessSummary(meta={}, action={}, evaluation={}) {
@@ -7495,25 +8105,12 @@ function renderProcessSummary(meta={}, action={}, evaluation={}) {
   const evidence = ev.evidence_for_mastery || {};
   const ids = meta.evidence_episode_ids || [];
   if (!meta.process_summary && !a.type && !evidence.type && !ids.length) return '';
-  const basis = [
-    evidence.type ? `${evidence.type}/${evidence.status || 'none'}` : '',
-    evidence.reason || '',
-    ev.correctness !== undefined ? `correctness=${ev.correctness}` : '',
-    ev.depth !== undefined ? `depth=${ev.depth}` : '',
-  ].filter(Boolean).join(' · ') || '暂无显式证据';
-  const strategy = [a.type, a.student_role, a.knowledge_point].filter(Boolean).join(' · ') || '未记录';
-  const next = a.note || (a.type === 'probe' ? '继续追问用户的解释' : '根据用户下一句再调整');
+  const monologue = renderProcessMonologue(meta, a, ev);
   return `
-    <details class="process-summary">
+    <details class="process-summary" ${thinkingChainOpen() ? 'open' : ''}>
       <summary>思考链</summary>
-      <div class="thinking-safe-note">公开策略链，只展示检索、策略和下一步，不展示隐藏推理。</div>
-      <dl>
-        <dt>判断</dt><dd>${esc(meta.process_summary || ev.entry_status || '未记录')}</dd>
-        <dt>依据</dt><dd>${esc(basis)}</dd>
-        <dt>策略</dt><dd>${esc(strategy)}</dd>
-        <dt>下一步</dt><dd>${esc(next)}</dd>
-        <dt>证据 episodes</dt><dd>${ids.length ? ids.map(id => `#${esc(String(id))}`).join(', ') : '无'}</dd>
-      </dl>
+      <div class="thinking-safe-note">可公开推理旁白，不展示模型隐藏推理。</div>
+      <div class="thinking-monologue">${esc(monologue)}</div>
     </details>`;
 }
 
@@ -7623,7 +8220,7 @@ async function renderChat() {
             <button data-edit-message="${m.id}"><i data-lucide="pencil"></i><span>编辑后发送</span></button>
           </div>
         </div>` : '';
-      const queuedState = queuedStatus ? `<div class="text-[10px] text-amber-300 mt-1">${queuedStatus}</div>` : '';
+      const queuedState = queuedStatus ? `<div class="queued-status text-[10px] text-amber-300 mt-1">${queuedStatus}</div>` : '';
       const bubbleClass = failed
         ? 'bg-red-950/30 border border-red-800'
         : (isUser ? 'bg-emerald-900/40 border border-emerald-800' : 'bg-neutral-900 border border-neutral-800');
@@ -7650,6 +8247,7 @@ async function renderChat() {
     pendingDiv.textContent = `⏳ ${state.messageQueue.length} 条消息待发送`;
     chat.appendChild(pendingDiv);
   }
+  $$('.process-summary').forEach(bindThinkingPreference);
   $$('#chat [data-message-id]').forEach(el => {
     el.addEventListener('contextmenu', async e => {
       e.preventDefault();
@@ -7921,29 +8519,145 @@ function setChatSending(sending) {
   renderQueueIndicator();
 }
 
-async function submitChatText(txt, opts={}) {
-  if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
-  await importNativeBackgroundTurns({ silent: true });
-  if (await hasPendingNativeBackgroundTurn(state.sid)) {
-    toast('上一条回复还在生成，完成后再继续，避免上下文断开。', 2600);
+function beginActiveChatTurn(sid) {
+  const activeTurn = { sid, token: uuid(), started_at: Date.now() };
+  state.activeChatTurn = activeTurn;
+  return activeTurn;
+}
+
+function isActiveChatTurn(activeTurn) {
+  return !!activeTurn
+    && state.activeChatTurn?.sid === activeTurn.sid
+    && state.activeChatTurn?.token === activeTurn.token
+    && state.sid === activeTurn.sid
+    && state.chatScreen === 'thread';
+}
+
+function clearActiveChatTurn(activeTurn) {
+  if (!activeTurn || state.activeChatTurn?.token === activeTurn.token) state.activeChatTurn = null;
+}
+
+function detachActiveChatTurnForSid(sid) {
+  if (!state.activeChatTurn || (sid && state.activeChatTurn.sid !== sid)) return;
+  state.activeChatTurn = null;
+  removeStreamingBubble();
+  setChatSending(false);
+}
+
+function clearPendingCoalesceTimer() {
+  const coalesce = state.pendingCoalesce;
+  if (coalesce?.timer) clearTimeout(coalesce.timer);
+  state.pendingCoalesce = null;
+}
+
+function queuedItemTime(item) {
+  const msg = item?.message || {};
+  const meta = msg.meta || {};
+  const t = Number(item?.queuedAt || meta.queued_at || msg.created_at || msg.id || 0);
+  return Number.isFinite(t) && t > 0 ? t : Date.now();
+}
+
+function canMergeQueuedItems(first, next) {
+  if (!first || !next) return false;
+  const firstMeta = first.message?.meta || {};
+  const nextMeta = next.message?.meta || {};
+  if (firstMeta.quoted_message_id || nextMeta.quoted_message_id) return false;
+  if (messageImageAttachments(first.message || {}).length || messageImageAttachments(next.message || {}).length) return false;
+  return true;
+}
+
+function mergeableQueueHeadCount() {
+  if (!state.messageQueue.length) return 0;
+  let count = 1;
+  const first = state.messageQueue[0];
+  for (let i = 1; i < state.messageQueue.length && count < COALESCE_MAX_MESSAGES; i++) {
+    if (!canMergeQueuedItems(first, state.messageQueue[i])) break;
+    count += 1;
+  }
+  return count;
+}
+
+function nextQueueProcessDelay(now=Date.now()) {
+  if (!state.messageQueue.length) return 0;
+  const headCount = mergeableQueueHeadCount();
+  if (headCount >= COALESCE_MAX_MESSAGES) return 0;
+  const firstAt = queuedItemTime(state.messageQueue[0]);
+  const lastAt = queuedItemTime(state.messageQueue[Math.max(0, headCount - 1)]);
+  const dueAt = Math.min(firstAt + COALESCE_MAX_WAIT_MS, lastAt + COALESCE_INITIAL_DELAY_MS);
+  return Math.max(0, dueAt - now);
+}
+
+function takeMergeBatch(now=Date.now()) {
+  if (!state.messageQueue.length) return [];
+  const firstAt = queuedItemTime(state.messageQueue[0]);
+  const headCount = mergeableQueueHeadCount();
+  const waitReached = now - firstAt >= COALESCE_MAX_WAIT_MS;
+  const readyCount = headCount >= COALESCE_MAX_MESSAGES || waitReached ? headCount : Math.max(1, headCount);
+  return state.messageQueue.splice(0, Math.min(readyCount, COALESCE_MAX_MESSAGES));
+}
+
+function formatMergedQueueInput(batch=[]) {
+  return batch
+    .map(item => String(item?.message?.content || item?.text || '').trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+function queueCoalescedUserMessage(item) {
+  const now = Date.now();
+  let coalesce = state.pendingCoalesce;
+  if (!coalesce) {
+    coalesce = state.pendingCoalesce = { items: [], firstAt: now, timer: null };
+  }
+  coalesce.items.push(item);
+  if (coalesce.items.length >= COALESCE_MAX_MESSAGES || Date.now() - coalesce.firstAt >= COALESCE_MAX_WAIT_MS) {
+    flushCoalescedUserMessages();
     return;
+  }
+  if (coalesce.timer) clearTimeout(coalesce.timer);
+  const remainingMaxWait = Math.max(0, COALESCE_MAX_WAIT_MS - (Date.now() - coalesce.firstAt));
+  coalesce.timer = setTimeout(() => flushCoalescedUserMessages(), Math.min(COALESCE_INITIAL_DELAY_MS, remainingMaxWait));
+}
+
+function flushCoalescedUserMessages() {
+  const coalesce = state.pendingCoalesce;
+  if (!coalesce) return;
+  if (coalesce.timer) clearTimeout(coalesce.timer);
+  state.pendingCoalesce = null;
+  if (coalesce.items.length) scheduleMessageQueueProcessing();
+}
+
+async function submitChatText(txt, opts={}) {
+  const turnSid = state.sid;
+  if (!turnSid) { toast('先去 设置 创建一个会话'); return false; }
+  await importNativeBackgroundTurns({ silent: true });
+  if (state.sid !== turnSid) return false;
+  if (await hasPendingNativeBackgroundTurn(turnSid)) {
+    toast('上一条回复还在生成，完成后再继续，避免上下文断开。', 2600);
+    return false;
   }
   const queuedUserMessages = Array.isArray(opts.queuedUserMessages) ? opts.queuedUserMessages.filter(Boolean) : [];
   const quotedMessage = opts.quotedMessage === undefined ? state.quotedMessage : opts.quotedMessage;
   if (opts.clearInput !== false) setChatInputValue('', false);
+  const activeTurn = beginActiveChatTurn(turnSid);
   setChatSending(true);
   removeStreamingBubble();
   updateThinkingStage('理解问题', '正在读取你的输入');
   try {
     // run_turn 会先写用户消息，写入后立即触发 renderChat（乐观渲染）
-    await ENGINE.run_turn(state.sid, txt, renderChat, {
+    await ENGINE.run_turn(turnSid, txt, async () => {
+      if (!isActiveChatTurn(activeTurn)) return;
+      await renderChat();
+    }, {
       quotedMessage,
       queuedUserMessages,
       stream: true,
-      onStreamToken({ delta, accumulated, bubbleIndex }) {
-        updateStreamingBubble(accumulated);
+      onStreamToken({ delta, accumulated: visibleText, bubbleIndex }) {
+        if (!isActiveChatTurn(activeTurn)) return;
+        updateStreamingBubble(visibleText);
       },
       onThinkingStage({ stage, detail }) {
+        if (!isActiveChatTurn(activeTurn)) return;
         updateThinkingStage(stage, detail || '');
       },
       onBubbleStart(bubbleIndex) {
@@ -7955,23 +8669,42 @@ async function submitChatText(txt, opts={}) {
       onMetadataReady({ evaluation, action, anchor_updates }) {
         // eval metadata ready, could show confidence indicator
       },
+      onReplyStreamComplete({ queuedUserMessages }) {
+        if (!isActiveChatTurn(activeTurn)) return;
+        pauseStreamingThinking();
+      },
+      onUserStatusReady({ queuedUserMessages }) {
+        if (!isActiveChatTurn(activeTurn)) return;
+        clearQueuedUserStatusBadges(queuedUserMessages);
+      },
       onTurnComplete({ reply, action, evaluation, bubbles }) {
+        if (!isActiveChatTurn(activeTurn)) return;
         finalizeStreamingBubble();
-        if (state.sid) markSessionRead(state.sid);
+        markSessionRead(turnSid);
       },
       onError(err) {
+        if (!isActiveChatTurn(activeTurn)) return;
         removeStreamingBubble();
       }
     });
     if (quotedMessage && opts.clearQuote !== false) clearQuotedMessage();
+    return true;
   } catch(e) {
-    toast('LLM 失败: ' + (e.message||e), 4000);
-    removeStreamingBubble();
+    if (isActiveChatTurn(activeTurn)) {
+      toast('LLM 失败: ' + (e.message||e), 4000);
+      removeStreamingBubble();
+    }
+    return true;
   } finally {
-    setChatSending(false);
-    await renderChat();
-    refreshHeader();
-    scheduleMessageQueueProcessing(0);
+    if (isActiveChatTurn(activeTurn)) {
+      setChatSending(false);
+      clearActiveChatTurn(activeTurn);
+      await renderChat();
+      refreshHeader();
+      scheduleMessageQueueProcessing(0);
+    } else {
+      clearActiveChatTurn(activeTurn);
+    }
   }
 }
 
@@ -8002,14 +8735,17 @@ async function sendMessage(opts={}) {
   async function queueForNextTurn({ notifyBusy=true } = {}) {
     const quotedMessage = state.quotedMessage;
     const queuedMessage = await ENGINE.queue_pending_user_message(state.sid, txt, quotedMessage, { attachments });
-    state.messageQueue.push({ text: txt, message: queuedMessage, quotedMessage });
+    const queueItem = { text: txt, message: queuedMessage, quotedMessage, queuedAt: queuedMessage.meta?.queued_at || Date.now() };
+    state.messageQueue.push(queueItem);
     setChatInputValue('', false);
     if (activeImageDraft) closeImageDraft();
     if (quotedMessage) clearQuotedMessage();
     appendQueuedUserMessageBubble(queuedMessage);
     renderQueueIndicator();
     if (notifyBusy) toast('已进入对话，等待上一条回复完成', 1500);
-    return;
+    if (attachments.length || quotedMessage) scheduleMessageQueueProcessing(0);
+    else queueCoalescedUserMessage(queueItem);
+    return queuedMessage;
   }
   if (state.isGenerating || state.queueProcessing) {
     return queueForNextTurn({ notifyBusy: true });
@@ -8018,19 +8754,59 @@ async function sendMessage(opts={}) {
   const pendingNative = await hasPendingNativeBackgroundTurn(state.sid);
   if (pendingNative) {
     await queueForNextTurn({ notifyBusy: true });
-    scheduleMessageQueueProcessing();
     return;
   }
   await queueForNextTurn({ notifyBusy: pendingNative });
-  scheduleMessageQueueProcessing();
 }
 
-function scheduleMessageQueueProcessing(delay=360) {
+function scheduleMessageQueueProcessing(delay=null) {
   if (queueProcessTimer) clearTimeout(queueProcessTimer);
+  const wait = Number.isFinite(delay) ? Math.max(0, delay) : nextQueueProcessDelay();
   queueProcessTimer = setTimeout(() => {
     queueProcessTimer = null;
     processMessageQueue();
-  }, delay);
+  }, wait);
+}
+
+async function restorePendingMessageQueue(sid=state.sid) {
+  if (!sid) return 0;
+  const msgs = (await DB.bySid('messages', sid)).sort((a, b) => {
+    const am = a.meta || {};
+    const bm = b.meta || {};
+    const av = Number(am.queued_at || a.created_at || a.id || 0);
+    const bv = Number(bm.queued_at || b.created_at || b.id || 0);
+    return av - bv || (a.id || 0) - (b.id || 0);
+  });
+  const messageById = new Map(msgs.map(msg => [Number(msg.id), msg]));
+  let restored = 0;
+  for (const m of msgs) {
+    const meta = m.meta || {};
+    const status = m.status || meta.status || 'pending';
+    if (m.role !== 'user' || meta.kind !== 'queued_user_message') continue;
+    if (status === 'completed' || status === 'error') continue;
+    if (state.messageQueue.some(item => Number(item.message?.id) === Number(m.id))) continue;
+    if (status === 'processing') {
+      m.status = 'pending';
+      m.meta = { ...meta, status: 'pending', recovered_at: Date.now() };
+      await DB.put('messages', m);
+    }
+    const quotedId = Number(meta.quoted_message_id || 0);
+    const quotedMessage = quotedId
+      ? (messageById.get(quotedId) || {
+          id: quotedId,
+          role: meta.quoted_role || 'assistant',
+          content: meta.quoted_preview || '',
+          meta: { restored_quote_preview: true },
+        })
+      : null;
+    state.messageQueue.push({ text: String(m.content || ''), message: m, quotedMessage, queuedAt: meta.queued_at || m.created_at || Date.now() });
+    restored += 1;
+  }
+  if (restored) {
+    renderQueueIndicator();
+    scheduleMessageQueueProcessing(0);
+  }
+  return restored;
 }
 
 async function processMessageQueue() {
@@ -8038,14 +8814,23 @@ async function processMessageQueue() {
   state.queueProcessing = true;
   try {
     if (await hasPendingNativeBackgroundTurn(state.sid)) { renderQueueIndicator(); return; }
-    const batch = state.messageQueue.splice(0);
+    const batch = takeMergeBatch();
     if (!batch.length) { renderQueueIndicator(); return; }
     const queuedUserMessages = batch.map(item => item.message).filter(Boolean);
-    const existingUserMessages = queuedUserMessages.filter(msg => msg && msg.id);
-    const combinedText = existingUserMessages.map(msg => String(msg.content || '').trim()).filter(Boolean).join('\n');
+    const combinedText = formatMergedQueueInput(batch);
     if (!combinedText) { renderQueueIndicator(); return; }
     renderQueueIndicator();
-    await submitChatText(combinedText, { queuedUserMessages, quotedMessage: null, clearInput: false, clearQuote: false });
+    const accepted = await submitChatText(combinedText, {
+      queuedUserMessages,
+      quotedMessage: batch.length === 1 ? (batch[0].quotedMessage || null) : null,
+      clearInput: false,
+      clearQuote: false,
+    });
+    if (accepted === false) {
+      state.messageQueue.unshift(...batch);
+      scheduleMessageQueueProcessing(1000);
+      return;
+    }
   } catch (e) {
     toast('队列消息发送失败: ' + (e.message||e), 4000);
   } finally {
@@ -8058,19 +8843,8 @@ async function processMessageQueue() {
 }
 
 function renderQueueIndicator() {
-  let badge = $('#queue-badge');
-  const count = state.messageQueue.length;
-  if (!count) {
-    if (badge) badge.remove();
-    return;
-  }
-  if (!badge) {
-    badge = document.createElement('div');
-    badge.id = 'queue-badge';
-    badge.className = 'bg-amber-700 text-amber-100 text-[10px] px-2 py-0.5 rounded-full';
-    $('#chat-composer')?.appendChild(badge);
-  }
-  badge.textContent = `${count} 条排队`;
+  const badge = $('#queue-badge');
+  if (badge) badge.remove();
 }
 
 async function renderPendingQueueMessages() {
@@ -10977,6 +11751,7 @@ async function renderSettings() {
     e.stopPropagation();
     if (!confirm('删除该会话及所有数据？')) return;
     const sid = b.dataset.delSess;
+    detachActiveChatTurnForSid(sid);
     await ENGINE.delete_session(sid);
     if (state.sid === sid) { state.sid = null; await DB.kvSet('current_sid', null); }
     await refreshHeader(); renderSettings(); renderChat();
@@ -11061,28 +11836,23 @@ function renderGlobalProactiveControls() {
       ${esc(meta.label)}
     </button>`).join('');
   return `
-    <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3">
+    <div class="global-proactive-mode-panel bg-neutral-900 border border-neutral-800 rounded-lg p-3 space-y-3" data-global-proactive-panel data-active-mode="${esc(activeMode)}">
       <div>
-        <div class="text-[11px] text-neutral-500">全局类主动对话</div>
+        <div class="text-[11px] text-neutral-500">全局主动对话设置</div>
         <div class="text-sm text-neutral-200">${esc(PROACTIVE_MODES[activeMode]?.label || '离线')}</div>
       </div>
-      <div class="segmented-control">${modeButtons}</div>
-      <label class="block ${activeMode === 'custom' ? '' : 'hidden'}" data-global-proactive-custom>
-        <span class="text-[11px] text-neutral-500">自定义间隔（分钟）</span>
-        <input id="global-proactive-custom-minutes" type="number" min="5" max="1440" step="5" value="${esc(String(cfg.customMinutes))}" class="native-config-select mt-1">
-      </label>
+      <div class="segmented-control global-proactive-mode-strip" data-global-proactive-strip>${modeButtons}</div>
       <div class="text-[11px] text-neutral-500 leading-relaxed">${globalProactiveStatusText(cfg, activeMode)}</div>
     </div>`;
 }
 
 function globalProactiveStatusText(cfg, activeMode=(cfg.enabled ? cfg.mode : 'offline')) {
   const meta = PROACTIVE_MODES[activeMode] || PROACTIVE_MODES.offline;
-  if (activeMode === 'offline') return '离线时不会主动发起对话。';
+  if (activeMode === 'offline') return '全局离线：所有会话都不会主动发起对话。';
+  if (activeMode === 'custom') return '跟随会话窗原始设定未确定的默认为离线';
   const last = cfg.lastAt ? new Date(cfg.lastAt).toLocaleString() : '尚未触发';
-  const freq = activeMode === 'custom'
-    ? `约每 ${cfg.customMinutes} 分钟`
-    : (meta.minIntervalMs ? '约 30-60 分钟随机' : `约 ${Math.round((meta.intervalMs || 0) / 3600000)} 小时`);
-  return `${meta.label}：${freq}；上次主动对话：${last}。`;
+  const freq = meta.minIntervalMs ? '约 30-60 分钟随机' : `约 ${Math.round((meta.intervalMs || 0) / 3600000)} 小时`;
+  return `全局${meta.label}：${freq}；所有会话共用；上次触发：${last}。`;
 }
 
 function bindGlobalProactiveControls() {
@@ -11092,9 +11862,63 @@ function bindGlobalProactiveControls() {
       renderSessionDrawer();
     });
   });
-  $('#global-proactive-custom-minutes')?.addEventListener('change', e => {
-    setProactiveConfig({ mode: 'custom', customMinutes: e.target.value });
-    renderSessionDrawer();
+  bindGlobalProactiveSwipe();
+  requestAnimationFrame(() => {
+    $('[data-global-proactive-mode].active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  });
+}
+
+function setAdjacentGlobalProactiveMode(direction) {
+  const order = Object.keys(PROACTIVE_MODES);
+  const current = proactiveConfig();
+  const active = current.enabled ? current.mode : 'offline';
+  const index = Math.max(0, order.indexOf(active));
+  const next = order[Math.min(order.length - 1, Math.max(0, index + direction))];
+  if (!next || next === active) return;
+  setProactiveConfig({ mode: next });
+  renderSessionDrawer();
+}
+
+function bindGlobalProactiveSwipe() {
+  const panel = $('[data-global-proactive-panel]');
+  if (!panel) return;
+  let startX = 0;
+  let startY = 0;
+  let tracking = false;
+  let pointerTracking = false;
+  let lastTouchEndAt = 0;
+  const finishSwipe = (dx, dy) => {
+    if (Math.abs(dx) < 34 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+    setAdjacentGlobalProactiveMode(dx < 0 ? 1 : -1);
+  };
+  panel.addEventListener('touchstart', e => {
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    tracking = true;
+  }, { passive: true });
+  panel.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    lastTouchEndAt = Date.now();
+    finishSwipe(dx, dy);
+  }, { passive: true });
+  panel.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') return;
+    startX = e.clientX;
+    startY = e.clientY;
+    pointerTracking = true;
+  });
+  panel.addEventListener('pointerup', e => {
+    if (!pointerTracking) return;
+    pointerTracking = false;
+    if (Date.now() - lastTouchEndAt < 500) return;
+    finishSwipe(e.clientX - startX, e.clientY - startY);
   });
 }
 
@@ -11944,6 +12768,8 @@ async function createSessionFromForm() {
     avatar_image: state.newAvatarImage,
     avatar_hidden: $('#new-avatar-hidden').checked,
   });
+  const previousSid = state.sid;
+  if (previousSid && previousSid !== s.id) detachActiveChatTurnForSid(previousSid);
   state.sid = s.id;
   state.chatScreen = 'thread';
   await DB.kvSet('current_sid', s.id);
@@ -12097,6 +12923,7 @@ refreshIcons();
     const allSess = await DB.all('sessions');
     if (!allSess.length) { switchTab('settings'); }
   }
+  if (state.sid) await restorePendingMessageQueue(state.sid);
   await refreshHeader();
   await renderChat();
   initAppHistory();

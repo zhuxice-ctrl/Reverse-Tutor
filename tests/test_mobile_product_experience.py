@@ -30,9 +30,24 @@ def test_mobile_header_uses_global_sidebar_and_top_right_new_entry():
     assert "API 状态" not in sidebar_renderer
     assert "当前会话" not in sidebar_renderer
     assert "renderGlobalProactiveControls" in sidebar_renderer
-    assert "全局类主动对话" in html
+    assert "全局主动对话设置" in html
+    assert "全局离线：所有会话都不会主动发起对话。" in html
+    assert "跟随会话窗原始设定未确定的默认为离线" in html
+    assert "约每 ${cfg.customMinutes} 分钟" not in html
+    assert "global-proactive-custom-minutes" not in html
+    assert 'id="global-proactive-custom-minutes"' not in html
+    assert "自定义间隔（分钟）" not in html
     assert "data-global-proactive-mode" in html
-    assert 'value="${esc(String(cfg.customMinutes))}"' in html
+    assert "data-global-proactive-panel" in html
+    assert "data-global-proactive-strip" in html
+    assert ".global-proactive-mode-strip {\n    gap: 5px;" in html
+    assert "global-proactive-mode-strip .seg-option" in html
+    assert "function bindGlobalProactiveSwipe" in html
+    assert "function setAdjacentGlobalProactiveMode" in html
+    assert "Math.abs(dx) < 34" in html
+    assert "pointerdown" in html
+    assert "pointerup" in html
+    assert "scrollIntoView({ block: 'nearest', inline: 'center' })" in html
 
 
 def test_mobile_session_thread_is_immersive_without_global_navigation():
@@ -356,10 +371,41 @@ def test_mobile_thinking_chain_is_public_strategy_only_and_animated():
 
     assert "思考摘要" not in html
     assert "思考链" in streaming_fn
-    assert "公开策略链" in streaming_fn
+    assert "可公开推理旁白" in streaming_fn
     assert "thinking..." in streaming_fn
+    assert "data-thinking-monologue" in streaming_fn
+    assert "thinking-monologue live" in streaming_fn
     assert "思考链" in summary_fn
-    assert "公开策略链" in summary_fn
+    assert "可公开推理旁白" in summary_fn
+    assert "function publicThinkingSentence" in html
+    assert "function appendThinkingNarration" in html
+    assert "function tickThinkingNarration" in html
+    assert "function resetThinkingNarration" in html
+    assert "function pauseStreamingThinking" in html
+    assert "const THINKING_CHAIN_OPEN_KEY = 'rt-mobile-thinking-chain-open';" in html
+    assert "function thinkingChainOpen" in html
+    assert "function setThinkingChainOpen" in html
+    assert "function bindThinkingPreference" in html
+    assert "${thinkingChainOpen() ? 'open' : ''}" not in streaming_fn
+    assert 'details class="thinking-panel text-[11px] text-neutral-500 mb-2">' in streaming_fn
+    assert "bindThinkingPreference(bubble.querySelector('.thinking-panel'))" not in streaming_fn
+    assert "${thinkingChainOpen() ? 'open' : ''}" in summary_fn
+    assert "$$('.process-summary').forEach(bindThinkingPreference);" in html
+    assert "thinkingCursor" in html
+    assert "我先不急着答" in html
+    assert "我脑子里先过一遍资料线索" in html
+    assert "回复要像学生自然开口" in html
+    assert "function renderProcessMonologue" in html
+    assert "thinking-monologue" in html
+    assert "<dt>判断</dt>" not in summary_fn
+    assert "<dt>依据</dt>" not in summary_fn
+    update_streaming_fn = html.split("function updateStreamingBubble", 1)[1].split("function finalizeStreamingBubble", 1)[0]
+    assert "thinkingChainOpen()" not in update_streaming_fn
+    assert "details.open = false" in update_streaming_fn
+    pause_streaming_fn = html.split("function pauseStreamingThinking", 1)[1].split("function finalizeStreamingBubble", 1)[0]
+    assert "indicator.remove()" in pause_streaming_fn
+    assert "details.open = false" in pause_streaming_fn
+    assert "live.classList.remove('live')" in pause_streaming_fn
     assert "reasoning_content" not in html
     assert "hidden_reasoning" not in html
 
