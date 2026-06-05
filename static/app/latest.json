@@ -1,18 +1,18 @@
 {
-  "versionCode": 44,
-  "versionName": "0.19.5",
+  "versionCode": 45,
+  "versionName": "0.19.6",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.5.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.5/Reverse-Tutor-v0.19.5.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.6/Reverse-Tutor-v0.19.6.apk"
   ],
-  "sha256": "8e3b8836d2e516eaf6830445ee1358ee3ba0ce16999b18985bc37f9dc8133b32",
-  "publishedAt": "2026-06-05",
+  "sha256": "d1e2ef22487188f02758b23187b9db94be5ace8e1e769350c1f5374e6e1e9099",
+  "publishedAt": "2026-06-06",
   "releaseNotes": [
-    "修复从旧 APK 升级后，Android WebView 仍被旧 Service Worker / app shell 缓存卡住，导致手机端图谱不显示的问题。",
-    "升级时原生层会清理旧 rt-mobile 缓存和 Service Worker 并自动重载，不删除 IndexedDB 里的聊天、图谱和设置数据。",
-    "延续图谱 IndexedDB v4 迁移和模型能力自动多模态逻辑。",
-    "补丁 APK 命名为 Reverse-Tutor-v0.19.5.apk。"
+    "继续修复手机端图谱升级后仍不显示的问题：原生清缓存脚本改为兼容旧 WebView 的 Promise.all + 超时兜底。",
+    "同一原生版本清缓存最多重试 3 次，避免上一次脚本未执行成功后永久跳过。",
+    "仍只清理旧 rt-mobile 缓存和 Service Worker，不删除 IndexedDB 里的聊天、图谱和设置数据。",
+    "补丁 APK 命名为 Reverse-Tutor-v0.19.6.apk。"
   ]
 }

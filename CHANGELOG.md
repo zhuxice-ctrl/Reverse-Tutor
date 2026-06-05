@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.19.6 - 2026-06-06
+
+- 继续修复手机端图谱升级后仍不显示的问题：原生清缓存脚本改为兼容旧 WebView 的 `Promise.all` + 超时兜底。
+- 同一原生版本清缓存最多重试 3 次，避免上一次脚本未执行成功后永久跳过。
+- 仍只清理旧 `rt-mobile` 缓存和 Service Worker，不删除 IndexedDB 里的聊天、图谱和设置数据。
+- 补丁 APK 命名为 `Reverse-Tutor-v0.19.6.apk`。
+
 ## v0.19.5 - 2026-06-05
 
 - 修复从旧 APK 升级后，Android WebView 仍被旧 Service Worker / app shell 缓存卡住，导致手机端图谱不显示的问题。

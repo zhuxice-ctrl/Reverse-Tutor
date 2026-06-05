@@ -13,13 +13,13 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/zhuxice-ctrl/Reverse-Tutor?style=for-the-badge&label=release&color=0f766e">
   </a>
   <img alt="Tests" src="https://img.shields.io/badge/tests-pytest-2563eb?style=for-the-badge">
-  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.19.5-0f766e?style=for-the-badge">
+  <img alt="Current APK" src="https://img.shields.io/badge/apk-0.19.6-0f766e?style=for-the-badge">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-334155?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/android-capacitor-16a34a?style=for-the-badge">
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.5.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -55,6 +55,13 @@ Reverse Tutor 是一个“反向教学”和“目标推动”工具。你不再
 | 本地长期配置 | 移动端会把 LLM 配置和会话数据保存在设备侧，绑定 API 后可长期使用。 |
 | Android 后台回复 | APK 内置后台服务，退出界面后仍可继续处理已提交的回复任务，完成后通过系统通知提醒。 |
 | 应用内更新 | 内置自建高速下载源和 GitHub 备用源，支持应用内检查新版 APK。 |
+
+## v0.19.6 更新重点
+
+- 继续修复手机端图谱升级后仍不显示的问题：原生清缓存脚本改为兼容旧 WebView 的 `Promise.all` + 超时兜底。
+- 同一原生版本清缓存最多重试 3 次，避免上一次脚本未执行成功后永久跳过。
+- 仍只清理旧 `rt-mobile` 缓存和 Service Worker，不删除 IndexedDB 里的聊天、图谱和设置数据。
+- 补丁 APK 命名为 `Reverse-Tutor-v0.19.6.apk`。
 
 ## v0.19.5 更新重点
 
@@ -252,8 +259,8 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.5.apk
-- GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.5/Reverse-Tutor-v0.19.5.apk
+- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk
+- GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.6/Reverse-Tutor-v0.19.6.apk
 
 ## 应用更新
 
@@ -274,17 +281,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 44,
-  "versionName": "0.19.5",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.5.apk",
+  "versionCode": 45,
+  "versionName": "0.19.6",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.5/Reverse-Tutor-v0.19.5.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.6/Reverse-Tutor-v0.19.6.apk"
   ],
-  "publishedAt": "2026-06-05",
+  "publishedAt": "2026-06-06",
   "releaseNotes": [
-    "修复旧 APK 升级后仍加载旧 app shell，导致手机端图谱不显示的问题",
-    "原生层清理旧 rt-mobile 缓存和 Service Worker，不删除 IndexedDB 数据",
-    "延续图谱迁移和自动多模态逻辑"
+    "继续修复手机端图谱升级后仍不显示的问题",
+    "清缓存脚本兼容旧 WebView，并加入最多 3 次重试",
+    "仍不删除 IndexedDB 里的聊天、图谱和设置数据"
   ]
 }
 ```

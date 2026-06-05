@@ -129,7 +129,11 @@ def test_android_main_activity_refreshes_stale_app_shell_cache_on_native_upgrade
 
     assert "APP_SHELL_PREFS" in main
     assert "LAST_NATIVE_VERSION_KEY" in main
+    assert "CACHE_REFRESH_ATTEMPT_VERSION_KEY" in main
+    assert "CACHE_REFRESH_ATTEMPT_COUNT_KEY" in main
+    assert "MAX_CACHE_REFRESH_ATTEMPTS" in main
     assert "shouldRefreshAppShellForNativeVersion()" in main
+    assert "markAppShellRefreshScheduled(currentVersion)" in main
     assert "currentNativeVersionCode()" in main
     assert "refreshStaleAppShellCache()" in main
     assert "getPackageManager().getPackageInfo(getPackageName(), 0)" in main
@@ -141,6 +145,8 @@ def test_android_main_activity_refreshes_stale_app_shell_cache_on_native_upgrade
     assert "rt-mobile-" in main
     assert "native-cache-bust" in main
     assert "location.replace" in main
+    assert "Promise.all(tasks)" in main
+    assert "Promise.allSettled" not in main
     assert "WebStorage.getInstance().deleteAllData()" not in main
 
 

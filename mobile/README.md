@@ -73,17 +73,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 44,
-  "versionName": "0.19.5",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.5.apk",
+  "versionCode": 45,
+  "versionName": "0.19.6",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.5/Reverse-Tutor-v0.19.5.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.6/Reverse-Tutor-v0.19.6.apk"
   ],
-  "publishedAt": "2026-06-05",
+  "publishedAt": "2026-06-06",
   "releaseNotes": [
-    "修复旧 APK 升级后仍加载旧 app shell，导致手机端图谱不显示的问题",
-    "原生层清理旧 rt-mobile 缓存和 Service Worker，不删除 IndexedDB 数据",
-    "延续图谱迁移和自动多模态逻辑"
+    "继续修复手机端图谱升级后仍不显示的问题",
+    "清缓存脚本兼容旧 WebView，并加入最多 3 次重试",
+    "仍不删除 IndexedDB 里的聊天、图谱和设置数据"
   ]
 }
 ```
