@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.19.5 - 2026-06-05
+
+- 修复从旧 APK 升级后，Android WebView 仍被旧 Service Worker / app shell 缓存卡住，导致手机端图谱不显示的问题。
+- 升级时原生层会清理旧 `rt-mobile` 缓存和 Service Worker 并自动重载，不删除 IndexedDB 里的聊天、图谱和设置数据。
+- 延续图谱 IndexedDB v4 迁移和模型能力自动多模态逻辑。
+- 补丁 APK 命名为 `Reverse-Tutor-v0.19.5.apk`。
+
 ## v0.19.4 - 2026-06-05
 
 - 修复旧版本升级后 IndexedDB 缺少图谱对象仓库时，图谱页面无法使用的问题。

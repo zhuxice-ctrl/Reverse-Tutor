@@ -431,7 +431,7 @@ def test_mobile_service_worker_cache_key_tracks_release_version():
     sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "rt-mobile-v0.19.4-43-auto-multimodal-cache" in sw
+    assert "rt-mobile-v0.19.5-44-native-cache-refresh" in sw
     assert "'./index.html'," not in sw.split("const SHELL =", 1)[1].split("];", 1)[0]
     assert "fetch(e.request, { cache: 'no-store' })" in sw
     assert "url.pathname.endsWith('/index.html')" in sw

@@ -124,6 +124,26 @@ def test_android_background_llm_plugin_sources_exist_and_are_registered():
     assert "打开应用查看后台生成的回复。" not in service
 
 
+def test_android_main_activity_refreshes_stale_app_shell_cache_on_native_upgrade():
+    main = (JAVA / "MainActivity.java").read_text(encoding="utf-8")
+
+    assert "APP_SHELL_PREFS" in main
+    assert "LAST_NATIVE_VERSION_KEY" in main
+    assert "shouldRefreshAppShellForNativeVersion()" in main
+    assert "currentNativeVersionCode()" in main
+    assert "refreshStaleAppShellCache()" in main
+    assert "getPackageManager().getPackageInfo(getPackageName(), 0)" in main
+    assert "bridge.getWebView().clearCache(true)" in main
+    assert "navigator.serviceWorker.getRegistrations()" in main
+    assert ".unregister()" in main
+    assert "caches.keys()" in main
+    assert "caches.delete(key)" in main
+    assert "rt-mobile-" in main
+    assert "native-cache-bust" in main
+    assert "location.replace" in main
+    assert "WebStorage.getInstance().deleteAllData()" not in main
+
+
 def test_mobile_frontend_enqueues_and_imports_native_background_turns():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 

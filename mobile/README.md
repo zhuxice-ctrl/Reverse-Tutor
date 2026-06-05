@@ -73,17 +73,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 43,
-  "versionName": "0.19.4",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk",
+  "versionCode": 44,
+  "versionName": "0.19.5",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.5.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.5/Reverse-Tutor-v0.19.5.apk"
   ],
   "publishedAt": "2026-06-05",
   "releaseNotes": [
-    "修复旧版本升级后图谱页面无法使用的问题",
-    "配置模型后自动尝试多模态，不再显示模型能力开关",
-    "更新移动端 app shell 缓存版本"
+    "修复旧 APK 升级后仍加载旧 app shell，导致手机端图谱不显示的问题",
+    "原生层清理旧 rt-mobile 缓存和 Service Worker，不删除 IndexedDB 数据",
+    "延续图谱迁移和自动多模态逻辑"
   ]
 }
 ```
