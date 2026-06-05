@@ -2177,16 +2177,8 @@
             </select>
             <div id="cfg-api-type-segments" class="segmented-control segmented-scroll"></div>
           </label>
-          <label class="block config-section">
-            <span class="text-xs text-neutral-400">模型能力</span>
-            <select id="cfg-capability" class="native-config-select">
-              <option value="text">文本</option>
-              <option value="vision">文本 + 图片</option>
-              <option value="vision_files">文本 + 图片 + 文件</option>
-            </select>
-            <div id="cfg-capability-segments" class="segmented-control segmented-scroll"></div>
-            <div id="cfg-vision-hint" class="text-[11px] text-neutral-500 mt-1 leading-relaxed"></div>
-          </label>
+          <input id="cfg-capability" type="hidden" value="text">
+          <div id="cfg-vision-hint" class="text-[11px] text-neutral-500 leading-relaxed">能力自动判断：配置模型后自动尝试多模态。</div>
           <label class="block config-section">
             <span class="text-xs text-neutral-400">Base URL</span>
             <input id="cfg-base" type="text" placeholder="http://localhost:11434/v1（ollama 示例）" class="mt-1 w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm">
@@ -2286,7 +2278,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.19.3 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.19.4 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -2688,8 +2680,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 42;
-const APP_VERSION_NAME = '0.19.3';
+const APP_VERSION_CODE = 43;
+const APP_VERSION_NAME = '0.19.4';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -2770,6 +2762,22 @@ const LLM_PROVIDERS = [
   { id:'ollama', label:'Ollama 本机', base_url:'http://localhost:11434/v1', model:'llama3.2', models:['llama3.2','qwen2.5','gemma2'], api_type:'openai', capability:'text', requires_key:false },
   { id:'lmstudio', label:'LM Studio 本机', base_url:'http://localhost:1234/v1', model:'local-model', models:['local-model','qwen2.5-7b-instruct','llama-3.2-3b-instruct'], api_type:'openai', capability:'text', requires_key:false },
 ];
+function inferLlmCapability(c = {}) {
+  const provider = String(c.provider || '').trim();
+  const preset = LLM_PROVIDERS.find(p => p.id === provider);
+  const baseUrl = String(c.base_url || '').trim();
+  const model = String(c.model || '').trim();
+  const hasEndpoint = !!(baseUrl && model);
+  if (!hasEndpoint) return preset?.capability || 'text';
+  if (provider === FREE_DEFAULT_LLM_CONFIG.provider && !String(c.api_key || '').trim()) {
+    return FREE_DEFAULT_LLM_CONFIG.capability || 'text';
+  }
+  const modelKey = model.toLowerCase();
+  const knownMultimodal = /(^|[-_/])(?:vl|vision|omni)(?:[-_/]|$)|gpt-4o|gpt-4\.1|gemini|claude-3|pixtral|llava|glm-4v|qwen.*vl/.test(modelKey);
+  if (knownMultimodal) return 'vision_files';
+  return 'vision_files';
+}
+
 const API_TYPE_OPTIONS = [
   { value:'openai', label:'OpenAI', detail:'Chat API' },
   { value:'anthropic', label:'Anthropic', detail:'Messages API' },
@@ -2778,11 +2786,6 @@ const API_TYPE_LABELS = {
   openai: 'OpenAI 格式',
   anthropic: 'Claude / Anthropic 格式',
 };
-const CAPABILITY_OPTIONS = [
-  { value:'text', label:'文本', detail:'聊天' },
-  { value:'vision', label:'图片', detail:'识图' },
-  { value:'vision_files', label:'文件', detail:'图片/文件' },
-];
 let llmConfigFormDirty = false;
 
 function markLlmConfigFormDirty() {
@@ -3024,17 +3027,24 @@ function normalizeLlmConfig(c = {}) {
   const provider = String(c.provider || 'custom').trim() || 'custom';
   const rawApiType = String(c.api_type || '').trim();
   let apiType = rawApiType ? normalizeApiType(rawApiType) : 'openai';
-  let capability = String(c.capability || 'text').trim() || 'text';
+  let capability = String(c.capability || '').trim();
   let baseUrl = String(c.base_url || '').trim();
   let apiKey = String(c.api_key || '').trim();
   let model = String(c.model || '').trim();
   if (provider === FREE_DEFAULT_LLM_CONFIG.provider) {
     apiType = rawApiType ? apiType : FREE_DEFAULT_LLM_CONFIG.api_type;
-    capability = capability || FREE_DEFAULT_LLM_CONFIG.capability;
     baseUrl = baseUrl || FREE_DEFAULT_LLM_CONFIG.base_url;
     apiKey = apiKey || FREE_DEFAULT_LLM_CONFIG.api_key;
     model = model || FREE_DEFAULT_LLM_CONFIG.model;
   }
+  capability = inferLlmCapability({
+    provider,
+    api_type: apiType,
+    capability,
+    base_url: baseUrl,
+    api_key: apiKey,
+    model,
+  });
   return {
     provider,
     api_type: apiType,
@@ -4041,9 +4051,18 @@ function renderImageAttachments(attachments=[]) {
 // ============== IndexedDB 封装 ==============
 const DB = (() => {
   const DB_NAME = 'reverse-tutor';
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   const STORES = ['sessions', 'messages', 'anchors', 'mastery', 'error_log', 'kg_nodes', 'kg_edges', 'kv'];
   let _db = null;
+
+  function ensureObjectStore(db, upgradeTx, name, options) {
+    if (db.objectStoreNames.contains(name)) return upgradeTx.objectStore(name);
+    return db.createObjectStore(name, options);
+  }
+
+  function ensureIndex(store, name, keyPath, options={}) {
+    if (!store.indexNames.contains(name)) store.createIndex(name, keyPath, options);
+  }
 
   function open() {
     if (_db) return Promise.resolve(_db);
@@ -4051,41 +4070,26 @@ const DB = (() => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = (e) => {
         const d = e.target.result;
-        if (!d.objectStoreNames.contains('sessions')) {
-          d.createObjectStore('sessions', { keyPath: 'id' });
-        }
-        if (!d.objectStoreNames.contains('messages')) {
-          const s = d.createObjectStore('messages', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('sid', 'sid', { unique: false });
-        }
-        if (!d.objectStoreNames.contains('anchors')) {
-          const s = d.createObjectStore('anchors', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('sid', 'sid', { unique: false });
-        }
-        if (!d.objectStoreNames.contains('mastery')) {
-          const s = d.createObjectStore('mastery', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('sid_kp', ['sid', 'kp'], { unique: true });
-          s.createIndex('sid', 'sid', { unique: false });
-        }
-        if (!d.objectStoreNames.contains('error_log')) {
-          const s = d.createObjectStore('error_log', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('sid', 'sid', { unique: false });
-        }
-        if (!d.objectStoreNames.contains('kg_nodes')) {
-          const s = d.createObjectStore('kg_nodes', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('sid', 'sid', { unique: false });
-          s.createIndex('sid_kind_name', ['sid', 'kind', 'name'], { unique: true });
-        }
-        if (!d.objectStoreNames.contains('kg_edges')) {
-          const s = d.createObjectStore('kg_edges', { keyPath: 'id', autoIncrement: true });
-          s.createIndex('sid', 'sid', { unique: false });
-          s.createIndex('source_id', 'source_id', { unique: false });
-          s.createIndex('target_id', 'target_id', { unique: false });
-          s.createIndex('relation', 'relation', { unique: false });
-        }
-        if (!d.objectStoreNames.contains('kv')) {
-          d.createObjectStore('kv', { keyPath: 'k' });
-        }
+        const upgradeTx = e.target.transaction;
+        ensureObjectStore(d, upgradeTx, 'sessions', { keyPath: 'id' });
+        let s = ensureObjectStore(d, upgradeTx, 'messages', { keyPath: 'id', autoIncrement: true });
+        ensureIndex(s, 'sid', 'sid', { unique: false });
+        s = ensureObjectStore(d, upgradeTx, 'anchors', { keyPath: 'id', autoIncrement: true });
+        ensureIndex(s, 'sid', 'sid', { unique: false });
+        s = ensureObjectStore(d, upgradeTx, 'mastery', { keyPath: 'id', autoIncrement: true });
+        ensureIndex(s, 'sid_kp', ['sid', 'kp'], { unique: true });
+        ensureIndex(s, 'sid', 'sid', { unique: false });
+        s = ensureObjectStore(d, upgradeTx, 'error_log', { keyPath: 'id', autoIncrement: true });
+        ensureIndex(s, 'sid', 'sid', { unique: false });
+        s = ensureObjectStore(d, upgradeTx, 'kg_nodes', { keyPath: 'id', autoIncrement: true });
+        ensureIndex(s, 'sid', 'sid', { unique: false });
+        ensureIndex(s, 'sid_kind_name', ['sid', 'kind', 'name'], { unique: true });
+        s = ensureObjectStore(d, upgradeTx, 'kg_edges', { keyPath: 'id', autoIncrement: true });
+        ensureIndex(s, 'sid', 'sid', { unique: false });
+        ensureIndex(s, 'source_id', 'source_id', { unique: false });
+        ensureIndex(s, 'target_id', 'target_id', { unique: false });
+        ensureIndex(s, 'relation', 'relation', { unique: false });
+        ensureObjectStore(d, upgradeTx, 'kv', { keyPath: 'k' });
       };
       req.onsuccess = () => { _db = req.result; resolve(_db); };
       req.onerror = () => reject(req.error);
@@ -13476,19 +13480,38 @@ function renderModelPresetChips(provider=llmProviderById($('#cfg-provider')?.val
   `).join('');
   row.querySelectorAll('[data-model-preset]').forEach(btn => btn.addEventListener('click', () => {
     input.value = btn.dataset.modelPreset;
+    markLlmConfigFormDirty();
     renderModelPresetChips(provider);
+    renderVisionCapabilityHint();
   }));
+}
+
+function inferLlmCapabilityFromForm(existing = LLM.get_config()) {
+  const keyInput = $('#cfg-key')?.value?.trim() || '';
+  return inferLlmCapability({
+    provider: $('#cfg-provider')?.value || 'custom',
+    api_type: $('#cfg-api-type')?.value || 'openai',
+    base_url: $('#cfg-base')?.value || '',
+    api_key: keyInput || existing.api_key || '',
+    model: $('#cfg-model')?.value || '',
+  });
+}
+
+function capabilitySummaryLabel(capability) {
+  return capability === 'text' ? '文本' : '自动多模态';
 }
 
 function renderVisionCapabilityHint() {
   const el = $('#cfg-vision-hint');
   if (!el) return;
-  const capability = $('#cfg-capability')?.value || 'text';
+  const capability = inferLlmCapabilityFromForm();
+  const capabilityInput = $('#cfg-capability');
+  if (capabilityInput) capabilityInput.value = capability;
   const model = $('#cfg-model')?.value || '';
   const supportsVision = capability === 'vision' || capability === 'vision_files';
   el.textContent = supportsVision
-    ? `支持视觉：图片型 PDF 可在命中节点后交给 ${model || '当前模型'} 阅读页面图片。`
-    : '当前模型不支持视觉：图片型 PDF 会先保存页面图，但不会被读取；切换到支持视觉的模型后可继续分析。';
+    ? `能力自动判断：已对 ${model || '当前模型'} 自动尝试多模态；如果模型实际不支持，调用时会返回错误。`
+    : '能力自动判断：当前配置未填完整，暂按文本聊天处理；配置 Base URL 和模型后会自动尝试多模态。';
   el.className = 'text-[11px] mt-1 leading-relaxed ' + (supportsVision ? 'text-emerald-400' : 'text-amber-400');
 }
 
@@ -13557,15 +13580,10 @@ function renderConfigPickerUi() {
   if (summary) {
     const keyState = provider.requires_key === false ? '免 Key' : '需 API Key';
     const apiLabel = (API_TYPE_OPTIONS.find(x => x.value === ($('#cfg-api-type').value || provider.api_type)) || {}).label || provider.api_type || '自定义';
-    const capLabel = (CAPABILITY_OPTIONS.find(x => x.value === ($('#cfg-capability').value || provider.capability)) || {}).label || provider.capability || '文本';
+    const capLabel = capabilitySummaryLabel(inferLlmCapabilityFromForm());
     summary.textContent = `${apiLabel} · ${capLabel} · ${model || '手动模型'} · ${keyState}`;
   }
   renderSegmentedControl('#cfg-api-type-segments', API_TYPE_OPTIONS, $('#cfg-api-type').value || 'openai', applyApiTypeSelection);
-  renderSegmentedControl('#cfg-capability-segments', CAPABILITY_OPTIONS, $('#cfg-capability').value || 'text', value => {
-    markLlmConfigFormDirty();
-    $('#cfg-capability').value = value;
-    renderConfigPickerUi();
-  });
   renderModelPresetChips(provider);
   renderVisionCapabilityHint();
 }
@@ -13650,9 +13668,9 @@ function applyLlmProviderPreset(providerId) {
   markLlmConfigFormDirty();
   $('#cfg-provider').value = preset.id;
   $('#cfg-api-type').value = preset.api_type || 'openai';
-  $('#cfg-capability').value = preset.capability || 'text';
   $('#cfg-base').value = preset.base_url || '';
   $('#cfg-model').value = preset.model || '';
+  $('#cfg-capability').value = inferLlmCapability(preset);
   $('#cfg-key').value = '';
   showCfgKeyForEditing();
   renderConfigPickerUi();
@@ -13867,13 +13885,21 @@ function collectLlmConfigFromForm(existing = LLM.get_config()) {
   let model = $('#cfg-model').value.trim();
   const sameKeyScope = providerKeyScope(existing.provider) === providerKeyScope(resolvedProvider);
   const keepExistingKey = !keyInput && sameKeyScope;
+  const apiKey = keyInput || (keepExistingKey ? existing.api_key : '') || '';
+  const apiType = $('#cfg-api-type').value || 'openai';
   return {
     config: {
       provider: resolvedProvider,
-      api_type: $('#cfg-api-type').value || 'openai',
-      capability: $('#cfg-capability').value || 'text',
+      api_type: apiType,
+      capability: inferLlmCapability({
+        provider: resolvedProvider,
+        api_type: apiType,
+        base_url: baseUrl,
+        api_key: apiKey,
+        model,
+      }),
       base_url: baseUrl,
-      api_key: keyInput || (keepExistingKey ? existing.api_key : '') || '',
+      api_key: apiKey,
       model,
     },
   };
@@ -14112,7 +14138,7 @@ $('#cfg-provider-trigger').addEventListener('click', () => {
     onPick: opt => applyLlmProviderPreset(opt.value),
   });
 });
-$('#cfg-model').addEventListener('input', () => { markLlmConfigFormDirty(); renderModelPresetChips(); renderVisionCapabilityHint(); });
+$('#cfg-model').addEventListener('input', () => { markLlmConfigFormDirty(); renderConfigPickerUi(); });
 $('#llm-diagnostic-close').addEventListener('click', closeLlmDiagnostic);
 $('#llm-diagnostic-copy').addEventListener('click', async () => {
   const text = $('#llm-diagnostic-body')?.textContent || '';

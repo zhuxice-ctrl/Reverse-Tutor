@@ -234,14 +234,14 @@ def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records(
 def test_mobile_kg_indexeddb_stores_and_crud_helpers_are_present():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "const DB_VERSION = 3;" in html
+    assert "const DB_VERSION = 4;" in html
     assert "'kg_nodes'" in html
     assert "'kg_edges'" in html
-    assert "createObjectStore('kg_nodes', { keyPath: 'id', autoIncrement: true })" in html
-    assert "createIndex('sid_kind_name', ['sid', 'kind', 'name'], { unique: true })" in html
-    assert "createObjectStore('kg_edges', { keyPath: 'id', autoIncrement: true })" in html
-    assert "createIndex('source_id', 'source_id', { unique: false })" in html
-    assert "createIndex('target_id', 'target_id', { unique: false })" in html
+    assert "ensureObjectStore(d, upgradeTx, 'kg_nodes', { keyPath: 'id', autoIncrement: true })" in html
+    assert "ensureIndex(s, 'sid_kind_name', ['sid', 'kind', 'name'], { unique: true })" in html
+    assert "ensureObjectStore(d, upgradeTx, 'kg_edges', { keyPath: 'id', autoIncrement: true })" in html
+    assert "ensureIndex(s, 'source_id', 'source_id', { unique: false })" in html
+    assert "ensureIndex(s, 'target_id', 'target_id', { unique: false })" in html
     assert "kg_nodes: await all('kg_nodes')" in html
     assert "kg_edges: await all('kg_edges')" in html
     assert "DB.delBySid('kg_edges', sid)" in html
@@ -259,6 +259,23 @@ def test_mobile_kg_indexeddb_stores_and_crud_helpers_are_present():
         "supersede_kg_edge",
     ]:
         assert f"async function {fn}" in html
+
+
+def test_mobile_indexeddb_graph_schema_migration_is_idempotent():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    db_block = html.split("const DB = (() => {", 1)[1].split("  // KV", 1)[0]
+
+    version = int(re.search(r"const DB_VERSION = (\d+);", db_block).group(1))
+    assert version >= 4
+    assert "function ensureIndex(store, name, keyPath, options={})" in db_block
+    assert "function ensureObjectStore(db, upgradeTx, name, options)" in db_block
+    assert "const upgradeTx = e.target.transaction;" in db_block
+    assert "return upgradeTx.objectStore(name);" in db_block
+    assert "ensureIndex(s, 'sid', 'sid', { unique: false });" in db_block
+    assert "ensureIndex(s, 'sid_kind_name', ['sid', 'kind', 'name'], { unique: true });" in db_block
+    assert "ensureIndex(s, 'source_id', 'source_id', { unique: false });" in db_block
+    assert "ensureIndex(s, 'target_id', 'target_id', { unique: false });" in db_block
+    assert "ensureIndex(s, 'relation', 'relation', { unique: false });" in db_block
 
 
 def test_mobile_kg_gate_and_rule_extractor_are_mounted_on_turns():
@@ -414,7 +431,7 @@ def test_mobile_service_worker_cache_key_tracks_release_version():
     sw = (ROOT / "static" / "app" / "sw.js").read_text(encoding="utf-8")
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "rt-mobile-v0.19.3-42-menu-chat-cache" in sw
+    assert "rt-mobile-v0.19.4-43-auto-multimodal-cache" in sw
     assert "'./index.html'," not in sw.split("const SHELL =", 1)[1].split("];", 1)[0]
     assert "fetch(e.request, { cache: 'no-store' })" in sw
     assert "url.pathname.endsWith('/index.html')" in sw

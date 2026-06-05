@@ -39,7 +39,7 @@ def test_mobile_llm_settings_include_provider_api_type_and_capability_presets():
 def test_mobile_llm_api_type_is_protocol_family_and_deepseek_uses_current_models():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
     provider_block = html.split("const LLM_PROVIDERS", 1)[1].split("const API_TYPE_OPTIONS", 1)[0]
-    api_options = html.split("const API_TYPE_OPTIONS", 1)[1].split("const CAPABILITY_OPTIONS", 1)[0]
+    api_options = html.split("const API_TYPE_OPTIONS", 1)[1].split("const API_TYPE_LABELS", 1)[0]
     api_select = html.split('id="cfg-api-type"', 1)[1].split('id="cfg-api-type-segments"', 1)[0]
 
     assert "{ value:'openai', label:'OpenAI'" in api_options
@@ -94,7 +94,7 @@ def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_sele
     assert 'id="cfg-provider-trigger"' in html
     assert 'id="cfg-provider-summary"' in html
     assert 'id="cfg-api-type-segments"' in html
-    assert 'id="cfg-capability-segments"' in html
+    assert 'id="cfg-capability-segments"' not in html
     assert 'id="cfg-model-presets"' in html
     assert 'id="choice-sheet"' in html
     assert "function openChoiceSheet" in html
@@ -102,6 +102,22 @@ def test_mobile_llm_settings_use_custom_picker_ui_instead_of_visible_native_sele
     assert "function renderModelPresetChips" in html
     assert "models:[" in html
     assert '<div class="grid grid-cols-2 gap-2">' not in llm_section
+
+
+def test_mobile_llm_capability_is_auto_inferred_without_visible_picker():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    llm_section = html.split('id="cfg-provider-trigger"', 1)[1].split('id="cfg-base"', 1)[0]
+    normalize_block = html.split("function normalizeLlmConfig", 1)[1].split("function loadLlmConfigLocal", 1)[0]
+    picker_block = html.split("function renderConfigPickerUi", 1)[1].split("function applyEndpointDetectionFromBaseUrl", 1)[0]
+
+    assert 'id="cfg-capability" type="hidden"' in html
+    assert 'id="cfg-capability-segments"' not in html
+    assert "const CAPABILITY_OPTIONS" not in html
+    assert "模型能力" not in llm_section
+    assert "function inferLlmCapability" in html
+    assert "capability = inferLlmCapability({" in normalize_block
+    assert "renderSegmentedControl('#cfg-capability-segments'" not in picker_block
+    assert "能力自动判断" in html
 
 
 def test_mobile_llm_config_profiles_can_be_saved_and_switched():
@@ -258,7 +274,7 @@ def test_mobile_llm_presets_keep_user_edits_and_hide_key_only_after_save():
     assert "glm-4.5-air" in provider_block
     assert "const rawApiType = String(c.api_type || '').trim()" in normalize_block
     assert "apiType = rawApiType ? apiType : FREE_DEFAULT_LLM_CONFIG.api_type" in normalize_block
-    assert "capability = capability || FREE_DEFAULT_LLM_CONFIG.capability" in normalize_block
+    assert "capability = inferLlmCapability({" in normalize_block
     assert "baseUrl = baseUrl || FREE_DEFAULT_LLM_CONFIG.base_url" in normalize_block
     assert "model = model || FREE_DEFAULT_LLM_CONFIG.model" in normalize_block
     assert "function showCfgKeyForEditing" in html
@@ -288,7 +304,7 @@ def test_mobile_llm_resume_does_not_overwrite_unsaved_config_form():
     assert "markLlmConfigFormDirty();" in api_type_block
     assert "resetLlmConfigFormDirty();" in save_block
     assert "$('#cfg-key').addEventListener('input', () => { showCfgKeyForEditing(); markLlmConfigFormDirty(); })" in listener_block
-    assert "$('#cfg-model').addEventListener('input', () => { markLlmConfigFormDirty(); renderModelPresetChips(); renderVisionCapabilityHint(); })" in listener_block
+    assert "$('#cfg-model').addEventListener('input', () => { markLlmConfigFormDirty(); renderConfigPickerUi(); })" in listener_block
     assert "$('#cfg-base').addEventListener('input', () => { markLlmConfigFormDirty(); applyEndpointDetectionFromBaseUrl(); })" in listener_block
 
 

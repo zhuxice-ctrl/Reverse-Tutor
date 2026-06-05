@@ -73,17 +73,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 42,
-  "versionName": "0.19.3",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.3.apk",
+  "versionCode": 43,
+  "versionName": "0.19.4",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.3/Reverse-Tutor-v0.19.3.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk"
   ],
   "publishedAt": "2026-06-05",
   "releaseNotes": [
-    "修复真机长按会话后操作菜单仍可能跑到屏幕外的问题",
-    "修复升级后 WebView 可能继续读取旧 app shell 缓存的问题",
-    "移除轻聊天回复被过度压短的硬限制"
+    "修复旧版本升级后图谱页面无法使用的问题",
+    "配置模型后自动尝试多模态，不再显示模型能力开关",
+    "更新移动端 app shell 缓存版本"
   ]
 }
 ```

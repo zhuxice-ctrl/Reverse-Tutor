@@ -2,7 +2,7 @@
  * Reverse Tutor mobile service worker.
  * App shell is network-first so APK/PWA upgrades cannot keep serving stale index.html.
  */
-const VERSION = 'rt-mobile-v0.19.3-42-menu-chat-cache';
+const VERSION = 'rt-mobile-v0.19.4-43-auto-multimodal-cache';
 const SHELL = [
   './manifest.json',
   './icon-192.png',
