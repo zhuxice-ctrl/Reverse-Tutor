@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk"><strong>下载 Android APK</strong></a>
+  <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk"><strong>下载 Android APK</strong></a>
   ·
   <a href="https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest">查看最新版本</a>
   ·
@@ -245,8 +245,8 @@ mobile/android/app/build/outputs/apk/release/app-release.apk
 
 当前公开版本：
 
-- 自建高速源：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk
-- GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/latest
+- GitHub Release：https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk
+- 自建高速源（同步后可用）：https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk
 
 ## 应用更新
 
@@ -269,9 +269,9 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 {
   "versionCode": 43,
   "versionName": "0.19.4",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk"
+    "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk"
   ],
   "publishedAt": "2026-06-05",
   "releaseNotes": [

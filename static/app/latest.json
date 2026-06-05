@@ -3,9 +3,9 @@
   "versionName": "0.19.4",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk",
+  "apkUrl": "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.4/Reverse-Tutor-v0.19.4.apk"
+    "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.4.apk"
   ],
   "sha256": "eee156e36d157e9435548a68713f995f6682ff39fb0a69dcfe5b0f0a778b4741",
   "publishedAt": "2026-06-05",
