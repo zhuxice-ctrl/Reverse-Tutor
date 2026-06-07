@@ -222,6 +222,21 @@ def test_mobile_graph_keeps_learning_digest_data_out_of_canvas_nodes():
     assert "nodeType: count%5===0?'support':'memory'" not in html
 
 
+def test_mobile_graph_has_focus_dataset_helpers():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+    assert "const MAX_FOCUS_GRAPH_NEIGHBORS = 6" in html
+    assert "function graphFocusCenterNode(nodes=[], links=[], preferredKey='')" in html
+    focus_region = html.split("function graphFocusCenterNode", 1)[1].split("function setActiveGraphDataset", 1)[0]
+
+    assert "function buildFocusedGraphData(nodes=[], links=[], opts={})" in html
+    assert "function graphFormationStateHtml(nodes=[], links=[], opts={})" in html
+    assert "node.nodeType === 'kp'" in focus_region
+    assert "const oneHopLinks = links.filter" in focus_region
+    assert "slice(0, maxNeighbors)" in focus_region
+    assert "return { nodes: focusedNodes, links: focusedLinks, center, focused:true" in focus_region
+
+
 def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
