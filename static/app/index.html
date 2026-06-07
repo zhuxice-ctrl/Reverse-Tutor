@@ -12427,6 +12427,52 @@ function graphNodeSourceTargets(node) {
   return targets.slice(0, 6);
 }
 
+function graphPanelPreviewText(value, fallback='') {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return graphTrim(text || fallback, 84);
+}
+
+function graphNodeMasteryPercent(node) {
+  if (node?.nodeType === 'kp') return Math.round(Math.max(0, Math.min(1, Number(node?.level || 0))) * 100);
+  if (node?.nodeType === 'source' || node?.nodeType === 'section' || node?.nodeType === 'diagnostic' || node?.nodeType === 'latent') return null;
+  const correctness = Number(node?.meta?.evaluation?.correctness || node?.last_correctness || 0);
+  const depth = Number(node?.meta?.evaluation?.depth || node?.last_depth || 0);
+  const score = Math.max(correctness, depth);
+  return score ? Math.round(Math.max(0, Math.min(1, score)) * 100) : null;
+}
+
+function graphNodeMasteryStage(node, digest, pairs) {
+  pairs = pairs || [];
+  if (node?.nodeType === 'source') return '资料锚点';
+  if (node?.nodeType === 'section') return '资料章节';
+  if (node?.nodeType === 'diagnostic') return '待诊断';
+  if (node?.nodeType === 'latent') return '候选知识点';
+  if (node?.nodeType === 'note') return '随笔记录';
+  const percent = graphNodeMasteryPercent(node);
+  if (percent === null) return pairs.length ? '有对话证据' : '待观察';
+  if (percent >= 80) return '能迁移';
+  if (percent >= 60) return '能复述';
+  if (percent >= 35) return '刚理解';
+  return digest?.evidence?.length || pairs.length ? '证据不足' : '待观察';
+}
+
+function graphNodeDiagnosisText(node, digest, pairs) {
+  pairs = pairs || [];
+  const title = graphNodeTitle(node);
+  const error = graphUniqueClean([...(digest?.errors || [])], 1)[0];
+  const evidence = graphUniqueClean([...(digest?.evidence || []), node?.summary, node?.content, node?.preview], 1)[0];
+  if (error) return `你不是完全不会「${title}」，当前最值得处理的是：${graphPanelPreviewText(error)}。`;
+  if (digest?.status && !/还没有足够|暂无|没有/.test(String(digest.status))) {
+    return graphPanelPreviewText(digest.status, `这个节点已经有学习记录，适合继续复盘「${title}」。`);
+  }
+  if (evidence) return `这个节点已经有可回看的证据，但还需要更多练习来确认「${title}」是否稳定掌握。`;
+  if (node?.nodeType === 'source' || node?.nodeType === 'section' || node?.nodeType === 'latent') {
+    return '这是来自资料的节点，适合先建立上下文，再通过对话把它接入学习路径。';
+  }
+  if (pairs.length) return '这个节点来自最近对话，已经可以回看语义片段，但掌握判断还需要更多证据。';
+  return '这个节点目前主要表示图谱关系，继续对话后会补充更具体的诊断和证据。';
+}
+
 function graphSheetActionButtonsHtml(node) {
   const targets = graphNodeSourceTargets(node);
   const hasChat = [

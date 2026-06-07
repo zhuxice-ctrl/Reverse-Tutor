@@ -644,6 +644,27 @@ def test_mobile_graph_sheet_diagnosis_panel_preserves_existing_semantic_cards():
     assert "node.nodeType==='chat_fragment'" not in sheet_fn
 
 
+def test_mobile_graph_sheet_diagnosis_helpers_use_existing_graph_data():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    helper_region = html.split("function graphSheetActionButtonsHtml", 1)[0].split("function graphNodeRelations", 1)[1]
+
+    assert "function graphNodeMasteryPercent(node)" in html
+    assert "function graphNodeMasteryStage(node, digest, pairs)" in html
+    assert "function graphNodeDiagnosisText(node, digest, pairs)" in html
+    assert "function graphPanelPreviewText(value, fallback='')" in html
+    assert "Number(node?.level || 0)" in html
+    assert "digest?.status" in html
+    assert "digest?.errors" in html
+    assert "digest?.evidence" in html
+    assert "pairs.length" in html
+    assert "graphNodeRelations(node)" in html
+    assert "graphNodeSourceTargets(node)" in html
+    assert "function graphNodeRelations" in html
+    assert "function graphNodeSourceTargets" in html
+    assert "node.nodeType==='chat_session'" not in helper_region
+    assert "node.nodeType==='chat_fragment'" not in helper_region
+
+
 def test_mobile_graph_fragment_cards_open_readonly_chat_browse():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
     fragment_card = html.split("function graphFragmentCardHtml", 1)[1].split("function graphFragmentDeckHtml", 1)[0]
