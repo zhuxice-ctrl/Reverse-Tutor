@@ -608,6 +608,42 @@ def test_mobile_graph_sheet_expanded_detail_reads_like_report_with_semantic_card
     assert "graphSheetDetailHtml(node, digest, pairs)" in html
 
 
+def test_mobile_graph_sheet_compact_panel_is_diagnosis_first_with_six_cards():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
+
+    assert "function graphSheetDiagnosisCompactHtml" in html
+    assert "function graphNodeDiagnosisText" in html
+    assert "function graphNodePanelCards" in html
+    assert "function graphNodePrimaryActionsHtml" in html
+    assert "data-graph-panel=\"diagnosis-compact\"" in html
+    assert "data-graph-panel-card=\"already-know\"" in html
+    assert "data-graph-panel-card=\"stuck-point\"" in html
+    assert "data-graph-panel-card=\"evidence\"" in html
+    assert "data-graph-panel-card=\"next-step\"" in html
+    assert "data-graph-panel-card=\"related\"" in html
+    assert "data-graph-panel-card=\"source\"" in html
+    assert "data-graph-action=\"practice\"" in html
+    assert "data-graph-action=\"ask-why\"" in html
+    assert "data-graph-action=\"review-evidence\"" in html
+    assert "graphSheetDiagnosisCompactHtml(node, digest, pairs)" in sheet_fn
+    assert sheet_fn.index("graphSheetDiagnosisCompactHtml(node, digest, pairs)") < sheet_fn.index("graphSheetDetailHtml(node, digest, pairs)")
+
+
+def test_mobile_graph_sheet_diagnosis_panel_preserves_existing_semantic_cards():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
+    report_fn = html.split("function graphSheetReportHtml", 1)[1].split("function graphSheetDetailHtml", 1)[0]
+
+    assert "html = graphSheetDiagnosisCompactHtml(node, digest, pairs);" in sheet_fn
+    assert "html = `<div class=\"graph-compact-only\">${html}</div>`;" in sheet_fn
+    assert "html += graphSheetDetailHtml(node, digest, pairs);" in sheet_fn
+    assert "const fragments = graphSemanticFragments(node, digest, pairs);" in report_fn
+    assert "graphFragmentDeckHtml(fragments, node?.sid || state.sid)" in report_fn
+    assert "node.nodeType==='chat_session'" not in sheet_fn
+    assert "node.nodeType==='chat_fragment'" not in sheet_fn
+
+
 def test_mobile_graph_fragment_cards_open_readonly_chat_browse():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
     fragment_card = html.split("function graphFragmentCardHtml", 1)[1].split("function graphFragmentDeckHtml", 1)[0]
