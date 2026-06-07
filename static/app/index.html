@@ -1327,6 +1327,96 @@
     color: var(--page);
     border-color: transparent;
   }
+  .graph-node-compact {
+    display: grid;
+    gap: 12px;
+  }
+  .graph-node-compact-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .graph-node-eyebrow,
+  .graph-node-path,
+  .graph-node-label,
+  .graph-node-hint {
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .graph-node-title {
+    margin: 2px 0 0;
+    font-size: 18px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0;
+  }
+  .graph-node-score {
+    width: 62px;
+    min-width: 62px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .graph-node-score strong {
+    display: block;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .graph-node-score span {
+    display: block;
+    margin-top: 4px;
+    font-size: 9px;
+    color: var(--muted);
+  }
+  .graph-node-meter {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--line) 55%, transparent);
+  }
+  .graph-node-meter > i {
+    display: block;
+    height: 100%;
+    width: var(--graph-progress, 0%);
+    border-radius: inherit;
+    background: var(--accent);
+  }
+  .graph-node-statement,
+  .graph-node-main-point,
+  .graph-node-context-box {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+    padding: 12px 13px;
+  }
+  .graph-node-statement p,
+  .graph-node-main-point p,
+  .graph-node-context-box p {
+    margin: 4px 0 0;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.55;
+    font-weight: 650;
+  }
+  .graph-node-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .graph-node-chip {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel-2);
+    color: var(--text-soft);
+    padding: 6px 9px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
   .graph-node-report {
     color: var(--text);
     padding-bottom: 24px;
@@ -12652,6 +12742,90 @@ function graphPanelPreviewText(value, fallback='') {
   return graphTrim(text || fallback, 84);
 }
 
+function graphNodeSheetTemplate(node) {
+  const type = node?.nodeType || '';
+  if (type === 'kp') return 'learning-state';
+  if (type === 'latent' || type === 'section' || type === 'diagnostic') return 'candidate-structure';
+  if (type === 'source' || type === 'note') return 'context-source';
+  return 'candidate-structure';
+}
+
+function graphNodeLightPath(node) {
+  const type = graphNodeTypeLabel(node);
+  const parts = [type];
+  if (node?.sourceName) parts.push(node.sourceName);
+  if (node?.sessionTitle) parts.push(node.sessionTitle);
+  if (node?.sourceType && !node?.sourceName) parts.push(String(node.sourceType).toUpperCase());
+  const rel = graphNodeRelations(node)[0];
+  if (parts.length < 3 && rel) parts.push(graphNodeTitle(rel.node));
+  return graphUniqueClean(parts, 3).join(' / ') || type;
+}
+
+function graphNodeEvidenceItems(node, digest, limit=5) {
+  return graphUniqueClean([
+    ...(digest?.evidence || []),
+    node?.summary,
+    node?.memoryExpansion?.summary,
+    node?.preview,
+    node?.content,
+  ], limit);
+}
+
+function graphNodeKnownItems(node, digest, pairs, limit=3) {
+  const items = [];
+  if (Array.isArray(digest?.known)) items.push(...digest.known);
+  if (digest?.status) items.push(digest.status);
+  if (pairs?.length) items.push(`已有 ${pairs.length} 轮相关对话可回看`);
+  return graphUniqueClean(items, limit);
+}
+
+function graphNodeWeakPoint(node, digest) {
+  return graphUniqueClean([
+    ...(digest?.errors || []),
+    node?.meta?.evaluation?.misconception,
+    node?.meta?.evaluation?.error_pattern,
+  ], 1)[0] || '';
+}
+
+function graphNodeNextStepItems(node, digest, limit=3) {
+  return graphUniqueClean([
+    ...(digest?.nextSteps || []),
+    ...(node?.memoryExpansion?.teacher_questions || []),
+  ], limit);
+}
+
+function graphNodeCoverageText(node) {
+  const relations = graphNodeRelations(node);
+  const sources = graphNodeSourceTargets(node);
+  const parts = [];
+  if (relations.length) parts.push(`${relations.length} 个相关节点`);
+  if (sources.length) parts.push(`${sources.length} 个来源锚点`);
+  if (node?.sourcePages?.length) parts.push(`${node.sourcePages.length} 页`);
+  if (node?.sourceText || node?.content) parts.push(`${String(node.sourceText || node.content).length} 字`);
+  return parts.join(' · ') || '覆盖范围会随着资料和对话证据继续补全';
+}
+
+function graphRelationGroupLabel(kind) {
+  if (kind === 'foundation') return '来源支撑';
+  if (kind === 'outline') return '来源章节';
+  if (kind === 'diagnostic') return '诊断提示';
+  if (kind === 'note') return '随笔引用';
+  if (kind === 'sequence') return '学习顺序';
+  if (kind === 'related') return '相关概念';
+  return graphLinkKindLabel(kind);
+}
+
+function graphNodeRelationGroups(node) {
+  const groups = new Map();
+  for (const rel of graphNodeRelations(node)) {
+    const label = graphRelationGroupLabel(rel.kind);
+    const list = groups.get(label) || [];
+    list.push(rel);
+    groups.set(label, list);
+  }
+  return [...groups.entries()].map(([label, relations]) => ({ label, relations }));
+}
+
 function graphNodeMasteryPercent(node) {
   if (node?.nodeType === 'kp') return Math.round(Math.max(0, Math.min(1, Number(node?.level || 0))) * 100);
   if (node?.nodeType === 'source' || node?.nodeType === 'section' || node?.nodeType === 'diagnostic' || node?.nodeType === 'latent') return null;
@@ -12784,6 +12958,113 @@ function graphSheetDiagnosisCompactHtml(node, digest, pairs) {
       </article>
     </div>
     ${graphNodePrimaryActionsHtml(node, digest, pairs)}
+  </section>`;
+}
+
+function graphSheetCompactHtml(node, digest, pairs) {
+  const template = graphNodeSheetTemplate(node);
+  if (template === 'learning-state') return graphKnowledgeCompactHtml(node, digest, pairs);
+  if (template === 'context-source') return graphContextCompactHtml(node, digest, pairs);
+  return graphStructureCompactHtml(node, digest, pairs);
+}
+
+function graphStructureActionsHtml(node) {
+  const targets = graphNodeSourceTargets(node);
+  return `<div class="graph-diagnosis-actions">
+    <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action primary">围绕它提问</button>
+    ${targets[0] ? `<button type="button" data-graph-action="open-source" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-diagnosis-action">打开来源</button>` : ''}
+    <button type="button" data-graph-expand-detail class="graph-diagnosis-action">查看详情</button>
+  </div>`;
+}
+
+function graphContextActionsHtml(node) {
+  const targets = graphNodeSourceTargets(node);
+  const chatIds = [...(node?.chatMessageIds || []), ...(node?.chat_message_ids || []), node?.messageId].filter(Boolean);
+  return `<div class="graph-diagnosis-actions">
+    ${targets[0] ? `<button type="button" data-graph-action="open-source" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-diagnosis-action primary">打开来源</button>` : ''}
+    ${chatIds.length ? '<button type="button" data-graph-jump-chat class="graph-diagnosis-action">回到聊天</button>' : ''}
+    <button type="button" data-graph-expand-detail class="graph-diagnosis-action">查看详情</button>
+  </div>`;
+}
+
+function graphKnowledgeCompactHtml(node, digest, pairs) {
+  pairs = pairs || [];
+  const percent = graphNodeMasteryPercent(node);
+  const stage = graphNodeMasteryStage(node, digest, pairs);
+  const diagnosis = graphNodeDiagnosisText(node, digest, pairs);
+  const weakPoint = graphNodeWeakPoint(node, digest);
+  const nextSteps = graphNodeNextStepItems(node, digest, 1);
+  const progress = percent === null ? 0 : Math.max(0, Math.min(100, percent));
+  const mainPoint = weakPoint || nextSteps[0] || '这个知识点还需要更多学习证据，暂时不能稳定判断主要卡点。';
+  return `<section class="graph-node-compact" data-graph-panel="node-compact" data-graph-template="learning-state">
+    <header class="graph-node-compact-head">
+      <div class="min-w-0">
+        <div class="graph-node-eyebrow">${esc(graphNodeTypeLabel(node))}</div>
+        <h2 class="graph-node-title">${esc(graphNodeTitle(node))}</h2>
+        <div class="graph-node-path">${esc(graphNodeLightPath(node))}</div>
+      </div>
+      <div class="graph-node-score">
+        <strong>${percent === null ? '--' : `${percent}%`}</strong>
+        <span>${esc(stage)}</span>
+      </div>
+    </header>
+    <div class="graph-node-meter" style="--graph-progress:${progress}%"><i></i></div>
+    <div class="graph-node-statement">
+      <div class="graph-node-label">当前判断</div>
+      <p>${renderRichText(diagnosis)}</p>
+    </div>
+    <div class="graph-node-main-point" data-graph-kp-main-stuck>
+      <div class="graph-node-label">${weakPoint ? '主要卡点' : '当前重点'}</div>
+      <p>${renderRichText(graphPanelPreviewText(mainPoint, '还需要更多证据。'))}</p>
+    </div>
+    ${graphNodePrimaryActionsHtml(node, digest, pairs)}
+  </section>`;
+}
+
+function graphStructureCompactHtml(node, digest, pairs) {
+  const templateLabel = node?.nodeType === 'latent' ? '候选知识点'
+    : node?.nodeType === 'diagnostic' ? '诊断节点'
+    : '资料结构';
+  const evidence = graphNodeEvidenceItems(node, digest, 1)[0];
+  const reason = evidence || node?.modelTitleSuggestion || node?.titleOrigin || '这个节点来自资料结构、内容提取或导入诊断。';
+  const relations = graphNodeRelations(node).slice(0, 3);
+  const chips = relations.map(rel => `<button type="button" data-graph-node-jump="${esc(String(rel.node.key))}" class="graph-node-chip">${esc(graphNodeTitle(rel.node))}</button>`).join('');
+  return `<section class="graph-node-compact" data-graph-panel="node-compact" data-graph-template="candidate-structure">
+    <header class="graph-node-compact-head">
+      <div class="min-w-0">
+        <div class="graph-node-eyebrow">${esc(templateLabel)}</div>
+        <h2 class="graph-node-title">${esc(graphNodeTitle(node))}</h2>
+        <div class="graph-node-path">${esc(graphNodeLightPath(node))}</div>
+      </div>
+    </header>
+    <div class="graph-node-context-box" data-graph-structure-reason>
+      <div class="graph-node-label">为什么出现</div>
+      <p>${renderRichText(graphPanelPreviewText(reason, '来自资料的上下文'))}</p>
+    </div>
+    <div class="graph-node-chip-row">${chips || '<span class="graph-node-chip">暂未接入学习节点</span>'}</div>
+    ${graphStructureActionsHtml(node)}
+  </section>`;
+}
+
+function graphContextCompactHtml(node, digest, pairs) {
+  const preview = graphNodeEvidenceItems(node, digest, 1)[0] || graphPanelPreviewText(node?.content || node?.sourceText, '');
+  const relations = graphNodeRelations(node).slice(0, 3);
+  const chips = relations.map(rel => `<button type="button" data-graph-node-jump="${esc(String(rel.node.key))}" class="graph-node-chip">${esc(graphNodeTitle(rel.node))}</button>`).join('');
+  return `<section class="graph-node-compact" data-graph-panel="node-compact" data-graph-template="context-source">
+    <header class="graph-node-compact-head">
+      <div class="min-w-0">
+        <div class="graph-node-eyebrow">${esc(graphNodeTypeLabel(node))}</div>
+        <h2 class="graph-node-title">${esc(graphNodeTitle(node))}</h2>
+        <div class="graph-node-path">${esc(graphNodeLightPath(node))}</div>
+      </div>
+    </header>
+    <div class="graph-node-context-box" data-graph-context-coverage>
+      <div class="graph-node-label">覆盖范围</div>
+      <p>${esc(graphNodeCoverageText(node))}</p>
+    </div>
+    ${preview ? `<div class="graph-node-context-box"><div class="graph-node-label">内容预览</div><p>${renderRichText(graphPanelPreviewText(preview, ''))}</p></div>` : ''}
+    <div class="graph-node-chip-row">${chips || '<span class="graph-node-chip">暂未关联学习节点</span>'}</div>
+    ${graphContextActionsHtml(node)}
   </section>`;
 }
 
@@ -13470,7 +13751,7 @@ async function showGraphSheet(node) {
 
   const digest = buildKpConversationDigest(pairs, kpName);
 
-  let html = graphSheetDiagnosisCompactHtml(node, digest, pairs);
+  let html = graphSheetCompactHtml(node, digest, pairs);
   html = `<div class="graph-compact-only">${html}</div>`;
   html += graphSheetDetailHtml(node, digest, pairs);
   body.innerHTML=html;
