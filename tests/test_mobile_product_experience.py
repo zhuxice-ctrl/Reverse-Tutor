@@ -772,3 +772,20 @@ def test_mobile_graph_filters_process_nodes_from_mastery_and_digest_paths():
     assert "!isLogicalGraphKp(kp)" in normalize_action_fn
     assert "if (!isLogicalGraphKp(kp)) return;" in upsert_mastery_fn
     assert "masteries.filter(m => isLogicalGraphKp(m.kp || m.knowledge_point))" in build_graph_fn
+
+
+def test_mobile_graph_nodes_come_from_learning_structure_not_panel_fields():
+    html = mobile_html()
+    build_graph_fn = html.split("function buildGraphData", 1)[1].split("function memoryStatusLabel", 1)[0]
+    panel_fn = html.split("function graphNodePanelCards", 1)[1].split("function graphNodePrimaryActionsHtml", 1)[0]
+
+    assert "nodeType:'kp'" in build_graph_fn
+    assert "nodeType:'latent'" in build_graph_fn
+    assert "nodeType:'note'" in build_graph_fn
+    assert "nodeType:'source'" in build_graph_fn
+    assert "nodeType:'section'" in build_graph_fn
+    assert "nodeType:'insight'" not in build_graph_fn
+    assert "label:'证据摘要'" in html
+    assert "label:'下一步'" in panel_fn
+    assert "entryStatusLabel" in html
+    assert "已有入口" in html
