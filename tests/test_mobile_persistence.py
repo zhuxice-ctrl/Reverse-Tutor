@@ -1005,6 +1005,18 @@ def test_mobile_opening_turn_is_skipped_once_user_has_started_talking():
     assert "if (state.messageQueue.length) await processMessageQueue();" in html
 
 
+def test_mobile_study_opening_turn_creates_initial_graph_node_source():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    opening_fn = html.split("async function run_opening_turn", 1)[1].split("async function maybe_enqueue_native_background_turn", 1)[0]
+
+    assert "const action = normalizeAction(raw.action || {}, '开场提问');" in opening_fn
+    assert "const ev = cleanEvaluation(raw.evaluation || {});" in opening_fn
+    assert "if (conversationMode === 'learning' && action.knowledge_point)" in opening_fn
+    assert "await upsert_mastery(sid, action.knowledge_point, +ev.correctness||0, +ev.depth||0," in opening_fn
+    assert "ev.evidence_for_mastery?.type || 'none'," in opening_fn
+    assert "ev.evidence_for_mastery?.status || 'none');" in opening_fn
+
+
 def test_mobile_regular_sends_are_processed_one_queued_turn_at_a_time():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 

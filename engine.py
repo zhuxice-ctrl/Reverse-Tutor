@@ -1212,12 +1212,27 @@ async def run_opening_turn(db_sess, sid: str) -> TurnResult:
     reply = (raw.get("reply") or "").strip() or "（嗯……老师，那我们开始吧？）"
     reply = _discipline_reply_for_role(reply, action)
 
-    db.add_message(db_sess, sid, "assistant", reply, meta={
+    assistant_msg = db.add_message(db_sess, sid, "assistant", reply, meta={
         "evaluation": evaluation,
         "action": action,
         "opening": True,
         "process_summary": process_summary,
     })
+    db_sess.flush()
+    kp = (action.get("knowledge_point") or "").strip()
+    if kp and mode == "study":
+        evidence = evaluation.get("evidence_for_mastery") or {}
+        db.upsert_mastery(
+            db_sess, sid, kp,
+            correctness=float(evaluation.get("correctness", 0.0) or 0.0),
+            depth=float(evaluation.get("depth", 0.0) or 0.0),
+            evidence_type=evidence.get("type", "none"),
+            verification_status=evidence.get("status", "none"),
+            evidence_episode_id=assistant_msg.id,
+            error_type=evidence.get("error_type", ""),
+            updated_reason=evidence.get("reason", ""),
+            review_frequency=settings.get("review_frequency", "normal"),
+        )
     db_sess.commit()
 
     return TurnResult(

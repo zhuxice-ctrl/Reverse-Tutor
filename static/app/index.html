@@ -6561,9 +6561,15 @@ ${openingTask}
     const messages = [{ role: 'system', content: finalReplyInstruction(session, 'opening') }];
     const raw = await LLM.chat_json(system_prompt, messages, { temperature: 0.85 });
     const reply = (raw.reply||'').trim() || '（站在讲台前傻笑）……老师好，咱开始吧！';
-    const action = raw.action || { type:'ask', knowledge_point:'?' };
+    const action = normalizeAction(raw.action || {}, '开场提问');
+    const ev = cleanEvaluation(raw.evaluation || {});
     if (await hasUserMessagesBeforeOpening(sid)) return { reply: '', action, skipped: true };
-    await add_message(sid, 'assistant', reply, { action, evaluation: cleanEvaluation(raw.evaluation || {}), opening: true });
+    await add_message(sid, 'assistant', reply, { action, evaluation: ev, opening: true });
+    if (conversationMode === 'learning' && action.knowledge_point) {
+      await upsert_mastery(sid, action.knowledge_point, +ev.correctness||0, +ev.depth||0,
+        ev.evidence_for_mastery?.type || 'none',
+        ev.evidence_for_mastery?.status || 'none');
+    }
     return { reply, action };
   }
 

@@ -37,6 +37,38 @@ async def test_run_opening_turn_produces_assistant_message(db_sess):
     assert result.process_summary
 
 
+async def test_study_opening_turn_creates_initial_mastery_node(db_sess, monkeypatch):
+    s = engine.create_session(db_sess, title="", role="高三生", goal="数学130", mode="study")
+
+    async def fake_chat_json(system, messages, **kwargs):
+        return {
+            "reply": "老师，我先问导数定义这里：为什么瞬时变化率要用极限？",
+            "action": {
+                "type": "ask",
+                "student_role": "probing_student",
+                "knowledge_point": "导数定义",
+                "difficulty": 0.4,
+                "note": "开场定位知识点",
+            },
+            "evaluation": {
+                "correctness": 0.0,
+                "depth": 0.0,
+                "entry_status": "no_entry",
+                "evidence_for_mastery": {"type": "none", "status": "none", "error_type": "", "reason": ""},
+                "new_requirements": [],
+            },
+        }
+
+    monkeypatch.setattr(engine.llm, "chat_json", fake_chat_json)
+
+    await engine.run_opening_turn(db_sess, s.id)
+
+    masteries = db.list_mastery(db_sess, s.id)
+    assert [m.knowledge_point for m in masteries] == ["导数定义"]
+    assert masteries[0].attempts == 1
+    assert masteries[0].mastery_score == 0.0
+
+
 async def test_run_turn_persists_user_and_assistant_and_updates_mastery(db_sess):
     s = engine.create_session(db_sess, title="", role="高三生", goal="数学130")
     r1 = await engine.run_turn(db_sess, s.id, "对称轴是 x=-b/(2a)")
