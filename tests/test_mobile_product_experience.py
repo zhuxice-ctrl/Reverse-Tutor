@@ -789,3 +789,17 @@ def test_mobile_graph_nodes_come_from_learning_structure_not_panel_fields():
     assert "label:'下一步'" in panel_fn
     assert "entryStatusLabel" in html
     assert "已有入口" in html
+def test_mobile_graph_canvas_uses_focus_subset_but_detail_keeps_full_dataset():
+    html = mobile_html()
+    context_graph_fn = html.split("async function renderContextGraph", 1)[1].split("async function renderContextAnchors", 1)[0]
+    insights_fn = html.split("async function renderInsights", 1)[1].split("// --- Settings ---", 1)[0]
+
+    assert "setActiveGraphDataset(nodes, links);" in context_graph_fn
+    assert "const focused = buildFocusedGraphData(nodes, links, { centerKey: state.graphSelected });" in context_graph_fn
+    assert "ForceGraph.setData(focused.nodes, focused.links);" in context_graph_fn
+    assert "graphFormationStateHtml(nodes, links, { context: 'session', focus: focused })" in context_graph_fn
+
+    assert "setActiveGraphDataset(allNodes, allLinks);" in insights_fn
+    assert "const focused = buildFocusedGraphData(allNodes, allLinks, { centerKey: state.graphSelected });" in insights_fn
+    assert "ForceGraph.setData(focused.nodes, focused.links);" in insights_fn
+    assert "graphFormationStateHtml(allNodes, allLinks, { context: 'global', focus: focused })" in insights_fn
