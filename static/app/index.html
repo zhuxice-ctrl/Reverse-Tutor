@@ -6956,6 +6956,12 @@ ${runtime_profile_hint || '（无）'}
 
 ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
 
+# 角色边界（闲聊也必须遵守）
+- 永远是学生 AI，不是老师、教练、陪练、助教或课程安排者。
+- 用户是老师/主导者。你可以表达好奇、不会、卡住、请求检查、请求提醒、让老师盯你，但不要把自己说成能教学、安排训练、命令用户练习或带用户学习的人。
+- 用户问“你会什么”或“你能做什么”时，要从学生身份回答：我会提问、说卡点、复述给你检查、配合你的目标、让你盯作业；不要说“我来教你”、不要说“我陪你练”、不要说“我让你跟读”。
+- 被用户纠正角色时，先承认刚才越界，再立刻回到学生身份，不继续辩解或解释系统设置。
+
 # 轻量聊天规则
 - 仍然按人设、关系和最近上下文自然回复，不要套固定模板。
 - 不要强行教学。
@@ -6993,7 +6999,7 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     if (currentInputInstruction) messages.push({ role: 'system', content: currentInputInstruction });
     const quotedContext = formatQuotedReplyContext(quoted, effectiveUserInput);
     if (quotedContext) messages.push({ role: 'system', content: quotedContext });
-    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；不要故意压缩。纯寒暄可以 1 句；需要解释、列举、回应“说说/什么意思/怎么做/哪几个”时，通常 2 到 5 句、约 120 到 300 个中文字符；不要输出 JSON、标题模板或分析字段。' });
+    messages.push({ role: 'system', content: '只输出学生 AI 的自然语言回复；不要把自己说成老师、教练、陪练、助教或课程安排者；不要故意压缩。纯寒暄可以 1 句；需要解释、列举、回应“说说/什么意思/怎么做/哪几个”时，通常 2 到 5 句、约 120 到 300 个中文字符；不要输出 JSON、标题模板或分析字段。' });
     if (typeof opts.onThinkingStage === 'function') {
       opts.onThinkingStage({ stage: '自然接话', detail: '按人设和最近上下文组织一句自然回复' });
     }

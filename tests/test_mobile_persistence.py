@@ -1167,6 +1167,13 @@ def test_mobile_turn_route_uses_light_llm_chain_without_teaching_postprocessing(
     assert "不要强行教学" in light_prompt_fn
     assert "不要突然讲知识点" in light_prompt_fn
     assert "不要做掌握度判断" in light_prompt_fn
+    assert "永远是学生 AI，不是老师、教练、陪练、助教或课程安排者" in light_prompt_fn
+    assert "用户问“你会什么”或“你能做什么”" in light_prompt_fn
+    assert "不要说“我来教你”" in light_prompt_fn
+    assert "不要说“我陪你练”" in light_prompt_fn
+    assert "不要说“我让你跟读”" in light_prompt_fn
+    assert "被用户纠正角色时" in light_prompt_fn
+    assert "不要把自己说成老师、教练、陪练、助教或课程安排者" in light_fn
     assert "不要故意压缩回复" in light_prompt_fn
     assert "约 120 到 300 个中文字符" in light_prompt_fn
     assert "const LIGHT_CHAT_MAX_TOKENS = 460;" in html
