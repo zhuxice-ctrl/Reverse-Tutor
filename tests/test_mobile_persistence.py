@@ -206,15 +206,18 @@ def test_mobile_graph_sheet_displays_saved_branch_expansion():
     assert "key_concepts" in html
 
 
-def test_mobile_graph_organizes_chat_turns_into_learning_digest_nodes():
+def test_mobile_graph_keeps_learning_digest_data_out_of_canvas_nodes():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    build_graph_fn = html.split("function buildGraphData", 1)[1].split("function memoryStatusLabel", 1)[0]
 
     assert "function buildKpMemoryDigests" in html
-    assert "nodeType:'insight'" in html
     assert "insightType:'error'" in html
     assert "insightType:'evidence'" in html
     assert "insightType:'next_step'" in html
-    assert "chatMessageIds: digest.chatMessageIds" in html
+    assert "chatMessageIds: ids" in html
+    assert "nodeType:'insight'" not in build_graph_fn
+    assert "kind:'memory'" not in build_graph_fn
+    assert "chatMessageIds: digest.chatMessageIds" not in build_graph_fn
     assert "content:msg.content" not in html
     assert "nodeType: count%5===0?'support':'memory'" not in html
 
