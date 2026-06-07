@@ -13020,7 +13020,23 @@ function graphRelationsReportHtml(node) {
 function graphSourcesReportHtml(node) {
   const targets = graphNodeSourceTargets(node).slice(0, 4);
   if (!targets.length) return '';
-  return `<div class="graph-report-link-list">${targets.map(target => `<button type="button" data-graph-source-anchor="${esc(target.sourceId)}" data-graph-open-source="${esc(target.sourceId)}" data-graph-source-sid="${esc(String(target.sid || ''))}" class="graph-report-inline-link">
+  const sourceForReport = {
+    id: node?.sourceId || targets[0]?.sourceId,
+    kind:'source',
+    content: node?.content || '',
+    source_text: node?.sourceText || '',
+    source_name: node?.sourceName || targets[0]?.label || graphNodeTitle(node),
+    source_type: node?.sourceType || targets[0]?.sourceType || 'doc',
+    source_diagnostics: node?.sourceDiagnostics || {},
+    source_pages: node?.sourcePages || [],
+  };
+  const previewHtml = sourceForReport.id
+    ? `<div class="graph-source-preview mb-3"><div class="font-semibold mb-1">资料快照</div>${esc(sourcePreviewText(sourceForReport)).replace(/\n/g, '<br>')}</div>`
+    : '';
+  const suggestionHtml = node?.modelTitleSuggestion
+    ? `<div class="graph-source-preview mb-3">模型建议：${esc(node.modelTitleSuggestion)}。用户命名不会被自动覆盖。</div>`
+    : '';
+  return `${previewHtml}${suggestionHtml}<div class="graph-report-link-list">${targets.map(target => `<button type="button" data-graph-source-anchor="${esc(target.sourceId)}" data-graph-open-source="${esc(target.sourceId)}" data-graph-source-sid="${esc(String(target.sid || ''))}" class="graph-report-inline-link">
     [[${esc(target.label)}]]
     <span class="meta">${esc(String(target.sourceType || 'doc').toUpperCase())}</span>
   </button>`).join('')}</div>`;

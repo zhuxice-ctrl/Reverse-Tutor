@@ -226,7 +226,10 @@ def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records(
     assert "学习整理" in html
     assert "历史错因" in html
     assert "证据摘要" in html
-    assert "可回顾原始对话" in html
+    assert "data-graph-panel=\"diagnosis-compact\"" in html
+    assert "data-graph-panel-card=\"evidence\"" in html
+    assert "function graphSemanticFragments" in html
+    assert "data-graph-fragment-chat" in html
     assert "summaryBullets.push(c)" not in html
     assert "exampleBullets.push(c)" not in html
 
