@@ -12470,8 +12470,6 @@ function buildGraphData(masteries, ai, anchors=[]) {
   return {nodes,links};
 }
 
-const MAX_FOCUS_GRAPH_NEIGHBORS = 6;
-
 function graphLinkEndpointKey(link, side) {
   const node = link?.[side] || link?.[side === 'a' ? 'source' : 'target'];
   return String(node?.key || '');
@@ -12529,9 +12527,8 @@ function graphCompareNeighbor(a, b) {
 }
 
 function buildFocusedGraphData(nodes=[], links=[], opts={}) {
-  const maxNeighbors = Math.max(1, Number(opts.maxNeighbors || MAX_FOCUS_GRAPH_NEIGHBORS));
   const center = graphFocusCenterNode(nodes, links, opts.centerKey || '');
-  if (!center || nodes.length <= maxNeighbors + 1) {
+  if (!center) {
     return { nodes, links, center, focused:false, totalNodes:nodes.length };
   }
   const centerKey = String(center.key || '');
@@ -12541,7 +12538,7 @@ function buildFocusedGraphData(nodes=[], links=[], opts={}) {
     const bKey = graphLinkEndpointKey(link, 'b');
     const otherKey = aKey === centerKey ? bKey : aKey;
     return { link, node: nodes.find(n => String(n.key) === otherKey) };
-  }).filter(item => item.node).sort(graphCompareNeighbor).slice(0, maxNeighbors);
+  }).filter(item => item.node).sort(graphCompareNeighbor);
   const keep = new Set([centerKey, ...neighborItems.map(item => String(item.node.key))]);
   const focusedNodes = nodes.filter(node => keep.has(String(node.key)));
   const focusedLinks = links.filter(link => keep.has(graphLinkEndpointKey(link, 'a')) && keep.has(graphLinkEndpointKey(link, 'b')));
