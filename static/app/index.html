@@ -12414,22 +12414,6 @@ function buildGraphData(masteries, ai, anchors=[]) {
     const source = target || (note.note_source_id ? sourceNodeById.get(String(note.note_source_id)) : null);
     if (source) links.push({ a:source, b:noteNode, weight:1.2, kind:'note' });
   });
-  for (const digest of buildKpMemoryDigests(ai, byKp)) {
-    const parent = byKp.get(digest.kp);
-    if (!parent) continue;
-    const insight = {
-      key: digest.key,
-      nodeType:'insight',
-      insightType: digest.insightType,
-      kp: digest.kp,
-      label: digest.label,
-      summary: digest.summary,
-      chatMessageIds: digest.chatMessageIds,
-      meta: { action: { type:'recap', knowledge_point: digest.kp } },
-    };
-    nodes.push(insight);
-    links.push({ a:parent, b:insight, weight:1.1, kind:'memory' });
-  }
   let prev=null;
   for (const msg of ai) {
     const kp=(msg.meta||{}).action?.knowledge_point;
