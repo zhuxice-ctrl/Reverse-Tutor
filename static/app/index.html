@@ -1194,6 +1194,110 @@
   .graph-sheet.expanded .graph-compact-only {
     display: none;
   }
+  .graph-diagnosis-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .graph-diagnosis-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .graph-diagnosis-eyebrow,
+  .graph-diagnosis-meta,
+  .graph-diagnosis-card .label,
+  .graph-diagnosis-statement .label {
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .graph-diagnosis-title {
+    font-size: 18px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: var(--text);
+    margin: 2px 0 0;
+    letter-spacing: 0;
+  }
+  .graph-diagnosis-score {
+    width: 58px;
+    min-width: 58px;
+    height: 58px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--page);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.05;
+    font-weight: 800;
+  }
+  .graph-diagnosis-score small {
+    margin-top: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    max-width: 48px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .graph-diagnosis-statement {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+    padding: 12px 13px;
+  }
+  .graph-diagnosis-statement p {
+    margin: 4px 0 0;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+    font-weight: 650;
+  }
+  .graph-diagnosis-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .graph-diagnosis-card {
+    min-height: 74px;
+    border-radius: 8px;
+    background: var(--panel-2);
+    border-left: 3px solid var(--line);
+    padding: 10px 10px 9px;
+  }
+  .graph-diagnosis-card.ok { border-left-color: #91bf95; }
+  .graph-diagnosis-card.warn { border-left-color: var(--warn); }
+  .graph-diagnosis-card.info { border-left-color: #80a7c9; }
+  .graph-diagnosis-card.action { border-left-color: #d8df9f; }
+  .graph-diagnosis-card.relation { border-left-color: #b7a4d6; }
+  .graph-diagnosis-card.source { border-left-color: #d4b46b; }
+  .graph-diagnosis-card p {
+    margin: 5px 0 0;
+    color: var(--text-soft);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .graph-diagnosis-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .graph-diagnosis-action {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 8px 11px;
+    font-size: 12px;
+    font-weight: 750;
+  }
+  .graph-diagnosis-action.primary {
+    background: var(--accent);
+    color: var(--page);
+    border-color: transparent;
+  }
   .graph-node-report {
     color: var(--text);
     padding-bottom: 24px;
@@ -12473,6 +12577,100 @@ function graphNodeDiagnosisText(node, digest, pairs) {
   return '这个节点目前主要表示图谱关系，继续对话后会补充更具体的诊断和证据。';
 }
 
+function graphNodePanelCards(node, digest, pairs) {
+  pairs = pairs || [];
+  const relations = graphNodeRelations(node);
+  const sources = graphNodeSourceTargets(node);
+  const evidenceItems = graphUniqueClean([...(digest?.evidence || []), node?.summary, node?.content, node?.preview], 3);
+  const errors = graphUniqueClean([...(digest?.errors || []), node?.meta?.evaluation?.misconception, node?.meta?.evaluation?.error_pattern], 2);
+  const nextSteps = graphUniqueClean([...(digest?.nextSteps || []), ...(node?.memoryExpansion?.teacher_questions || [])], 2);
+  const known = evidenceItems[0] || (pairs.length ? `${pairs.length} 轮对话可回看` : '等待更多学习证据');
+  const stuck = errors[0] || (node?.nodeType === 'latent' ? '还没有在对话中命中' : '还没有明显错因');
+  const evidence = evidenceItems.length ? `${evidenceItems.length} 条证据` : '证据较薄';
+  const next = nextSteps[0] || (errors[0] ? '先追问这个卡点' : '继续用一个小题验证');
+  const related = relations[0] ? graphNodeTitle(relations[0].node) : '暂无相邻节点';
+  const source = sources[0] ? sources[0].label : (pairs.length ? '来自对话' : '暂无来源');
+  return [
+    { key:'already-know', label:'已会', tone:'ok', value:known },
+    { key:'stuck-point', label:'卡点', tone:errors.length ? 'warn' : 'neutral', value:stuck },
+    { key:'evidence', label:'证据', tone:evidenceItems.length ? 'info' : 'neutral', value:evidence },
+    { key:'next-step', label:'下一步', tone:'action', value:next },
+    { key:'related', label:'相关', tone:'relation', value:related },
+    { key:'source', label:'来源', tone:'source', value:source },
+  ];
+}
+
+function graphNodePrimaryActionsHtml(node, digest, pairs) {
+  pairs = pairs || [];
+  const hasEvidence = pairs.length || digest?.evidence?.length || node?.chatMessageIds?.length || node?.messageId;
+  const hasWeakPoint = (digest?.errors || []).length || node?.meta?.evaluation?.misconception || node?.meta?.evaluation?.error_pattern;
+  return `<div class="graph-diagnosis-actions">
+    <button type="button" data-graph-action="practice" data-graph-expand-detail class="graph-diagnosis-action primary">来一题</button>
+    <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action">${hasWeakPoint ? '追问卡点' : '问为什么'}</button>
+    <button type="button" data-graph-action="review-evidence" ${hasEvidence ? 'data-graph-jump-chat' : 'data-graph-expand-detail'} class="graph-diagnosis-action">回看证据</button>
+  </div>`;
+}
+
+function graphSheetDiagnosisCompactHtml(node, digest, pairs) {
+  pairs = pairs || [];
+  const percent = graphNodeMasteryPercent(node);
+  const stage = graphNodeMasteryStage(node, digest, pairs);
+  const diagnosis = graphNodeDiagnosisText(node, digest, pairs);
+  const cardByKey = new Map(graphNodePanelCards(node, digest, pairs).map(card => [card.key, card]));
+  const card = key => cardByKey.get(key) || { label:'', tone:'neutral', value:'暂无' };
+  const evidenceCount = graphUniqueClean([...(digest?.evidence || []), node?.summary, node?.content, node?.preview], 8).length;
+  const sourceCount = graphNodeSourceTargets(node).length;
+  const meta = [
+    pairs.length ? `${pairs.length} 轮对话` : '',
+    evidenceCount ? `${evidenceCount} 条证据` : '',
+    sourceCount ? `${sourceCount} 个来源` : '',
+  ].filter(Boolean).join(' · ') || graphNodeTypeLabel(node);
+  return `<section class="graph-diagnosis-panel" data-graph-panel="diagnosis-compact">
+    <header class="graph-diagnosis-head">
+      <div class="min-w-0">
+        <div class="graph-diagnosis-eyebrow">${esc(graphNodeTypeLabel(node))}</div>
+        <h2 class="graph-diagnosis-title">${esc(graphNodeTitle(node))}</h2>
+        <div class="graph-diagnosis-meta">${esc(meta)}</div>
+      </div>
+      <div class="graph-diagnosis-score">
+        <span>${percent === null ? '诊断' : `${percent}%`}</span>
+        <small>${esc(stage)}</small>
+      </div>
+    </header>
+    <div class="graph-diagnosis-statement">
+      <div class="label">当前判断</div>
+      <p>${renderRichText(diagnosis)}</p>
+    </div>
+    <div class="graph-diagnosis-card-grid">
+      <article class="graph-diagnosis-card ${esc(card('already-know').tone)}" data-graph-panel-card="already-know">
+        <div class="label">${esc(card('already-know').label)}</div>
+        <p>${renderRichText(graphPanelPreviewText(card('already-know').value, '暂无'))}</p>
+      </article>
+      <article class="graph-diagnosis-card ${esc(card('stuck-point').tone)}" data-graph-panel-card="stuck-point">
+        <div class="label">${esc(card('stuck-point').label)}</div>
+        <p>${renderRichText(graphPanelPreviewText(card('stuck-point').value, '暂无'))}</p>
+      </article>
+      <article class="graph-diagnosis-card ${esc(card('evidence').tone)}" data-graph-panel-card="evidence">
+        <div class="label">${esc(card('evidence').label)}</div>
+        <p>${renderRichText(graphPanelPreviewText(card('evidence').value, '暂无'))}</p>
+      </article>
+      <article class="graph-diagnosis-card ${esc(card('next-step').tone)}" data-graph-panel-card="next-step">
+        <div class="label">${esc(card('next-step').label)}</div>
+        <p>${renderRichText(graphPanelPreviewText(card('next-step').value, '暂无'))}</p>
+      </article>
+      <article class="graph-diagnosis-card ${esc(card('related').tone)}" data-graph-panel-card="related">
+        <div class="label">${esc(card('related').label)}</div>
+        <p>${renderRichText(graphPanelPreviewText(card('related').value, '暂无'))}</p>
+      </article>
+      <article class="graph-diagnosis-card ${esc(card('source').tone)}" data-graph-panel-card="source">
+        <div class="label">${esc(card('source').label)}</div>
+        <p>${renderRichText(graphPanelPreviewText(card('source').value, '暂无'))}</p>
+      </article>
+    </div>
+    ${graphNodePrimaryActionsHtml(node, digest, pairs)}
+  </section>`;
+}
+
 function graphSheetActionButtonsHtml(node) {
   const targets = graphNodeSourceTargets(node);
   const hasChat = [
@@ -13140,221 +13338,7 @@ async function showGraphSheet(node) {
 
   const digest = buildKpConversationDigest(pairs, kpName);
 
-  let html='';
-  if (node.nodeType==='kp') {
-    const pct=Math.round((node.level||0)*100);
-    const circ=2*Math.PI*22;
-    const dash=circ*pct/100;
-    // Header: mastery ring + name
-    html=`<div class="flex items-center gap-4 mb-3">
-      <div class="mastery-ring">
-        <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="none" stroke="var(--line)" stroke-width="3" opacity=".3"/><circle cx="24" cy="24" r="22" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 24 24)" style="transition:stroke-dasharray .6s ease"/></svg>
-        <span class="ring-label">${pct}%</span>
-      </div>
-      <div class="min-w-0 flex-1">
-        <div class="text-base font-bold">${esc(kpName)}</div>
-        <div class="flex gap-1.5 mt-1 flex-wrap"><span class="pill pill-ask">知识点</span><span class="pill pill-next">${node.attempts||0} 次</span><span class="pill pill-encourage">${pairs.length} 轮对话</span></div>
-      </div>
-    </div>
-    <div class="sheet-section space-y-2 text-xs">
-      <div class="flex justify-between"><span class="text-neutral-500">掌握度</span><span>${(node.level||0).toFixed(2)}</span></div>
-      <div class="bar"><div style="width:${pct}%"></div></div>
-      <div class="flex justify-between"><span class="text-neutral-500">最近正确度</span><span>${Number(node.last_correctness||0).toFixed(2)}</span></div>
-      <div class="flex justify-between"><span class="text-neutral-500">最近深度</span><span>${Number(node.last_depth||0).toFixed(2)}</span></div>
-    </div>`;
-
-    html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">学习整理</div>
-      <div class="text-xs leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(digest.status)}</div></div>`;
-
-    if (digest.errors.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">历史错因</div><div class="flex flex-wrap gap-1.5">${digest.errors.map(e=>`<span class="pill pill-challenge">${esc(e)}</span>`).join('')}</div></div>`;
-    }
-
-    if (digest.evidence.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">证据摘要</div><div class="space-y-1.5">${digest.evidence.map(e=>`<div class="text-xs leading-relaxed" style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--accent-soft);">${esc(e)}</div>`).join('')}</div></div>`;
-    }
-
-    if (digest.nextSteps.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--text-soft)">后续策略</div><div class="space-y-1.5">${digest.nextSteps.map(s=>`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${esc(s)}</div>`).join('')}</div></div>`;
-    }
-
-    if (pairs.length) {
-      html+=`<details class="sheet-section"><summary class="text-xs font-semibold mb-2" style="color:var(--text-soft)">可回顾原始对话 <span class="text-neutral-500 font-normal">(${pairs.length} 轮)</span></summary><div class="space-y-3 mt-2">`;
-      for (const p of pairs.slice(-10)) {
-        const actType = p.act.type||'ask';
-        const score = ((Number(p.ev.correctness||0)+Number(p.ev.depth||0))/2).toFixed(2);
-        html+=`<div class="text-xs space-y-1">`;
-        if (p.user) html+=`<div style="color:var(--accent);padding-left:10px;border-left:2px solid var(--accent);">🧑‍🏫 ${renderRichText(p.user.content||'')}</div>`;
-        html+=`<div style="color:var(--text-soft);padding-left:10px;border-left:2px solid var(--warn);">🎓 ${renderRichText(p.ai.content||'')}</div>`;
-        html+=`<div class="flex gap-1.5"><span class="pill pill-${actType}">${actType}</span><span class="text-neutral-500" style="font-size:10px">综合 ${score}</span></div>`;
-        html+=`</div>`;
-      }
-      html+=`</div></details>`;
-    }
-
-  } else if (node.nodeType === 'note') {
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-encourage">随笔</span>
-      <span class="pill pill-next">${esc(node.sourceName || '聊天')}</span>
-    </div>
-    <div class="text-base font-bold mb-2">${esc(kpName || node.label || '随笔')}</div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
-    </div>
-    <div class="sheet-section text-sm leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.content || '')}</div>`;
-
-  } else if (node.nodeType === 'source') {
-    const diagnostics = node.sourceDiagnostics || {};
-    const sourceForSheet = { id: node.sourceId, kind:'source', content: node.content || '', source_text: node.sourceText || '', source_name: node.kp, source_type: node.sourceType, source_diagnostics: diagnostics, source_memory: node.sourceMemory || null, source_pages: node.sourcePages || [] };
-    const needsOcr = sourceNeedsOcr(sourceForSheet);
-    const topics = extractSourceTopics([sourceForSheet], 10);
-    html=`<div class="flex items-center gap-3 mb-3">
-      <div class="mastery-ring"><span class="ring-label">KB</span></div>
-      <div class="min-w-0 flex-1">
-        <div class="text-base font-bold truncate">${esc(node.kp || '基础资料')}</div>
-        <div class="flex gap-1.5 mt-1 flex-wrap"><span class="pill pill-source">${esc(node.sourceType || 'doc')}</span><span class="pill pill-next">${topics.length} 个候选节点</span></div>
-      </div>
-    </div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
-    </div>
-    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">${needsOcr ? esc(diagnostics.message || '这份资料需要视觉模型后才能作为知识库使用。') : '这份资料会作为图谱的底层知识库：先生成不发光的候选节点，等聊天真正触达某个知识点后，再把对应节点点亮并接到学习路径上。'}</div>
-    <div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">资料快照</div><div class="text-xs leading-relaxed whitespace-pre-wrap" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${esc(sourcePreviewText(sourceForSheet))}</div></div>`;
-    if (topics.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">候选知识节点</div><div class="flex flex-wrap gap-1.5">`;
-      for (const [i, t] of topics.entries()) html+=`<span class="pill pill-next">${esc(displaySourceTopicLabel(t, i + 1))}</span>`;
-      html+=`</div></div>`;
-    }
-
-  } else if (node.nodeType === 'section') {
-    const exp = node.memoryExpansion || null;
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-source">章节</span>
-      <span class="pill pill-next">${esc(node.sourceName || '基础资料')}</span>
-      ${node.memoryStatus ? `<span class="pill pill-encourage">${esc(memoryStatusLabel(node.memoryStatus, node.nodeType))}</span>` : ''}
-      ${node.titleOrigin ? `<span class="pill pill-next">${esc(node.titleOrigin)}</span>` : ''}
-    </div>
-    <div class="text-base font-bold mb-2">${esc(kpName || '资料章节')}</div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
-      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
-    </div>
-    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">这是根据上传资料的目录、章节标题或明显分段自动生成的分支。它下面会继续挂载未解锁知识点；聊天命中后，对应知识点才会发光。</div>`;
-    html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">节点简介</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(sourceNodeSummary(node))}</div></div>`;
-    if (node.modelTitleSuggestion) {
-      html+=`<div class="sheet-section text-xs" style="color:var(--muted)">模型建议：${esc(node.modelTitleSuggestion)}。用户命名不会被自动覆盖。</div>`;
-    }
-    if (exp) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">单支分析</div>
-        <div class="text-xs leading-relaxed mb-2" style="color:var(--text-soft);">${renderRichText(exp.summary || '')}</div>`;
-      if (Array.isArray(exp.key_concepts) && exp.key_concepts.length) {
-        html+=`<div class="flex flex-wrap gap-1.5 mb-2">${exp.key_concepts.slice(0,8).map(x=>`<span class="pill pill-next">${esc(x)}</span>`).join('')}</div>`;
-      }
-      if (Array.isArray(exp.teacher_questions) && exp.teacher_questions.length) {
-        html+=`<div class="space-y-1.5">${exp.teacher_questions.slice(0,5).map(q=>`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${renderRichText(q)}</div>`).join('')}</div>`;
-      }
-      html+=`</div>`;
-    }
-
-  } else if (node.nodeType === 'diagnostic') {
-    const exp = node.memoryExpansion || null;
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-source">导入诊断</span>
-      <span class="pill pill-next">${esc(node.sourceName || '基础资料')}</span>
-      ${node.memoryStatus ? `<span class="pill pill-encourage">${esc(memoryStatusLabel(node.memoryStatus, node.nodeType))}</span>` : ''}
-    </div>
-    <div class="text-base font-bold mb-2">${esc(node.label || '待视觉模型')}</div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
-      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
-    </div>
-    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">这份 PDF 已经作为资料记录下来，但当前只能看到文件存在，尚未真正读到正文。切换到支持视觉的模型后，系统会读取页面图片，再生成章节分支和候选知识节点。</div>`;
-    if (exp) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">单支分析</div>
-        <div class="text-xs leading-relaxed mb-2" style="color:var(--text-soft);">${renderRichText(exp.summary || '')}</div>`;
-      if (Array.isArray(exp.key_concepts) && exp.key_concepts.length) {
-        html+=`<div class="flex flex-wrap gap-1.5 mb-2">${exp.key_concepts.slice(0,8).map(x=>`<span class="pill pill-next">${esc(x)}</span>`).join('')}</div>`;
-      }
-      if (Array.isArray(exp.teacher_questions) && exp.teacher_questions.length) {
-        html+=`<div class="space-y-1.5">${exp.teacher_questions.slice(0,5).map(q=>`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${renderRichText(q)}</div>`).join('')}</div>`;
-      }
-      html+=`</div>`;
-    }
-    if (node.preview) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">诊断信息</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(String(node.preview).slice(0, 520))}</div></div>`;
-    }
-
-  } else if (node.nodeType === 'latent') {
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-source">未解锁</span>
-      <span class="pill pill-next">${esc(node.sourceName || '基础资料')}</span>
-    </div>
-    <div class="text-base font-bold mb-2">${esc(kpName || '候选知识点')}</div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
-      <button data-graph-edit-node class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">编辑纠正</button>
-    </div>
-    <div class="sheet-section text-xs leading-relaxed" style="color:var(--text-soft)">这个节点来自上传资料，但还没有在聊天学习中被命中，所以不会发光。后续对话触达到同名或相近知识点时，它会自动接入已学习路径。</div>`;
-    if (node.preview) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">来源线索</div><div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.preview)}</div></div>`;
-    }
-
-  } else if (node.nodeType === 'insight') {
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-recap">学习整理</span>
-      <span class="pill pill-next">${esc(kpName || '知识点')}</span>
-      ${node.insightType ? `<span class="pill pill-${node.insightType === 'error' ? 'challenge' : 'next'}">${esc(node.insightType)}</span>` : ''}
-    </div>
-    <div class="text-base font-bold mb-2">${esc(node.label || '记忆摘要')}</div>
-    <div class="flex gap-2 mb-2">
-      <button data-graph-jump-chat class="flex-1 text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800">回顾聊天</button>
-    </div>
-    <div class="sheet-section text-sm leading-relaxed" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.summary || '')}</div>`;
-
-  } else {
-    // Memory / support node: show this specific conversation round in context
-    const action=node.meta?.action||{}, ev=node.meta?.evaluation||{};
-    // Find the matching pair
-    const pair = pairs.find(p => p.ai.content === node.content) || null;
-
-    html=`<div class="flex gap-1.5 mb-2 flex-wrap">
-      <span class="pill pill-${action.type||'ask'}">${esc(action.type||'记忆')}</span>
-      <span class="pill pill-source">${esc(kpName||'片段')}</span>
-    </div>
-    <div class="text-base font-bold mb-2">${esc(action.knowledge_point||kpName||'对话片段')}</div>`;
-
-    // Full conversation pair
-    if (pair && pair.user) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">🧑‍🏫 你的讲解</div>
-        <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(pair.user.content||'')}</div></div>`;
-    }
-    html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">🎓 学生回复</div>
-      <div class="text-sm leading-relaxed mb-3" style="color:var(--text-soft);background:var(--panel-2);padding:8px 10px;border-radius:8px;">${renderRichText(node.content||'')}</div></div>`;
-
-    html+=`<div class="sheet-section space-y-1 text-xs">
-      <div class="flex justify-between"><span class="text-neutral-500">正确度</span><span>${Number(ev.correctness||0).toFixed(2)}</span></div>
-      <div class="bar"><div style="width:${Math.round((ev.correctness||0)*100)}%"></div></div>
-      <div class="flex justify-between"><span class="text-neutral-500">深度</span><span>${Number(ev.depth||0).toFixed(2)}</span></div>
-      <div class="bar"><div style="width:${Math.round((ev.depth||0)*100)}%"></div></div>
-    </div>`;
-
-    // Related KP summary context
-    if (summaryBullets.length > 1) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--accent)">📝 该知识点其他要点</div><div class="space-y-1.5">`;
-      for (const s of summaryBullets.filter(s=>s!==node.content).slice(0,5)) {
-        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);padding-left:10px;border-left:2px solid var(--accent-soft);">${renderRichText(s)}</div>`;
-      }
-      html+=`</div></div>`;
-    }
-    if (exampleBullets.length) {
-      html+=`<div class="sheet-section"><div class="text-xs font-semibold mb-2" style="color:var(--warn)">💡 相关例题</div><div class="space-y-1.5">`;
-      for (const q of exampleBullets.slice(0,4)) {
-        html+=`<div class="text-xs leading-relaxed" style="color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;">${renderRichText(q)}</div>`;
-      }
-      html+=`</div></div>`;
-    }
-  }
-
+  let html = graphSheetDiagnosisCompactHtml(node, digest, pairs);
   html = `<div class="graph-compact-only">${html}</div>`;
   html += graphSheetDetailHtml(node, digest, pairs);
   body.innerHTML=html;
