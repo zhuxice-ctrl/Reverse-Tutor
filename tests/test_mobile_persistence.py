@@ -225,7 +225,6 @@ def test_mobile_graph_keeps_learning_digest_data_out_of_canvas_nodes():
 def test_mobile_graph_has_focus_dataset_helpers():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
-    assert "const MAX_FOCUS_GRAPH_NEIGHBORS = 6" in html
     assert "function graphFocusCenterNode(nodes=[], links=[], preferredKey='')" in html
     focus_region = html.split("function graphFocusCenterNode", 1)[1].split("function setActiveGraphDataset", 1)[0]
 
@@ -233,8 +232,28 @@ def test_mobile_graph_has_focus_dataset_helpers():
     assert "function graphFormationStateHtml(nodes=[], links=[], opts={})" in html
     assert "node.nodeType === 'kp'" in focus_region
     assert "const oneHopLinks = links.filter" in focus_region
-    assert "slice(0, maxNeighbors)" in focus_region
+    assert "const neighborItems = oneHopLinks.map" in focus_region
+    assert "sort(graphCompareNeighbor)" in focus_region
+    assert "MAX_FOCUS_GRAPH_NEIGHBORS" not in focus_region
+    assert "maxNeighbors" not in focus_region
+    assert "slice(0, maxNeighbors)" not in focus_region
     assert "return { nodes: focusedNodes, links: focusedLinks, center, focused:true" in focus_region
+
+
+def test_mobile_graph_natural_relations_do_not_add_backend_storage():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    build_graph_fn = html.split("function buildGraphData", 1)[1].split("function memoryStatusLabel", 1)[0]
+    focus_region = html.split("function graphFocusCenterNode", 1)[1].split("function setActiveGraphDataset", 1)[0]
+
+    assert "related_kps" in build_graph_fn
+    assert "kind:'related'" in build_graph_fn
+    assert "kind:'sequence'" in build_graph_fn
+    assert "kind:'foundation'" in build_graph_fn
+    assert "kind:'note'" in build_graph_fn
+    assert "indexedDB" not in focus_region
+    assert "DB.add(" not in focus_region
+    assert "DB.put(" not in focus_region
+    assert "objectStoreNames" not in focus_region
 
 
 def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records():
