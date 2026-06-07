@@ -12867,29 +12867,6 @@ function graphNodeDiagnosisText(node, digest, pairs) {
   return '这个节点目前主要表示图谱关系，继续对话后会补充更具体的诊断和证据。';
 }
 
-function graphNodePanelCards(node, digest, pairs) {
-  pairs = pairs || [];
-  const relations = graphNodeRelations(node);
-  const sources = graphNodeSourceTargets(node);
-  const evidenceItems = graphUniqueClean([...(digest?.evidence || []), node?.summary, node?.content, node?.preview], 3);
-  const errors = graphUniqueClean([...(digest?.errors || []), node?.meta?.evaluation?.misconception, node?.meta?.evaluation?.error_pattern], 2);
-  const nextSteps = graphUniqueClean([...(digest?.nextSteps || []), ...(node?.memoryExpansion?.teacher_questions || [])], 2);
-  const known = evidenceItems[0] || (pairs.length ? `${pairs.length} 轮对话可回看` : '等待更多学习证据');
-  const stuck = errors[0] || (node?.nodeType === 'latent' ? '还没有在对话中命中' : '还没有明显错因');
-  const evidence = evidenceItems.length ? `${evidenceItems.length} 条证据` : '证据较薄';
-  const next = nextSteps[0] || (errors[0] ? '先追问这个卡点' : '继续用一个小题验证');
-  const related = relations[0] ? graphNodeTitle(relations[0].node) : '暂无相邻节点';
-  const source = sources[0] ? sources[0].label : (pairs.length ? '来自对话' : '暂无来源');
-  return [
-    { key:'already-know', label:'已会', tone:'ok', value:known },
-    { key:'stuck-point', label:'卡点', tone:errors.length ? 'warn' : 'neutral', value:stuck },
-    { key:'evidence', label:'证据', tone:evidenceItems.length ? 'info' : 'neutral', value:evidence },
-    { key:'next-step', label:'下一步', tone:'action', value:next },
-    { key:'related', label:'相关', tone:'relation', value:related },
-    { key:'source', label:'来源', tone:'source', value:source },
-  ];
-}
-
 function graphNodePrimaryActionsHtml(node, digest, pairs) {
   pairs = pairs || [];
   const hasEvidence = pairs.length || digest?.evidence?.length || node?.chatMessageIds?.length || node?.messageId;
@@ -12899,66 +12876,6 @@ function graphNodePrimaryActionsHtml(node, digest, pairs) {
     <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action">${hasWeakPoint ? '追问卡点' : '问为什么'}</button>
     <button type="button" data-graph-action="review-evidence" ${hasEvidence ? 'data-graph-jump-chat' : 'data-graph-expand-detail'} class="graph-diagnosis-action">回看证据</button>
   </div>`;
-}
-
-function graphSheetDiagnosisCompactHtml(node, digest, pairs) {
-  pairs = pairs || [];
-  const percent = graphNodeMasteryPercent(node);
-  const stage = graphNodeMasteryStage(node, digest, pairs);
-  const diagnosis = graphNodeDiagnosisText(node, digest, pairs);
-  const cardByKey = new Map(graphNodePanelCards(node, digest, pairs).map(card => [card.key, card]));
-  const card = key => cardByKey.get(key) || { label:'', tone:'neutral', value:'暂无' };
-  const evidenceCount = graphUniqueClean([...(digest?.evidence || []), node?.summary, node?.content, node?.preview], 8).length;
-  const sourceCount = graphNodeSourceTargets(node).length;
-  const meta = [
-    pairs.length ? `${pairs.length} 轮对话` : '',
-    evidenceCount ? `${evidenceCount} 条证据` : '',
-    sourceCount ? `${sourceCount} 个来源` : '',
-  ].filter(Boolean).join(' · ') || graphNodeTypeLabel(node);
-  return `<section class="graph-diagnosis-panel" data-graph-panel="diagnosis-compact">
-    <header class="graph-diagnosis-head">
-      <div class="min-w-0">
-        <div class="graph-diagnosis-eyebrow">${esc(graphNodeTypeLabel(node))}</div>
-        <h2 class="graph-diagnosis-title">${esc(graphNodeTitle(node))}</h2>
-        <div class="graph-diagnosis-meta">${esc(meta)}</div>
-      </div>
-      <div class="graph-diagnosis-score">
-        <span>${percent === null ? '诊断' : `${percent}%`}</span>
-        <small>${esc(stage)}</small>
-      </div>
-    </header>
-    <div class="graph-diagnosis-statement">
-      <div class="label">当前判断</div>
-      <p>${renderRichText(diagnosis)}</p>
-    </div>
-    <div class="graph-diagnosis-card-grid">
-      <article class="graph-diagnosis-card ${esc(card('already-know').tone)}" data-graph-panel-card="already-know">
-        <div class="label">${esc(card('already-know').label)}</div>
-        <p>${renderRichText(graphPanelPreviewText(card('already-know').value, '暂无'))}</p>
-      </article>
-      <article class="graph-diagnosis-card ${esc(card('stuck-point').tone)}" data-graph-panel-card="stuck-point">
-        <div class="label">${esc(card('stuck-point').label)}</div>
-        <p>${renderRichText(graphPanelPreviewText(card('stuck-point').value, '暂无'))}</p>
-      </article>
-      <article class="graph-diagnosis-card ${esc(card('evidence').tone)}" data-graph-panel-card="evidence">
-        <div class="label">${esc(card('evidence').label)}</div>
-        <p>${renderRichText(graphPanelPreviewText(card('evidence').value, '暂无'))}</p>
-      </article>
-      <article class="graph-diagnosis-card ${esc(card('next-step').tone)}" data-graph-panel-card="next-step">
-        <div class="label">${esc(card('next-step').label)}</div>
-        <p>${renderRichText(graphPanelPreviewText(card('next-step').value, '暂无'))}</p>
-      </article>
-      <article class="graph-diagnosis-card ${esc(card('related').tone)}" data-graph-panel-card="related">
-        <div class="label">${esc(card('related').label)}</div>
-        <p>${renderRichText(graphPanelPreviewText(card('related').value, '暂无'))}</p>
-      </article>
-      <article class="graph-diagnosis-card ${esc(card('source').tone)}" data-graph-panel-card="source">
-        <div class="label">${esc(card('source').label)}</div>
-        <p>${renderRichText(graphPanelPreviewText(card('source').value, '暂无'))}</p>
-      </article>
-    </div>
-    ${graphNodePrimaryActionsHtml(node, digest, pairs)}
-  </section>`;
 }
 
 function graphSheetCompactHtml(node, digest, pairs) {
