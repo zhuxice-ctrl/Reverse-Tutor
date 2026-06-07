@@ -263,8 +263,9 @@ def test_mobile_graph_sheet_shows_structured_learning_digest_before_raw_records(
     assert "学习整理" in html
     assert "历史错因" in html
     assert "证据摘要" in html
-    assert "data-graph-panel=\"diagnosis-compact\"" in html
-    assert "data-graph-panel-card=\"evidence\"" in html
+    assert "data-graph-panel=\"node-compact\"" in html
+    assert "data-graph-template=\"learning-state\"" in html
+    assert "data-graph-detail-section=\"evidence\"" in html
     assert "function graphSemanticFragments" in html
     assert "data-graph-fragment-chat" in html
     assert "summaryBullets.push(c)" not in html
@@ -648,26 +649,52 @@ def test_mobile_graph_sheet_expanded_detail_reads_like_report_with_semantic_card
     assert "graphSheetDetailHtml(node, digest, pairs)" in html
 
 
-def test_mobile_graph_sheet_compact_panel_is_diagnosis_first_with_six_cards():
+def test_mobile_graph_sheet_uses_tiered_compact_templates():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
     sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
 
-    assert "function graphSheetDiagnosisCompactHtml" in html
+    assert "function graphNodeSheetTemplate(node)" in html
+    assert "function graphSheetCompactHtml(node, digest, pairs)" in html
+    assert "function graphKnowledgeCompactHtml(node, digest, pairs)" in html
+    assert "function graphStructureCompactHtml(node, digest, pairs)" in html
+    assert "function graphContextCompactHtml(node, digest, pairs)" in html
     assert "function graphNodeDiagnosisText" in html
-    assert "function graphNodePanelCards" in html
     assert "function graphNodePrimaryActionsHtml" in html
-    assert "data-graph-panel=\"diagnosis-compact\"" in html
-    assert "data-graph-panel-card=\"already-know\"" in html
-    assert "data-graph-panel-card=\"stuck-point\"" in html
-    assert "data-graph-panel-card=\"evidence\"" in html
-    assert "data-graph-panel-card=\"next-step\"" in html
-    assert "data-graph-panel-card=\"related\"" in html
-    assert "data-graph-panel-card=\"source\"" in html
+    assert "data-graph-panel=\"node-compact\"" in html
+    assert "data-graph-template=\"learning-state\"" in html
+    assert "data-graph-template=\"candidate-structure\"" in html
+    assert "data-graph-template=\"context-source\"" in html
+    assert "data-graph-kp-main-stuck" in html
+    assert "data-graph-structure-reason" in html
+    assert "data-graph-context-coverage" in html
     assert "data-graph-action=\"practice\"" in html
     assert "data-graph-action=\"ask-why\"" in html
-    assert "data-graph-action=\"review-evidence\"" in html
-    assert "graphSheetDiagnosisCompactHtml(node, digest, pairs)" in sheet_fn
-    assert sheet_fn.index("graphSheetDiagnosisCompactHtml(node, digest, pairs)") < sheet_fn.index("graphSheetDetailHtml(node, digest, pairs)")
+    assert "data-graph-action=\"open-source\"" in html
+    assert "graphSheetCompactHtml(node, digest, pairs)" in sheet_fn
+    assert sheet_fn.index("graphSheetCompactHtml(node, digest, pairs)") < sheet_fn.index("graphSheetDetailHtml(node, digest, pairs)")
+
+
+def test_mobile_graph_sheet_expanded_detail_uses_tiered_reports():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    report_fn = html.split("function graphSheetReportHtml", 1)[1].split("function graphSheetDetailHtml", 1)[0]
+
+    assert "function graphKnowledgeReportHtml(node, digest, pairs=[])" in html
+    assert "function graphStructureReportHtml(node, digest, pairs=[])" in html
+    assert "function graphContextReportHtml(node, digest, pairs=[])" in html
+    assert "data-graph-report-template=\"learning-state\"" in html
+    assert "data-graph-report-template=\"candidate-structure\"" in html
+    assert "data-graph-report-template=\"context-source\"" in html
+    assert "data-graph-detail-section=\"current-judgment\"" in html
+    assert "data-graph-detail-section=\"already-know\"" in html
+    assert "data-graph-detail-section=\"main-stuck\"" in html
+    assert "data-graph-detail-section=\"why-stuck\"" in html
+    assert "data-graph-detail-section=\"evidence\"" in html
+    assert "data-graph-detail-section=\"strategy\"" in html
+    assert "data-graph-detail-section=\"relations\"" in html
+    assert "graphNodeSheetTemplate(node)" in report_fn
+    assert "graphKnowledgeReportHtml(node, digest, pairs)" in report_fn
+    assert "graphStructureReportHtml(node, digest, pairs)" in report_fn
+    assert "graphContextReportHtml(node, digest, pairs)" in report_fn
 
 
 def test_mobile_graph_sheet_diagnosis_panel_preserves_existing_semantic_cards():
@@ -675,7 +702,7 @@ def test_mobile_graph_sheet_diagnosis_panel_preserves_existing_semantic_cards():
     sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
     report_fn = html.split("function graphSheetReportHtml", 1)[1].split("function graphSheetDetailHtml", 1)[0]
 
-    assert "html = graphSheetDiagnosisCompactHtml(node, digest, pairs);" in sheet_fn
+    assert "html = graphSheetCompactHtml(node, digest, pairs);" in sheet_fn
     assert "html = `<div class=\"graph-compact-only\">${html}</div>`;" in sheet_fn
     assert "html += graphSheetDetailHtml(node, digest, pairs);" in sheet_fn
     assert "const fragments = graphSemanticFragments(node, digest, pairs);" in report_fn

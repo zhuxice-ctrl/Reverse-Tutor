@@ -777,7 +777,8 @@ def test_mobile_graph_filters_process_nodes_from_mastery_and_digest_paths():
 def test_mobile_graph_nodes_come_from_learning_structure_not_panel_fields():
     html = mobile_html()
     build_graph_fn = html.split("function buildGraphData", 1)[1].split("function memoryStatusLabel", 1)[0]
-    panel_fn = html.split("function graphNodePanelCards", 1)[1].split("function graphNodePrimaryActionsHtml", 1)[0]
+    assert "function graphSheetCompactHtml" in html
+    compact_region = html.split("function graphSheetCompactHtml", 1)[1].split("function graphSheetActionButtonsHtml", 1)[0]
 
     assert "nodeType:'kp'" in build_graph_fn
     assert "nodeType:'latent'" in build_graph_fn
@@ -785,10 +786,11 @@ def test_mobile_graph_nodes_come_from_learning_structure_not_panel_fields():
     assert "nodeType:'source'" in build_graph_fn
     assert "nodeType:'section'" in build_graph_fn
     assert "nodeType:'insight'" not in build_graph_fn
-    assert "label:'证据摘要'" in html
-    assert "label:'下一步'" in panel_fn
-    assert "entryStatusLabel" in html
-    assert "已有入口" in html
+    assert "kind:'memory'" not in build_graph_fn
+    assert "data-graph-kp-main-stuck" in compact_region
+    assert "data-graph-structure-reason" in compact_region
+    assert "data-graph-context-coverage" in compact_region
+    assert "graphNodeSheetTemplate(node)" in compact_region
 def test_mobile_graph_canvas_uses_focus_subset_but_detail_keeps_full_dataset():
     html = mobile_html()
     context_graph_fn = html.split("async function renderContextGraph", 1)[1].split("async function renderContextAnchors", 1)[0]
