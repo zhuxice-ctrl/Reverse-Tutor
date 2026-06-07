@@ -13439,7 +13439,7 @@ function graphSourcesReportHtml(node) {
   </button>`).join('')}</div>`;
 }
 
-function graphSheetReportHtml(node, digest, pairs=[]) {
+function graphLegacySheetReportHtml(node, digest, pairs=[]) {
   const fragments = graphSemanticFragments(node, digest, pairs);
   const fragmentHtml = fragments.length
     ? graphFragmentDeckHtml(fragments, node?.sid || state.sid)
@@ -13457,6 +13457,92 @@ function graphSheetReportHtml(node, digest, pairs=[]) {
     ${graphReportSectionHtml('相关节点', graphRelationsReportHtml(node), 'data-graph-detail-section="relations"')}
     ${graphReportSectionHtml('来源资料', graphSourcesReportHtml(node), 'data-graph-detail-section="sources"')}
   </article>`;
+}
+
+function graphReportListHtml(items, emptyText) {
+  const clean = graphUniqueClean(items || [], 5);
+  const rows = clean.length ? clean : [emptyText];
+  return `<ul class="list-disc pl-5 space-y-1">${rows.map(item => `<li>${renderRichText(String(item).slice(0, 260))}</li>`).join('')}</ul>`;
+}
+
+function graphGroupedRelationsReportHtml(node) {
+  const groups = graphNodeRelationGroups(node);
+  if (!groups.length) return '<div class="text-xs text-neutral-500">暂时没有可浏览的相邻节点。</div>';
+  return groups.map(group => `<div class="graph-report-relation-group">
+    <div class="text-[11px] font-semibold text-neutral-500 mb-1">${esc(group.label)}</div>
+    <div class="graph-report-link-list">${group.relations.map(rel => `<button type="button" data-graph-node-jump="${esc(String(rel.node.key))}" class="graph-report-inline-link">
+      [[${esc(graphNodeTitle(rel.node))}]]
+      <span class="meta">${esc(graphNodeTypeLabel(rel.node))}</span>
+    </button>`).join('')}</div>
+  </div>`).join('');
+}
+
+function graphKnowledgeReportHtml(node, digest, pairs=[]) {
+  const fragments = graphSemanticFragments(node, digest, pairs);
+  const fragmentHtml = fragments.length ? graphFragmentDeckHtml(fragments, node?.sid || state.sid) : '';
+  const weakPoint = graphNodeWeakPoint(node, digest);
+  const known = graphNodeKnownItems(node, digest, pairs, 4);
+  const evidence = graphNodeEvidenceItems(node, digest, 5);
+  const nextSteps = graphNodeNextStepItems(node, digest, 4);
+  return `<article class="graph-node-report" data-graph-report-template="learning-state">
+    <header class="graph-report-head">
+      <div class="text-[11px] text-neutral-500">${esc(graphNodeLightPath(node))}</div>
+      <h2 class="graph-report-title">${esc(graphNodeTitle(node))}</h2>
+      <blockquote class="graph-report-lead">${renderRichText(graphNodeDiagnosisText(node, digest, pairs))}</blockquote>
+    </header>
+    ${graphReportSectionHtml('当前判断', `<p>${renderRichText(graphReportLead(node, digest, pairs))}</p>`, 'data-graph-detail-section="current-judgment"')}
+    ${graphReportSectionHtml('你已经会了什么', graphReportListHtml(known, '还需要更多对话，才能稳定展示已掌握部分。'), 'data-graph-detail-section="already-know"')}
+    ${graphReportSectionHtml('主要卡点', `<p>${renderRichText(graphPanelPreviewText(weakPoint, '暂时还没有检测到明确卡点。'))}</p>`, 'data-graph-detail-section="main-stuck"')}
+    ${graphReportSectionHtml('为什么会卡', `<p>${renderRichText(graphPanelPreviewText(weakPoint || digest?.status || node?.summary, '这个节点还需要更多证据，系统暂时不能解释具体卡因。'))}</p>`, 'data-graph-detail-section="why-stuck"')}
+    ${graphReportSectionHtml('判断依据', `${fragmentHtml || graphReportListHtml(evidence, '暂时还没有收集到详细证据。')}`, 'data-graph-detail-section="evidence"')}
+    ${graphReportSectionHtml('下一步', graphReportListHtml(nextSteps, '先围绕这个点追问一次，或完成一个短练习。'), 'data-graph-detail-section="strategy"')}
+    ${graphReportSectionHtml('相关节点', graphGroupedRelationsReportHtml(node), 'data-graph-detail-section="relations"')}
+    ${graphReportSectionHtml('来源资料', graphSourcesReportHtml(node), 'data-graph-detail-section="sources"')}
+  </article>`;
+}
+
+function graphStructureReportHtml(node, digest, pairs=[]) {
+  const evidence = graphNodeEvidenceItems(node, digest, 4);
+  const nextSteps = graphNodeNextStepItems(node, digest, 4);
+  const sourceHtml = graphSourcesReportHtml(node);
+  return `<article class="graph-node-report" data-graph-report-template="candidate-structure">
+    <header class="graph-report-head">
+      <div class="text-[11px] text-neutral-500">${esc(graphNodeLightPath(node))}</div>
+      <h2 class="graph-report-title">${esc(graphNodeTitle(node))}</h2>
+      <blockquote class="graph-report-lead">${renderRichText(graphNodeDiagnosisText(node, digest, pairs))}</blockquote>
+    </header>
+    ${graphReportSectionHtml('为什么出现', graphReportListHtml(evidence, '这个节点来自资料结构、内容提取或导入诊断。'), 'data-graph-detail-section="structure-reason"')}
+    ${graphReportSectionHtml('来源片段', sourceHtml || graphEvidenceReportHtml(node, digest), 'data-graph-detail-section="evidence"')}
+    ${graphReportSectionHtml('分析状态', graphLearningNarrativeHtml(node), 'data-graph-detail-section="learning-status"')}
+    ${graphReportSectionHtml('可做动作', graphReportListHtml(nextSteps, '先围绕这个节点提问，或打开来源；不要在没有证据时把它当成已学习知识点。'), 'data-graph-detail-section="strategy"')}
+    ${graphReportSectionHtml('相关节点', graphGroupedRelationsReportHtml(node), 'data-graph-detail-section="relations"')}
+  </article>`;
+}
+
+function graphContextReportHtml(node, digest, pairs=[]) {
+  const evidence = graphNodeEvidenceItems(node, digest, 5);
+  const sourceHtml = graphSourcesReportHtml(node);
+  return `<article class="graph-node-report" data-graph-report-template="context-source">
+    <header class="graph-report-head">
+      <div class="text-[11px] text-neutral-500">${esc(graphNodeLightPath(node))}</div>
+      <h2 class="graph-report-title">${esc(graphNodeTitle(node))}</h2>
+      <blockquote class="graph-report-lead">${renderRichText(graphNodeCoverageText(node))}</blockquote>
+    </header>
+    ${graphReportSectionHtml('来源与覆盖范围', `<p>${esc(graphNodeCoverageText(node))}</p>`, 'data-graph-detail-section="context-coverage"')}
+    ${graphReportSectionHtml('内容预览', graphReportListHtml(evidence, '这个上下文节点暂时没有长预览。'), 'data-graph-detail-section="evidence"')}
+    ${graphReportSectionHtml('关联学习节点', graphGroupedRelationsReportHtml(node), 'data-graph-detail-section="relations"')}
+    ${graphReportSectionHtml('打开上下文', sourceHtml, 'data-graph-detail-section="sources"')}
+  </article>`;
+}
+
+function graphSheetReportHtml(node, digest, pairs=[]) {
+  const fragments = graphSemanticFragments(node, digest, pairs);
+  const fragmentHtml = fragments.length ? graphFragmentDeckHtml(fragments, node?.sid || state.sid) : '';
+  void fragmentHtml;
+  const template = graphNodeSheetTemplate(node);
+  if (template === 'learning-state') return graphKnowledgeReportHtml(node, digest, pairs);
+  if (template === 'context-source') return graphContextReportHtml(node, digest, pairs);
+  return graphStructureReportHtml(node, digest, pairs);
 }
 
 function graphSheetDetailHtml(node, digest, pairs=[]) {
