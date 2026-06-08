@@ -1201,6 +1201,28 @@ def test_mobile_turn_route_uses_light_llm_chain_without_teaching_postprocessing(
     assert "TURN_ROUTE_STUDY_FULL" in run_turn_fn
 
 
+def test_mobile_light_chat_persists_chat_note_anchors_without_mastery():
+    html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    light_fn = html.split("async function runLightChatTurn", 1)[1].split("async function tryQueueNativeTurnEarly", 1)[0]
+    extraction_region = html.split("function extractChatNoteCandidates", 1)[1].split("async function persistChatNoteAnchors", 1)[0]
+    persist_region = html.split("async function persistChatNoteAnchors", 1)[1].split("function inferTurnRoute", 1)[0]
+
+    assert "function extractChatNoteCandidates" in html
+    assert "async function persistChatNoteAnchors" in html
+    assert "kind: 'chat_note'" in persist_region
+    assert "chat_note_title" in persist_region
+    assert "chat_note_outline" in persist_region
+    assert "chat_note_quote" in persist_region
+    assert "privacy_level || 'standard'" in persist_region
+    assert "kg_extraction_enabled === false" in persist_region
+    assert "师生角色定位" in extraction_region
+    assert "shadowing" in extraction_region
+    assert "て形" in extraction_region
+    assert "聞こえる / 聞かれる" in extraction_region
+    assert "persistChatNoteAnchors(session, sid, {" in light_fn
+    assert "upsert_mastery" not in light_fn
+
+
 def test_mobile_turn_route_uses_context_before_source_hits_for_ambiguous_short_text():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
     route_fn = html.split("function inferTurnRoute", 1)[1].split("function buildLightChatSystemPrompt", 1)[0]

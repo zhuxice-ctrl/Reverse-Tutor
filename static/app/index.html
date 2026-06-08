@@ -6979,6 +6979,139 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
 - 只输出学生 AI 的自然语言，不输出 JSON、metadata、评价字段或思考过程。`;
   }
 
+  function chatNoteOutlineFor(title, session=null) {
+    const goal = String(session?.goal || session?.title || '').trim();
+    const role = String(session?.persona?.role || session?.role || '').trim();
+    const base = /日语|JLPT|N[12345]/i.test(`${goal} ${role}`)
+      ? '日语 N2'
+      : graphTrim(goal || '当前目标', 18);
+    if (/て形|动词|動詞|五段|する|くる/.test(title)) return `${base} / 语法 / 动词变形`;
+    if (/shadowing|跟读|听力|早口|语速/.test(title)) return `${base} / 听力 / 跟读`;
+    if (/聞こえる|聞かれる|易混|分不清/.test(title)) return `${base} / 语法 / 易混表达`;
+    return `${base} / 待归类线索`;
+  }
+
+  function chatNoteQuoteFrom(text, fallback='') {
+    const clean = String(text || fallback || '').replace(/\s+/g, ' ').trim();
+    return graphTrim(clean, 120);
+  }
+
+  function chatNoteCandidate(title, body, quote, session, keywords=[]) {
+    const cleanTitle = graphTrim(title, 36);
+    if (!cleanTitle || !isLogicalGraphKp(cleanTitle)) return null;
+    if (/师生角色定位|师生身份|学生身份|老师身份|角色边界|你是谁我是谁/.test(cleanTitle)) return null;
+    return {
+      title: cleanTitle,
+      body: graphTrim(body, 120),
+      quote: chatNoteQuoteFrom(quote, body),
+      outline: chatNoteOutlineFor(cleanTitle, session),
+      keywords: graphUniqueClean(keywords, 5),
+    };
+  }
+
+  function extractChatNoteCandidates({ userInput='', reply='', session=null }={}) {
+    const raw = `${userInput || ''}\n${reply || ''}`;
+    const compact = raw.replace(/\s+/g, ' ').trim();
+    const notes = [];
+    const add = (note) => { if (note && !notes.some(n => normalizeGraphTopic(n.title) === normalizeGraphTopic(note.title))) notes.push(note); };
+    if (!compact) return [];
+    if (/师生角色定位|你不是我的学生|你是谁.*我是谁|老师.*学生.*角色/.test(compact) && !/(て形|shadowing|聞こえる|聞かれる|听力|跟读|动词|語法|语法)/.test(compact)) {
+      return [];
+    }
+    if (/て形|て\s*形/.test(compact)) {
+      add(chatNoteCandidate(
+        /写错|写乱|卡|混/.test(compact) ? 'て形总是写乱' : 'て形',
+        '你在闲聊里提到，动词变形混在一起时容易写错。',
+        compact.match(/[^。！？\n]*て\s*形[^。！？\n]*/)?.[0] || compact,
+        session,
+        ['て形', '动词变形']
+      ));
+    }
+    if (/shadowing|跟读/i.test(compact)) {
+      add(chatNoteCandidate(
+        /听力|录音|慢速/.test(compact) ? 'shadowing 跟读' : 'shadowing',
+        '闲聊里出现了跟读和录音练习线索，可以作为后续听力训练便签。',
+        compact.match(/[^。！？\n]*(shadowing|跟读)[^。！？\n]*/i)?.[0] || compact,
+        session,
+        ['shadowing', '跟读']
+      ));
+    }
+    if (/聞こえる|聞かれる/.test(compact)) {
+      add(chatNoteCandidate(
+        '聞こえる / 聞かれる 分不清',
+        '你提到这组表达容易混淆，适合之后归入易混语法便签。',
+        compact.match(/[^。！？\n]*(聞こえる|聞かれる)[^。！？\n]*/)?.[0] || compact,
+        session,
+        ['聞こえる', '聞かれる', '易混表达']
+      ));
+    }
+    if (/早口の会話|听力.*快|快.*听力|语速|語速/.test(compact)) {
+      add(chatNoteCandidate(
+        'N2 听力快语速',
+        '闲聊里出现了快语速听力卡点，适合作为后续听力训练线索。',
+        compact.match(/[^。！？\n]*(早口の会話|听力|语速|語速)[^。！？\n]*/)?.[0] || compact,
+        session,
+        ['听力', '快语速']
+      ));
+    }
+    if (/する|くる|五段动词|五段動詞/.test(compact) && /变形|写错|混|て形/.test(compact)) {
+      add(chatNoteCandidate(
+        'する、くる 和五段动词变形',
+        '你在闲聊里把不规则动词和五段动词混在一起提到，说明这里值得收成一张语法便签。',
+        compact.match(/[^。！？\n]*(する|くる|五段动词|五段動詞)[^。！？\n]*/)?.[0] || compact,
+        session,
+        ['する', 'くる', '五段动词']
+      ));
+    }
+    return notes.slice(0, 4);
+  }
+
+  async function persistChatNoteAnchors(session, sid, { userInput='', reply='', userMessageId=null, assistantMessageId=null }={}) {
+    if (!sid) return [];
+    const settings = normalizeStrategySettings(session?.settings || {});
+    if (settings.kg_extraction_enabled === false) return [];
+    const privacy = String(settings.privacy_level || 'standard');
+    const candidates = extractChatNoteCandidates({ userInput, reply, session });
+    if (!candidates.length) return [];
+    if (privacy === 'strict') return [];
+    const existing = await DB.bySid('anchors', sid);
+    const saved = [];
+    for (const note of candidates) {
+      const key = normalizeGraphTopic(note.title);
+      const current = existing.find(a => a.kind === 'chat_note' && normalizeGraphTopic(a.chat_note_title || a.content) === key);
+      if (current) {
+        current.weight = Math.max(Number(current.weight || 0), 1.25);
+        current.chat_note_body = current.chat_note_body || note.body;
+        current.chat_note_outline = current.chat_note_outline || note.outline;
+        current.chat_note_quote = current.chat_note_quote || note.quote;
+        current.chat_note_user_message_id = current.chat_note_user_message_id || userMessageId || null;
+        current.chat_note_assistant_message_id = current.chat_note_assistant_message_id || assistantMessageId || null;
+        current.updated_at = Date.now();
+        await DB.put('anchors', current);
+        saved.push(current);
+        continue;
+      }
+      const row = {
+        sid,
+        kind: 'chat_note',
+        content: note.body,
+        weight: 1.25,
+        created_at: Date.now(),
+        chat_note_title: note.title,
+        chat_note_body: note.body,
+        chat_note_outline: note.outline,
+        chat_note_quote: note.quote,
+        chat_note_keywords: note.keywords || [],
+        chat_note_user_message_id: userMessageId || null,
+        chat_note_assistant_message_id: assistantMessageId || null,
+      };
+      row.id = await DB.add('anchors', row);
+      existing.push(row);
+      saved.push(row);
+    }
+    return saved;
+  }
+
   async function runLightChatTurn({
     sid,
     session,
@@ -7041,10 +7174,11 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     if (!await turnSessionStillExists(sid)) {
       return { reply: '', action, evaluation, bubbles: [], turn_route: TURN_ROUTE_CHAT_LIGHT, cancelled: true };
     }
+    let assistantEpisodeId = null;
     for (let i = 0; i < bubbles.length; i++) {
       if (i > 0 && typeof opts.onBubbleStart === 'function') opts.onBubbleStart(i);
       if (typeof opts.onBubbleComplete === 'function') opts.onBubbleComplete(i, bubbles[i]);
-      await add_message(sid, 'assistant', bubbles[i], {
+      const savedAssistant = await add_message(sid, 'assistant', bubbles[i], {
         action,
         evaluation,
         turn_id: turnId,
@@ -7058,7 +7192,14 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
         source:'foreground_llm',
         status: 'completed',
       });
+      if (!assistantEpisodeId) assistantEpisodeId = savedAssistant.id;
     }
+    await persistChatNoteAnchors(session, sid, {
+      userInput: effectiveUserInput,
+      reply,
+      userMessageId: sourceMessage ? sourceMessage.id : null,
+      assistantMessageId: assistantEpisodeId,
+    });
     if (typeof markQueuedUserMessages === 'function') {
       await markQueuedUserMessages('completed', { completed_at: Date.now(), turn_route: TURN_ROUTE_CHAT_LIGHT, turn_route_reason: turnRouteReason });
     }
