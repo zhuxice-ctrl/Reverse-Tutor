@@ -11327,27 +11327,48 @@ function anchorCategoryMeta(a) {
   if (a.kind === 'persona_change') {
     return { key: 'persona', label: '画像变更', hint: '角色、性格、目标等核心设定调整记录' };
   }
+  if (a.kind === 'chat_note') {
+    return { key: 'chat_notes', label: '闲聊便签', hint: '闲聊中自然冒出来的学习线索' };
+  }
   if (['initial', 'requirement'].includes(a.kind)) {
     return { key: 'manual', label: '手动锚点', hint: '学习目标、约束和主线要求' };
   }
   return { key: 'other', label: '其他记录', hint: '自动沉淀的补充线索' };
 }
 
+function chatNoteAnchorCardHtml(a) {
+  const title = a.chat_note_title || a.content || '闲聊便签';
+  const body = a.chat_note_body || a.content || '';
+  const outline = a.chat_note_outline || '';
+  const quote = a.chat_note_quote || '';
+  return `
+    <div class="font-semibold truncate">${esc(title)}</div>
+    ${body ? `<div class="mt-1 leading-relaxed text-neutral-300 whitespace-pre-wrap break-words">${renderRichText(String(body).slice(0, 180))}</div>` : ''}
+    ${outline ? `<div class="mt-1 text-[11px] text-neutral-500">可能放到：${esc(outline)}</div>` : ''}
+    ${quote ? `<div class="mt-1 text-[11px] text-neutral-500 truncate">原话：${esc(quote)}</div>` : ''}
+  `;
+}
+
 function anchorItemHtml(a, opts={}) {
   const deleteAttr = opts.deleteAttr || 'del';
   const reprocess = opts.reprocess !== false;
+  const bodyHtml = a.kind === 'source'
+    ? sourceAnchorCardHtml(a, { reprocess })
+    : a.kind === 'chat_note'
+      ? chatNoteAnchorCardHtml(a)
+      : `<div class="whitespace-pre-wrap break-words">${esc(a.content || '')}${Number.isFinite(Number(a.weight)) ? ` <span class="text-neutral-600">w=${Number(a.weight).toFixed(1)}</span>` : ''}</div>`;
   return `
     <div data-anchor-row="${esc(String(a.id || ''))}" class="flex gap-2 items-start group bg-neutral-900 border border-neutral-800 rounded-lg p-2 text-xs">
       <span class="pill pill-${a.kind}">${esc(a.kind || 'anchor')}</span>
       <div class="flex-1 min-w-0 text-neutral-200">
-        ${a.kind === 'source' ? sourceAnchorCardHtml(a, { reprocess }) : `<div class="whitespace-pre-wrap break-words">${esc(a.content || '')}${Number.isFinite(Number(a.weight)) ? ` <span class="text-neutral-600">w=${Number(a.weight).toFixed(1)}</span>` : ''}</div>`}
+        ${bodyHtml}
       </div>
       <button data-${deleteAttr}="${esc(String(a.id))}" class="text-neutral-500 active:text-red-400 px-1 icon-only" aria-label="删除锚点"><i data-lucide="x"></i></button>
     </div>`;
 }
 
 function renderGroupedAnchorsHtml(anchors, opts={}) {
-  const order = ['manual', 'images', 'sources', 'persona', 'other'];
+  const order = ['manual', 'chat_notes', 'images', 'sources', 'persona', 'other'];
   const groups = new Map(order.map(key => [key, []]));
   for (const anchor of anchors || []) {
     const meta = anchorCategoryMeta(anchor);
@@ -12689,6 +12710,31 @@ function buildGraphData(masteries, ai, anchors=[]) {
     const source = target || (note.note_source_id ? sourceNodeById.get(String(note.note_source_id)) : null);
     if (source) links.push({ a:source, b:noteNode, weight:1.2, kind:'note' });
   });
+  const chatNotes = anchors.filter(a => a.kind === 'chat_note');
+  chatNotes.slice(-32).forEach((note, i) => {
+    const chatNoteNode = {
+      key:`chat-note-${note.id || i}`,
+      nodeType:'chat_note',
+      kp: note.chat_note_title || note.content || '闲聊便签',
+      label: note.chat_note_title || note.content || '闲聊便签',
+      content: note.chat_note_body || note.content || '',
+      outlinePath: note.chat_note_outline || '',
+      quote: note.chat_note_quote || '',
+      keywords: Array.isArray(note.chat_note_keywords) ? note.chat_note_keywords : [],
+      messageId: note.chat_note_user_message_id || note.chat_note_assistant_message_id || null,
+      chatMessageIds: [note.chat_note_user_message_id, note.chat_note_assistant_message_id].filter(Boolean),
+      sourceName: note.chat_note_outline || '',
+      anchorId: note.id || null,
+    };
+    nodes.push(chatNoteNode);
+    const candidates = graphUniqueClean([
+      note.chat_note_title,
+      note.chat_note_outline,
+      ...(Array.isArray(note.chat_note_keywords) ? note.chat_note_keywords : []),
+    ], 8).map(normalizeGraphTopic);
+    const target = candidates.map(key => byNorm.get(key)).find(Boolean);
+    if (target) links.push({ a:target, b:chatNoteNode, weight:1.1, kind:'chat_note' });
+  });
   let prev=null;
   for (const msg of ai) {
     const kp=(msg.meta||{}).action?.knowledge_point;
@@ -12730,9 +12776,10 @@ function graphFocusNodeRank(node) {
   const typeRank = node.nodeType === 'kp' ? 0
     : node.nodeType === 'latent' ? 1
     : node.nodeType === 'section' ? 2
-    : node.nodeType === 'source' ? 3
-    : node.nodeType === 'diagnostic' ? 4
-    : node.nodeType === 'note' ? 5
+    : node.nodeType === 'chat_note' ? 3
+    : node.nodeType === 'source' ? 4
+    : node.nodeType === 'diagnostic' ? 5
+    : node.nodeType === 'note' ? 6
     : 9;
   const levelRank = -Number(node.level || 0);
   const recencyRank = -Number(node.updated_at || node.created_at || 0);
@@ -12753,9 +12800,10 @@ function graphNeighborRank(item) {
   const kindRank = item.link?.kind === 'related' ? 0
     : item.link?.kind === 'sequence' ? 1
     : item.link?.kind === 'foundation' ? 2
-    : item.link?.kind === 'note' ? 3
-    : item.link?.kind === 'outline' ? 4
-    : item.link?.kind === 'diagnostic' ? 5
+    : item.link?.kind === 'chat_note' ? 3
+    : item.link?.kind === 'note' ? 4
+    : item.link?.kind === 'outline' ? 5
+    : item.link?.kind === 'diagnostic' ? 6
     : 9;
   return [kindRank, -Number(item.link?.weight || 0), ...graphFocusNodeRank(item.node)];
 }
@@ -12839,6 +12887,7 @@ function graphNodeTypeLabel(node) {
   if (type === 'diagnostic') return '导入诊断';
   if (type === 'latent') return '候选知识点';
   if (type === 'note') return '随笔';
+  if (type === 'chat_note') return '闲聊便签';
   if (type === 'insight') return '学习整理';
   return '对话片段';
 }
@@ -12851,6 +12900,7 @@ function graphLinkKindLabel(kind) {
   if (kind === 'sequence') return '学习顺序';
   if (kind === 'related') return '相关概念';
   if (kind === 'note') return '随笔关联';
+  if (kind === 'chat_note') return '便签线索';
   return kind || '双向链接';
 }
 
@@ -12903,6 +12953,7 @@ function graphPanelPreviewText(value, fallback='') {
 function graphNodeSheetTemplate(node) {
   const type = node?.nodeType || '';
   if (type === 'kp') return 'learning-state';
+  if (type === 'chat_note') return 'chat-note';
   if (type === 'latent' || type === 'section' || type === 'diagnostic') return 'candidate-structure';
   if (type === 'source' || type === 'note') return 'context-source';
   return 'candidate-structure';
@@ -12968,6 +13019,7 @@ function graphRelationGroupLabel(kind) {
   if (kind === 'outline') return '来源章节';
   if (kind === 'diagnostic') return '诊断提示';
   if (kind === 'note') return '随笔引用';
+  if (kind === 'chat_note') return '闲聊便签';
   if (kind === 'sequence') return '学习顺序';
   if (kind === 'related') return '相关概念';
   return graphLinkKindLabel(kind);
@@ -12986,7 +13038,7 @@ function graphNodeRelationGroups(node) {
 
 function graphNodeMasteryPercent(node) {
   if (node?.nodeType === 'kp') return Math.round(Math.max(0, Math.min(1, Number(node?.level || 0))) * 100);
-  if (node?.nodeType === 'source' || node?.nodeType === 'section' || node?.nodeType === 'diagnostic' || node?.nodeType === 'latent') return null;
+  if (node?.nodeType === 'source' || node?.nodeType === 'section' || node?.nodeType === 'diagnostic' || node?.nodeType === 'latent' || node?.nodeType === 'chat_note') return null;
   const correctness = Number(node?.meta?.evaluation?.correctness || node?.last_correctness || 0);
   const depth = Number(node?.meta?.evaluation?.depth || node?.last_depth || 0);
   const score = Math.max(correctness, depth);
@@ -13000,6 +13052,7 @@ function graphNodeMasteryStage(node, digest, pairs) {
   if (node?.nodeType === 'diagnostic') return '待诊断';
   if (node?.nodeType === 'latent') return '候选知识点';
   if (node?.nodeType === 'note') return '随笔记录';
+  if (node?.nodeType === 'chat_note') return '闲聊便签';
   const percent = graphNodeMasteryPercent(node);
   if (percent === null) return pairs.length ? '有对话证据' : '待观察';
   if (percent >= 80) return '能迁移';
@@ -13039,6 +13092,7 @@ function graphNodePrimaryActionsHtml(node, digest, pairs) {
 function graphSheetCompactHtml(node, digest, pairs) {
   const template = graphNodeSheetTemplate(node);
   if (template === 'learning-state') return graphKnowledgeCompactHtml(node, digest, pairs);
+  if (template === 'chat-note') return graphChatNoteCompactHtml(node, digest, pairs);
   if (template === 'context-source') return graphContextCompactHtml(node, digest, pairs);
   return graphStructureCompactHtml(node, digest, pairs);
 }
@@ -13060,6 +13114,37 @@ function graphContextActionsHtml(node) {
     ${chatIds.length ? '<button type="button" data-graph-jump-chat class="graph-diagnosis-action">回到聊天</button>' : ''}
     <button type="button" data-graph-expand-detail class="graph-diagnosis-action">查看详情</button>
   </div>`;
+}
+
+function graphChatNoteCompactHtml(node, digest, pairs) {
+  const title = graphNodeTitle(node);
+  const body = graphPanelPreviewText(node?.content || node?.summary, '闲聊里冒出来的一条学习线索。');
+  const outline = graphPanelPreviewText(node?.outlinePath || node?.sourceName, '');
+  const quote = graphPanelPreviewText(node?.quote, '');
+  const outlineText = outline ? `这更像是一个可以放进「${outline}」的小线索。` : '它还不是正式学习节点，只是一张提醒你后续可以继续展开的便签。';
+  return `<section class="graph-node-compact" data-graph-panel="node-compact" data-graph-template="chat-note">
+    <header class="graph-node-compact-head">
+      <div class="min-w-0">
+        <div class="graph-node-eyebrow">闲聊便签</div>
+        <h2 class="graph-node-title">${esc(title)}</h2>
+        <div class="graph-node-path">${esc(outline || graphNodeTypeLabel(node))}</div>
+      </div>
+    </header>
+    <div class="graph-node-context-box" data-graph-chat-note-meaning>
+      <div class="graph-node-label">为什么记下它</div>
+      <p>${renderRichText(body)}</p>
+    </div>
+    <div class="graph-node-context-box" data-graph-chat-note-outline>
+      <div class="graph-node-label">可能放到哪里</div>
+      <p>${esc(outlineText)}</p>
+    </div>
+    ${quote ? `<div class="graph-node-context-box" data-graph-chat-note-quote><div class="graph-node-label">原话</div><p>${renderRichText(quote)}</p></div>` : ''}
+    <div class="graph-diagnosis-actions">
+      <button type="button" data-graph-action="outline-chat-note" data-graph-expand-detail class="graph-diagnosis-action primary">归入大纲</button>
+      <button type="button" data-graph-action="chat-note-talk" data-graph-expand-detail class="graph-diagnosis-action">围绕它聊</button>
+      <button type="button" data-graph-jump-chat class="graph-diagnosis-action">查看原话</button>
+    </div>
+  </section>`;
 }
 
 function graphKnowledgeCompactHtml(node, digest, pairs) {
@@ -13552,6 +13637,33 @@ function graphGroupedRelationsReportHtml(node) {
   </div>`).join('');
 }
 
+function graphChatNoteReportHtml(node, digest, pairs=[]) {
+  const title = graphNodeTitle(node);
+  const body = graphPanelPreviewText(node?.content || node?.summary, '这条闲聊里出现了一个后续值得继续展开的学习线索。');
+  const outline = graphPanelPreviewText(node?.outlinePath || node?.sourceName, '');
+  const quote = graphPanelPreviewText(node?.quote, '');
+  const relationHtml = graphGroupedRelationsReportHtml(node);
+  const outlineHtml = outline
+    ? `<p>它可以先作为「${esc(outline)}」下面的一张便签，等后续学习或复盘时再决定是否转成正式知识节点。</p>`
+    : '<p>它现在更像一张临时便签，可以先留在图谱里，等相关主题继续出现时再归类到大纲。</p>';
+  return `<article class="graph-node-report" data-graph-report-template="chat-note">
+    <header class="graph-report-head">
+      <div class="text-[11px] text-neutral-500">闲聊便签</div>
+      <h2 class="graph-report-title">${esc(title)}</h2>
+      <blockquote class="graph-report-lead">${renderRichText(body)}</blockquote>
+    </header>
+    ${graphReportSectionHtml('为什么记下它', `<p>${renderRichText(body)}</p>`, 'data-graph-detail-section="chat-note-reason"')}
+    ${graphReportSectionHtml('可能放到哪里', outlineHtml, 'data-graph-detail-section="chat-note-outline"')}
+    ${graphReportSectionHtml('原话', `<div class="graph-source-preview">${renderRichText(quote || '暂时没有保存到可定位的原话片段。')}</div>`, 'data-graph-detail-section="chat-note-quote"')}
+    ${graphReportSectionHtml('可以怎么用', graphReportListHtml([
+      '归入大纲：把这张便签放到合适主题下，作为以后复盘的锚点。',
+      '围绕它聊：继续用自然聊天把这个线索说清楚。',
+      '转成学习节点：等它真的进入学习过程后，再生成掌握度、卡点和证据。'
+    ], '围绕它继续聊一轮，确认它是否值得进入学习大纲。'), 'data-graph-detail-section="chat-note-actions"')}
+    ${graphReportSectionHtml('相关节点', relationHtml, 'data-graph-detail-section="relations"')}
+  </article>`;
+}
+
 function graphKnowledgeReportHtml(node, digest, pairs=[]) {
   const fragments = graphSemanticFragments(node, digest, pairs);
   const fragmentHtml = fragments.length ? graphFragmentDeckHtml(fragments, node?.sid || state.sid) : '';
@@ -13616,6 +13728,7 @@ function graphSheetReportHtml(node, digest, pairs=[]) {
   void fragmentHtml;
   const template = graphNodeSheetTemplate(node);
   if (template === 'learning-state') return graphKnowledgeReportHtml(node, digest, pairs);
+  if (template === 'chat-note') return graphChatNoteReportHtml(node, digest, pairs);
   if (template === 'context-source') return graphContextReportHtml(node, digest, pairs);
   return graphStructureReportHtml(node, digest, pairs);
 }

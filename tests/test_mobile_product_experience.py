@@ -807,3 +807,28 @@ def test_mobile_graph_canvas_uses_focus_subset_but_detail_keeps_full_dataset():
     assert "buildFocusedGraphData(allNodes, allLinks" not in insights_fn
     assert "ForceGraph.setData(focused.nodes, focused.links);" in insights_fn
     assert "graphFormationStateHtml(allNodes, allLinks, { context: 'global', focus: focused })" in insights_fn
+
+
+def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
+    html = mobile_html()
+    build_graph_fn = html.split("function buildGraphData", 1)[1].split("function graphLinkEndpointKey", 1)[0]
+    sheet_template_fn = html.split("function graphNodeSheetTemplate", 1)[1].split("function graphNodeLightPath", 1)[0]
+    compact_region = html.split("function graphChatNoteCompactHtml", 1)[1].split("function graphKnowledgeCompactHtml", 1)[0]
+    report_region = html.split("function graphChatNoteReportHtml", 1)[1].split("function graphKnowledgeReportHtml", 1)[0]
+
+    assert "anchors.filter(a => a.kind === 'chat_note')" in build_graph_fn
+    assert "nodeType:'chat_note'" in build_graph_fn
+    assert "kind:'chat_note'" in build_graph_fn
+    assert "type === 'chat_note'" in sheet_template_fn
+    assert "return 'chat-note'" in sheet_template_fn
+    assert "闲聊便签" in compact_region
+    assert "归入大纲" in compact_region
+    assert "围绕它聊" in compact_region
+    assert "查看原话" in compact_region
+    assert "为什么记下它" in report_region
+    assert "可能放到哪里" in report_region
+    assert "原话" in report_region
+    assert "可以怎么用" in report_region
+    assert "待接入学习" not in compact_region
+    assert "证据不足" not in compact_region
+    assert "graph-node-score" not in compact_region
