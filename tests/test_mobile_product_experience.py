@@ -832,3 +832,22 @@ def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     assert "待接入学习" not in compact_region
     assert "证据不足" not in compact_region
     assert "graph-node-score" not in compact_region
+
+
+def test_mobile_global_graph_has_selected_session_completion_modal_shell():
+    html = mobile_html()
+    insights_fn = html.split("async function renderInsights", 1)[1].split("// --- Settings ---", 1)[0]
+    modal_region = html.split('id="graph-completion-modal"', 1)[1].split("<!--", 1)[0]
+
+    assert 'data-graph-completion-open' in insights_fn
+    assert "整理会话线索" in insights_fn
+    assert 'id="graph-completion-modal"' in html
+    assert "function openGraphCompletionModal" in html
+    assert "function closeGraphCompletionModal" in html
+    assert "function renderGraphCompletionSessionPicker" in html
+    assert "function renderGraphCompletionPreview" in html
+    assert "data-graph-completion-step=\"sessions\"" in modal_region
+    assert "data-graph-completion-step=\"preview\"" in modal_region
+    assert "预览线索" in modal_region
+    assert "保存到图谱" in modal_region
+    assert "取消" in modal_region

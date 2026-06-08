@@ -2837,6 +2837,29 @@
   </div>
 </div>
 
+<div id="graph-completion-modal" class="fixed inset-0 z-50 hidden graph-completion-modal">
+  <div class="absolute inset-0 bg-black/70" data-graph-completion-close></div>
+  <section class="absolute left-3 right-3 bottom-3 max-h-[82vh] overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 shadow-2xl flex flex-col">
+    <header class="flex items-start justify-between gap-3 p-3 border-b border-neutral-800">
+      <div>
+        <div class="text-sm font-semibold">整理会话线索</div>
+        <div class="text-[11px] text-neutral-500">只扫描你勾选的历史会话，先预览，确认后再写入图谱。</div>
+      </div>
+      <button type="button" class="icon-only text-neutral-400" data-graph-completion-close aria-label="关闭"><i data-lucide="x"></i></button>
+    </header>
+    <div class="graph-completion-body flex-1 overflow-y-auto p-3">
+      <div data-graph-completion-step="sessions"></div>
+      <div data-graph-completion-step="preview" class="hidden"></div>
+    </div>
+    <footer class="p-3 border-t border-neutral-800 flex gap-2 justify-end">
+      <button type="button" class="px-3 py-2 rounded border border-neutral-700 text-xs" data-graph-completion-close>取消</button>
+      <button type="button" class="px-3 py-2 rounded border border-neutral-700 text-xs hidden" data-graph-completion-back>返回选择</button>
+      <button type="button" class="px-3 py-2 rounded bg-neutral-100 text-neutral-950 text-xs font-semibold" data-graph-completion-preview>预览线索</button>
+      <button type="button" class="px-3 py-2 rounded bg-emerald-400 text-neutral-950 text-xs font-semibold hidden" data-graph-completion-save>保存到图谱</button>
+    </footer>
+  </section>
+</div>
+
 <script>
 // ============== 状态与工具 ==============
 const $ = s => document.querySelector(s);
@@ -2869,6 +2892,12 @@ const state = {
   graphBrowseReturn: null,
   graphBrowseTargetIds: [],
   graphBrowseSearch: '',
+  graphCompletionOpen: false,
+  graphCompletionStep: 'sessions',
+  graphCompletionSessions: [],
+  graphCompletionSelectedSids: new Set(),
+  graphCompletionPreview: null,
+  graphCompletionBusy: false,
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
@@ -14064,6 +14093,83 @@ function hideGraphSheet() {
   state.graphSheetExpanded = false;
 }
 
+function graphCompletionSessionTimeLabel(value) {
+  const time = Number(value || 0);
+  if (!time) return '时间未知';
+  try {
+    return new Date(time).toLocaleString();
+  } catch (_) {
+    return String(time);
+  }
+}
+
+function bindGraphCompletionModalControls() {
+  $$('[data-graph-completion-close]').forEach(el => el.addEventListener('click', closeGraphCompletionModal));
+  $('[data-graph-completion-back]')?.addEventListener('click', () => {
+    state.graphCompletionStep = 'sessions';
+    renderGraphCompletionModal();
+  });
+  $('#graph-completion-modal')?.addEventListener('change', e => {
+    const box = e.target.closest?.('[data-graph-completion-session]');
+    if (!box) return;
+    if (!(state.graphCompletionSelectedSids instanceof Set)) state.graphCompletionSelectedSids = new Set();
+    const sid = String(box.dataset.graphCompletionSession || '');
+    if (!sid) return;
+    if (box.checked) state.graphCompletionSelectedSids.add(sid);
+    else state.graphCompletionSelectedSids.delete(sid);
+  });
+}
+
+async function openGraphCompletionModal() {
+  state.graphCompletionOpen = true;
+  state.graphCompletionStep = 'sessions';
+  state.graphCompletionPreview = null;
+  state.graphCompletionSessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  if (!(state.graphCompletionSelectedSids instanceof Set)) state.graphCompletionSelectedSids = new Set();
+  renderGraphCompletionModal();
+  $('#graph-completion-modal')?.classList.remove('hidden');
+  refreshIcons();
+}
+
+function closeGraphCompletionModal() {
+  state.graphCompletionOpen = false;
+  state.graphCompletionBusy = false;
+  $('#graph-completion-modal')?.classList.add('hidden');
+}
+
+function renderGraphCompletionModal() {
+  const modal = $('#graph-completion-modal');
+  if (!modal) return;
+  const sessionsStep = modal.querySelector('[data-graph-completion-step="sessions"]');
+  const previewStep = modal.querySelector('[data-graph-completion-step="preview"]');
+  if (sessionsStep) sessionsStep.innerHTML = renderGraphCompletionSessionPicker(state.graphCompletionSessions || []);
+  if (previewStep) previewStep.innerHTML = renderGraphCompletionPreview(state.graphCompletionPreview);
+  sessionsStep?.classList.toggle('hidden', state.graphCompletionStep !== 'sessions');
+  previewStep?.classList.toggle('hidden', state.graphCompletionStep !== 'preview');
+  modal.querySelector('[data-graph-completion-preview]')?.classList.toggle('hidden', state.graphCompletionStep !== 'sessions');
+  modal.querySelector('[data-graph-completion-save]')?.classList.toggle('hidden', state.graphCompletionStep !== 'preview');
+  modal.querySelector('[data-graph-completion-back]')?.classList.toggle('hidden', state.graphCompletionStep !== 'preview');
+}
+
+function renderGraphCompletionSessionPicker(sessions=[]) {
+  if (!sessions.length) return '<div class="text-xs text-neutral-500 text-center py-8">暂无历史会话。</div>';
+  const selected = state.graphCompletionSelectedSids instanceof Set ? state.graphCompletionSelectedSids : new Set();
+  return `<div class="space-y-2">${sessions.map(session => `
+    <label class="graph-completion-session-row flex gap-2 items-start rounded border border-neutral-800 bg-neutral-900 p-2 text-xs">
+      <input type="checkbox" class="mt-0.5" data-graph-completion-session="${esc(String(session.id))}" ${selected.has(String(session.id)) ? 'checked' : ''}>
+      <span class="min-w-0 flex-1">
+        <span class="block font-semibold truncate">${esc(session.title || '未命名会话')}</span>
+        <span class="block text-[11px] text-neutral-500">${esc(graphCompletionSessionTimeLabel(session.updated_at || session.created_at || Date.now()))}</span>
+      </span>
+    </label>
+  `).join('')}</div>`;
+}
+
+function renderGraphCompletionPreview(preview) {
+  if (!preview) return '<div class="text-xs text-neutral-500 text-center py-8">选择会话后先预览线索。</div>';
+  return '<div class="text-xs text-neutral-400">已建立预览容器，扫描结果渲染在后续任务接入。</div>';
+}
+
 async function renderInsights() {
   const sumDiv = $('#insights-summary');
   const mastDiv = $('#insights-mastery');
@@ -14121,7 +14227,14 @@ async function renderInsights() {
   if (!allNodes.length) {
     ForceGraph.destroy();
     mastDiv.innerHTML = '<div id="knowledge-graph" class="knowledge-graph knowledge-graph-fullscreen">' + graphFormationStateHtml([], [], { context: 'global' }) + '</div>';
-    actDiv.innerHTML = '<div class="text-xs text-neutral-500">暂无</div>';
+    actDiv.innerHTML = `
+      <button type="button" data-graph-completion-open class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2">
+        <i class="button-icon" data-lucide="scan-search"></i><span>整理会话线索</span>
+      </button>
+      <div class="flex flex-wrap gap-1 pt-2"><span class="text-xs text-neutral-500">暂无动作分布</span></div>
+    `;
+    $$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);
+    refreshIcons();
     return;
   } else {
     if (!mastDiv.querySelector('.knowledge-graph')) {
@@ -14138,8 +14251,14 @@ async function renderInsights() {
     container.insertAdjacentHTML('beforeend', graphFormationStateHtml(allNodes, allLinks, { context: 'global', focus: focused }));
     setTimeout(() => { const h = container.querySelector('.graph-hint'); if(h) h.classList.add('fade'); }, 4000);
   }
-  actDiv.innerHTML = Object.entries(actCount).map(([k,v]) =>
-    `<span class="pill pill-${k}">${k} ${v}/${total}</span>`).join('') || '<div class="text-xs text-neutral-500">尚无</div>';
+  actDiv.innerHTML = `
+    <button type="button" data-graph-completion-open class="w-full text-xs px-3 py-2 rounded border border-neutral-700 active:bg-neutral-800 text-left flex items-center gap-2">
+      <i class="button-icon" data-lucide="scan-search"></i><span>整理会话线索</span>
+    </button>
+    <div class="flex flex-wrap gap-1 pt-2">${Object.entries(actCount).map(([k,v]) =>
+      `<span class="pill pill-${k}">${k} ${v}/${total}</span>`).join('') || '<span class="text-xs text-neutral-500">暂无动作分布</span>'}</div>
+  `;
+  $$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);
 }
 
 // --- Settings ---
@@ -15788,6 +15907,7 @@ refreshIcons();
 (async function init() {
   applyTheme(localStorage.getItem('rt-mobile-theme') || 'ink');
   setPopupEnabled(popupEnabled());
+  bindGraphCompletionModalControls();
   renderUpdateSettings();
   await DB.open();
   // 迁移：为已有会话补充 last_read_at
