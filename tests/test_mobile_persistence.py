@@ -7,6 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def mobile_html() -> str:
+    return (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+
+
 def test_mobile_llm_config_uses_native_preferences_for_long_term_storage():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
 
@@ -1451,3 +1455,25 @@ def test_mobile_zip_based_formats_use_jszip_and_preserve_structure_for_graph():
     assert "META-INF/container.xml" in html
     assert "extractTextFromHtmlDocument" in html
     assert "source_metadata" in html
+
+
+def test_mobile_selected_session_graph_completion_builds_preview_without_writes():
+    html = mobile_html()
+    preview_region = html.split("async function buildSelectedSessionGraphCompletionPreview", 1)[1].split("async function applySelectedSessionGraphCompletionPreview", 1)[0]
+
+    assert "function graphCompletionMessagePairs" in html
+    assert "function graphCompletionCandidateKey" in html
+    assert "function graphCompletionClassifyPair" in html
+    assert "async function buildSelectedSessionGraphCompletionPreview" in html
+    assert "extractChatNoteCandidates({" in preview_region
+    assert "type: 'learning_node'" in preview_region
+    assert "type: 'chat_note'" in preview_region
+    assert "type: 'relationship'" in preview_region
+    assert "existingMasteries" in preview_region
+    assert "existingChatNotes" in preview_region
+    assert "existingKgNodes" in preview_region
+    assert "DB.add(" not in preview_region
+    assert "DB.put(" not in preview_region
+    assert "upsert_mastery(" not in preview_region
+    assert "upsert_kg_node(" not in preview_region
+    assert "upsert_kg_edge(" not in preview_region

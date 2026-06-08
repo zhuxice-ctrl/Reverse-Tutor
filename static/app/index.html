@@ -7141,6 +7141,173 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     return saved;
   }
 
+  function graphCompletionText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function graphCompletionCandidateKey(type, title, outline='') {
+    return [type, normalizeGraphTopic(outline), normalizeGraphTopic(title)].filter(Boolean).join('::');
+  }
+
+  function graphCompletionMessagePairs(messages=[]) {
+    const sorted = [...(messages || [])].sort(compareConversationMessages);
+    const pairs = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const user = sorted[i];
+      if (user.role !== 'user') continue;
+      const assistant = sorted.slice(i + 1).find(m => m.role === 'assistant');
+      pairs.push({ user, assistant: assistant || null });
+    }
+    return pairs;
+  }
+
+  function graphCompletionHasLearningBehavior(userText='', assistantText='', action={}, evaluation={}) {
+    const text = `${userText}\n${assistantText}`;
+    const actType = String(action?.type || '');
+    if (['ask', 'probe', 'challenge', 'examiner_verify', 'scaffold_example', 'practice', 'recap'].includes(actType)) return true;
+    if (graphCompletionText(action?.knowledge_point) && kgHasLearningEvidence(evaluation || {})) return true;
+    return /(解释|讲解|练习|做题|纠错|复述|追问|举例|例题|推导|证明|为什么|怎么理解|卡点|错因|迁移|应用)/.test(text);
+  }
+
+  function graphCompletionOutlineFor(title, session=null) {
+    return chatNoteOutlineFor(title, session);
+  }
+
+  function graphCompletionClassifyPair(pair, session=null) {
+    const userText = graphCompletionText(pair?.user?.content || '');
+    const assistantText = graphCompletionText(pair?.assistant?.content || '');
+    const meta = pair?.assistant?.meta || {};
+    const action = meta.action || {};
+    const evaluation = meta.evaluation || {};
+    const candidates = [];
+    const kp = graphCompletionText(action.knowledge_point || '');
+
+    if (kp && isLogicalGraphKp(kp) && graphCompletionHasLearningBehavior(userText, assistantText, action, evaluation)) {
+      candidates.push({
+        type: 'learning_node',
+        title: kp,
+        outline: graphCompletionOutlineFor(kp, session),
+        summary: graphPanelPreviewText(evaluation.status || assistantText || userText, ''),
+        stuck: graphCompletionText(evaluation.misconception || evaluation.error_pattern || ''),
+        nextStep: graphCompletionText((evaluation.next_steps || [])[0] || ''),
+        keywords: graphUniqueClean([kp, ...(action.related_kps || [])], 8),
+        evidenceIds: [pair?.user?.id, pair?.assistant?.id].filter(Boolean),
+        evidenceText: graphPanelPreviewText(userText || assistantText, ''),
+        correctness: Number(evaluation.correctness || 0) || 0,
+        depth: Number(evaluation.depth || 0) || 0,
+        evidenceType: evaluation.evidence_for_mastery?.type || 'none',
+        verificationStatus: evaluation.evidence_for_mastery?.status || 'none',
+      });
+      for (const related of action.related_kps || []) {
+        const cleanRelated = graphCompletionText(related);
+        if (cleanRelated && isLogicalGraphKp(cleanRelated)) {
+          candidates.push({
+            type: 'relationship',
+            sourceTitle: kp,
+            targetTitle: cleanRelated,
+            relation: 'related',
+            weight: 1.2,
+            evidenceIds: [pair?.user?.id, pair?.assistant?.id].filter(Boolean),
+          });
+        }
+      }
+      return candidates;
+    }
+
+    for (const note of extractChatNoteCandidates({ userInput: userText, reply: assistantText, session })) {
+      candidates.push({
+        type: 'chat_note',
+        title: note.title,
+        body: note.body,
+        outline: note.outline,
+        quote: note.quote,
+        keywords: note.keywords || [],
+        evidenceIds: [pair?.user?.id, pair?.assistant?.id].filter(Boolean),
+      });
+    }
+    return candidates;
+  }
+
+  async function buildSelectedSessionGraphCompletionPreview(sids=[]) {
+    const selectedSids = Array.from(new Set((sids || []).map(String).filter(Boolean)));
+    const preview = {
+      sessionCount: selectedSids.length,
+      learningNodes: [],
+      updatedLearningNodes: [],
+      relationships: [],
+      chatNotes: [],
+      duplicateMerges: [],
+      skipped: [],
+    };
+    const seen = new Set();
+    const previewCandidateDescriptors = [
+      { type: 'learning_node', bucket: 'learningNodes' },
+      { type: 'chat_note', bucket: 'chatNotes' },
+      { type: 'relationship', bucket: 'relationships' },
+    ];
+
+    for (const sid of selectedSids) {
+      const session = await DB.get('sessions', sid);
+      if (!session) continue;
+      const messages = (await DB.bySid('messages', sid)).sort(compareConversationMessages);
+      const existingMasteries = await DB.bySid('mastery', sid);
+      const existingChatNotes = (await DB.bySid('anchors', sid)).filter(a => a.kind === 'chat_note');
+      const existingKgNodes = await DB.bySid('kg_nodes', sid);
+      const pairs = graphCompletionMessagePairs(messages);
+
+      for (const pair of pairs) {
+        const userText = graphCompletionText(pair?.user?.content || '');
+        const assistantText = graphCompletionText(pair?.assistant?.content || '');
+        let candidates = graphCompletionClassifyPair(pair, session);
+        if (!candidates.length) {
+          candidates = extractChatNoteCandidates({ userInput: userText, reply: assistantText, session }).map(note => ({
+            type: 'chat_note',
+            title: note.title,
+            body: note.body,
+            outline: note.outline,
+            quote: note.quote,
+            keywords: note.keywords || [],
+            evidenceIds: [pair?.user?.id, pair?.assistant?.id].filter(Boolean),
+          }));
+        }
+        if (!candidates.length) {
+          if (userText) preview.skipped.push({ sid, sessionTitle: session.title || '', reason: 'no_learning_signal', text: graphPanelPreviewText(userText, '') });
+          continue;
+        }
+        for (const candidate of candidates) {
+          if (!previewCandidateDescriptors.some(d => d.type === candidate.type)) continue;
+          const key = graphCompletionCandidateKey(candidate.type, candidate.title || `${candidate.sourceTitle}->${candidate.targetTitle}`, candidate.outline || candidate.relation || '');
+          const scopedKey = `${sid}::${key}`;
+          if (seen.has(scopedKey)) continue;
+          seen.add(scopedKey);
+          const base = { ...candidate, sid, sessionTitle: session.title || '', candidateKey: key };
+          if (candidate.type === 'learning_node') {
+            const existing = existingMasteries.find(m => normalizeGraphTopic(m.kp || m.knowledge_point) === normalizeGraphTopic(candidate.title));
+            const kgExisting = existingKgNodes.find(n => n.kind === 'concept' && normalizeGraphTopic(n.name) === normalizeGraphTopic(candidate.title));
+            if (existing || kgExisting) {
+              preview.updatedLearningNodes.push({ ...base, mergeTarget: existing?.kp || kgExisting?.name || candidate.title });
+              preview.duplicateMerges.push({ ...base, mergeTarget: existing?.kp || kgExisting?.name || candidate.title });
+            } else {
+              preview.learningNodes.push(base);
+            }
+          } else if (candidate.type === 'chat_note') {
+            const existing = existingChatNotes.find(a => normalizeGraphTopic(a.chat_note_title || a.content) === normalizeGraphTopic(candidate.title));
+            if (existing) preview.duplicateMerges.push({ ...base, mergeTarget: existing.chat_note_title || existing.content || candidate.title });
+            else preview.chatNotes.push(base);
+          } else if (candidate.type === 'relationship') {
+            preview.relationships.push(base);
+          }
+        }
+      }
+    }
+    return preview;
+  }
+
+  async function applySelectedSessionGraphCompletionPreview(preview=null) {
+    void preview;
+    return { learningNodes: 0, chatNotes: 0, relationships: 0, merges: 0 };
+  }
+
   async function runLightChatTurn({
     sid,
     session,
