@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 from pathlib import Path
 
 
@@ -1498,11 +1500,17 @@ def test_mobile_selected_session_graph_completion_applies_merge_only_writes():
     assert "async function mergeGraphCompletionLearningNode" in html
     assert "async function mergeGraphCompletionChatNote" in html
     assert "async function mergeGraphCompletionRelationship" in html
+    assert "async function graphCompletionFindMastery" in html
+    assert "async function graphCompletionFindConceptNode" in html
     assert "applySelectedSessionGraphCompletionPreview" in html
     assert html.index("function graphCompletionMergeIds") < html.index("async function applySelectedSessionGraphCompletionPreview")
     assert html.index("function graphCompletionNow") < html.index("async function applySelectedSessionGraphCompletionPreview")
-    assert "upsert_mastery(candidate.sid, candidate.title" in apply_region
-    assert "upsert_kg_node(candidate.sid, 'concept', candidate.title" in apply_region
+    learning_candidates_region = apply_region.split("const learningCandidates = [", 1)[1].split("];", 1)[0]
+    assert "duplicateMerges" not in learning_candidates_region
+    assert "upsert_mastery(candidate.sid, targetTitle" in apply_region
+    assert "upsert_kg_node(candidate.sid, 'concept', targetTitle" in apply_region
+    assert "normalizeGraphTopic(m.kp || m.knowledge_point)" in html
+    assert "normalizeGraphTopic(n.name)" in html
     assert "upsert_kg_edge(candidate.sid" in apply_region
     assert "kind: 'chat_note'" in apply_region
     assert "DB.put('anchors', existing)" in apply_region
@@ -1519,3 +1527,116 @@ def test_mobile_selected_session_graph_completion_applies_merge_only_writes():
     assert "DB.del(" not in apply_region
     assert "invalidate_kg_node(" not in apply_region
     assert "invalidate_kg_edge(" not in apply_region
+
+
+def test_mobile_graph_completion_merge_reuses_normalized_learning_target_once():
+    html = mobile_html()
+    engine_script = next(
+        match.group(1)
+        for match in re.finditer(r"<script[^>]*>([\s\S]*?)</script>", html)
+        if "const ENGINE = (() =>" in match.group(1)
+    )
+    node_program = f"""
+const window = {{}};
+const stores = {{
+  sessions: [],
+  messages: [],
+  mastery: [{{ id: 1, sid: 's1', kp: '导数定义', level: 0.2, attempts: 1 }}],
+  anchors: [],
+  kg_nodes: [{{
+    id: 10,
+    sid: 's1',
+    kind: 'concept',
+    name: '导数定义',
+    properties_json: JSON.stringify({{ graph_completion_evidence_ids: [1] }}),
+    source_episode_ids: '[]',
+    status: 'active'
+  }}],
+  kg_edges: []
+}};
+let nextId = 100;
+const DB = {{
+  bySid: async (store, sid) => (stores[store] || []).filter(row => row.sid === sid),
+  get: async (store, id) => (stores[store] || []).find(row => row.id === id) || null,
+  add: async (store, row) => {{ row.id = row.id || ++nextId; (stores[store] || (stores[store] = [])).push(row); return row.id; }},
+  put: async (store, row) => {{
+    const rows = stores[store] || (stores[store] = []);
+    const idx = rows.findIndex(item => item.id === row.id);
+    if (idx >= 0) rows[idx] = row;
+    else rows.push(row);
+    return row.id;
+  }}
+}};
+function normalizeGraphTopic(s) {{
+  return String(s || '').toLowerCase().replace(/[《》“”"'\\[\\]【】()（）:：,，.。;；!?！？\\s]/g, '').slice(0, 42);
+}}
+function isLogicalGraphKp(kp) {{ return String(kp || '').trim().length > 0; }}
+function extractChatNoteCandidates() {{ return []; }}
+function chatNoteOutlineFor(title) {{ return `学习 / ${{title}}`; }}
+function graphPanelPreviewText(value) {{ return String(value || '').trim().slice(0, 84); }}
+function graphUniqueClean(items, limit=8) {{
+  const seen = new Set(), out = [];
+  for (const item of items || []) {{
+    const text = String(item || '').trim();
+    const key = normalizeGraphTopic(text);
+    if (!text || seen.has(key)) continue;
+    seen.add(key); out.push(text);
+    if (out.length >= limit) break;
+  }}
+  return out;
+}}
+function graphLinkKindLabel(value) {{ return value; }}
+function renderRichText(value) {{ return String(value || ''); }}
+function esc(value) {{ return String(value || ''); }}
+eval({json.dumps(engine_script)});
+(async () => {{
+  const candidate = {{
+    type: 'learning_node',
+    sid: 's1',
+    title: ' 导 数 定 义 ',
+    mergeTarget: '导数定义',
+    correctness: 0.7,
+    depth: 0.6,
+    evidenceType: 'explanation',
+    verificationStatus: 'passed',
+    evidenceIds: [2, 3],
+    keywords: ['导数定义']
+  }};
+  const result = await window.applySelectedSessionGraphCompletionPreview({{
+    learningNodes: [],
+    updatedLearningNodes: [candidate],
+    duplicateMerges: [candidate],
+    chatNotes: [],
+    relationships: []
+  }});
+  const conceptRows = stores.kg_nodes.filter(row => row.sid === 's1' && row.kind === 'concept');
+  const targetConcept = conceptRows.find(row => row.name === '导数定义');
+  console.log(JSON.stringify({{
+    result,
+    masteryRows: stores.mastery,
+    conceptRows,
+    targetEvidenceIds: JSON.parse(targetConcept.properties_json).graph_completion_evidence_ids
+  }}));
+}})().catch(err => {{ console.error(err && err.stack || err); process.exit(1); }});
+"""
+    completed = subprocess.run(
+        ["node", "--input-type=module", "-"],
+        cwd=ROOT,
+        input=node_program,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr or completed.stdout
+    data = json.loads(completed.stdout)
+
+    assert data["result"]["learningNodes"] == 1
+    assert data["result"]["merges"] == 1
+    assert len(data["masteryRows"]) == 1
+    assert data["masteryRows"][0]["kp"] == "导数定义"
+    assert data["masteryRows"][0]["attempts"] == 2
+    assert [row["name"] for row in data["conceptRows"]] == ["导数定义"]
+    assert data["targetEvidenceIds"] == [1, 2, 3]

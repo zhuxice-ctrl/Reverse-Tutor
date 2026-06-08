@@ -7281,12 +7281,25 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     return Date.now();
   }
 
+  async function graphCompletionFindMastery(sid, title) {
+    const key = normalizeGraphTopic(title);
+    if (!sid || !key) return null;
+    const rows = await DB.bySid('mastery', sid);
+    return rows.find(m => normalizeGraphTopic(m.kp || m.knowledge_point) === key) || null;
+  }
+
+  async function graphCompletionFindConceptNode(sid, title) {
+    const key = normalizeGraphTopic(title);
+    if (!sid || !key) return null;
+    const rows = await DB.bySid('kg_nodes', sid);
+    return rows.find(n => n.kind === 'concept' && normalizeGraphTopic(n.name) === key && isSemanticKgNode(n.kind, n.name)) || null;
+  }
+
   async function applySelectedSessionGraphCompletionPreview(preview=null) {
     const result = { learningNodes: 0, chatNotes: 0, relationships: 0, merges: 0 };
     const learningCandidates = [
       ...(preview?.learningNodes || []),
       ...(preview?.updatedLearningNodes || []),
-      ...(preview?.duplicateMerges || []).filter(c => c.type === 'learning_node'),
     ];
     const chatNoteCandidates = [
       ...(preview?.chatNotes || []),
@@ -7315,15 +7328,19 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
 
   async function mergeGraphCompletionLearningNode(candidate) {
     if (!candidate?.sid || !candidate?.title || !isLogicalGraphKp(candidate.title)) return null;
-    const existingNode = await find_kg_node(candidate.sid, 'concept', candidate.title);
+    const existingMastery = await graphCompletionFindMastery(candidate.sid, candidate.title)
+      || await graphCompletionFindMastery(candidate.sid, candidate.mergeTarget);
+    const existingNode = await graphCompletionFindConceptNode(candidate.sid, candidate.title)
+      || await graphCompletionFindConceptNode(candidate.sid, candidate.mergeTarget);
+    const targetTitle = existingMastery?.kp || existingNode?.name || candidate.mergeTarget || candidate.title;
     const evidenceIds = graphCompletionMergeIds(kgProperties(existingNode).graph_completion_evidence_ids || [], candidate.evidenceIds || []);
-    await upsert_mastery(candidate.sid, candidate.title,
+    await upsert_mastery(candidate.sid, targetTitle,
       Number(candidate.correctness || 0) || 0,
       Number(candidate.depth || 0) || 0,
       candidate.evidenceType || 'none',
       candidate.verificationStatus || 'none'
     );
-    const concept = await upsert_kg_node(candidate.sid, 'concept', candidate.title, {
+    const concept = await upsert_kg_node(candidate.sid, 'concept', targetTitle, {
       properties: {
         outline: candidate.outline || '',
         summary: candidate.summary || '',
