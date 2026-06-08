@@ -834,6 +834,50 @@ def test_mobile_global_graph_nodes_can_open_their_session_subset():
     assert "body.querySelectorAll('[data-graph-session-subset]')" in sheet_fn
 
 
+def test_mobile_graph_actions_open_hidden_node_threads():
+    html = mobile_html()
+    create_fn = html.split("async function createOrOpenGraphNodeThread", 1)[1].split("function graphNodeThreadSeedPrompt", 1)[0]
+    action_fn = html.split("async function startGraphNodeThreadAction", 1)[1].split("async function jumpToGraphSheetNode", 1)[0]
+    home_fn = html.split("async function renderSessionHome", 1)[1].split("async function handleSessionSwipeAction", 1)[0]
+    settings_fn = html.split("async function renderSettings", 1)[1].split("// --- PWA", 1)[0]
+    sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
+
+    assert "function isNodeThreadSession" in html
+    assert "function visibleRootSessions" in html
+    assert "node_thread: true" in create_fn
+    assert "hidden_from_home: true" in create_fn
+    assert "parent_sid: sourceSid" in create_fn
+    assert "graph_node_local_key: localKey" in create_fn
+    assert "graph_node_title: title" in create_fn
+    assert "node_thread_key" in create_fn
+    assert "await ENGINE.create_session" in create_fn
+    assert "await openSessionWindow(thread.id)" in action_fn
+    assert "await submitChatText(prompt" in action_fn
+    assert "body.querySelectorAll('[data-graph-action]')" in sheet_fn
+    assert "startGraphNodeThreadAction(btn.dataset.graphAction, node)" in sheet_fn
+    assert "visibleRootSessions(await DB.all('sessions'))" in home_fn
+    assert "visibleRootSessions(await DB.all('sessions'))" in settings_fn
+
+
+def test_mobile_at_mentions_can_attach_node_thread_memory_context():
+    html = mobile_html()
+    picker_markup = html.split('id="node-thread-mention-sheet"', 1)[1].split("</section>", 1)[0]
+    mention_fn = html.split("async function openNodeThreadMentionSheet", 1)[1].split("function closeNodeThreadMentionSheet", 1)[0]
+    input_region = html.split("$('#chat-input').addEventListener('keydown'", 1)[1].split("$('#quote-clear')", 1)[0]
+    send_fn = html.split("async function sendMessage", 1)[1].split("function scheduleMessageQueueProcessing", 1)[0]
+    run_turn_region = html.split("async function run_turn", 1)[1].split("async function has_session", 1)[0]
+
+    assert 'id="node-thread-mention-sheet"' in html
+    assert 'data-node-thread-mention-list' in picker_markup
+    assert "listNodeThreadSessions" in mention_fn
+    assert "buildNodeThreadMemoryQuote" in html
+    assert "state.nodeThreadMentionContexts" in html
+    assert "openNodeThreadMentionSheet()" in input_region
+    assert "const mentionQuote = await buildSelectedNodeThreadMemoryQuote();" in send_fn
+    assert "quotedMessage: mentionQuote || state.quotedMessage" in send_fn
+    assert "node_thread_memory: true" in run_turn_region
+
+
 def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     html = mobile_html()
     build_graph_fn = html.split("function buildGraphData", 1)[1].split("function graphLinkEndpointKey", 1)[0]

@@ -2481,6 +2481,19 @@
   </div>
 </div>
 
+<div id="node-thread-mention-sheet" class="choice-sheet-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="node-thread-mention-title">
+  <section class="choice-sheet safe-bottom" onclick="event.stopPropagation()">
+    <div class="p-3 border-b border-neutral-800 flex items-start justify-between gap-3">
+      <div>
+        <div id="node-thread-mention-title" class="text-sm font-semibold">引用节点窗口</div>
+        <div class="text-xs text-neutral-500 mt-1">选择已有节点子窗口，把它作为本轮记忆上下文。</div>
+      </div>
+      <button type="button" data-node-thread-mention-close class="text-xs px-2 py-1 rounded border border-neutral-700">关闭</button>
+    </div>
+    <div data-node-thread-mention-list class="choice-sheet-list"></div>
+  </section>
+</div>
+
 <!-- ============== 主内容（按 view 切换）============== -->
 <main id="views" class="flex-1 min-h-0 flex flex-col">
 
@@ -3127,6 +3140,7 @@ const state = {
   graphCompletionBusy: false,
   graphCompletionOperationId: 0,
   graphCompletionActiveOperationId: 0,
+  nodeThreadMentionContexts: [],
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
@@ -6184,6 +6198,15 @@ ${format_actions()}
 
   function formatQuotedReplyContext(quote, userInput) {
     if (!quote || !quote.id) return '';
+    if (quote.node_thread_memory) {
+      return [
+        '用户正在引用一个或多个节点子窗口作为本轮记忆上下文。',
+        `- 引用ID：${quote.id}`,
+        `- 节点窗口记忆：${String(quote.content || '').slice(0, 1800)}`,
+        `- 用户本轮输入：${String(userInput || '').slice(0, 1200)}`,
+        '请把这些节点窗口内容当作背景记忆，只在相关时使用，不要把它误认为用户本轮新说的话。'
+      ].join('\n');
+    }
     const roleLabel = quote.role === 'assistant' ? '学生 AI' : (quote.role === 'user' ? '用户/老师' : quote.role);
     return [
       '用户正在引用一条历史消息进行回复。',
@@ -6888,6 +6911,9 @@ ${format_actions()}
       quoted_message_id: quoted?.id || null,
       quoted_role: quoted?.role || null,
       quoted_preview: quoted ? String(quoted.content || '').replace(/\s+/g, ' ').trim().slice(0, 180) : '',
+      node_thread_memory: quoted?.node_thread_memory === true,
+      node_thread_memory_sids: quoted?.node_thread_memory_sids || [],
+      node_thread_memory_context: quoted?.node_thread_memory ? String(quoted.content || '').slice(0, 1800) : '',
       attachments: normalizeChatImageAttachments(extraMeta.attachments || []),
     });
   }
@@ -7915,6 +7941,8 @@ function renderGraphCompletionPreview(preview) {
         quoted_message_id: quoted?.id || null,
         quoted_role: quoted?.role || null,
         quoted_preview: quoted ? String(quoted.content || '').replace(/\s+/g, ' ').trim().slice(0, 180) : '',
+        node_thread_memory: quoted?.node_thread_memory === true,
+        node_thread_memory_sids: quoted?.node_thread_memory_sids || [],
         source: 'user',
         status: 'completed',
       });
@@ -8826,6 +8854,24 @@ function setPinnedSessionIds(ids) {
   localStorage.setItem(SESSION_PINNED_KEY, JSON.stringify(Array.from(new Set(ids.map(String).filter(Boolean)))));
 }
 
+function isNodeThreadSession(session) {
+  return !!(session && (
+    session.node_thread === true ||
+    session.hidden_from_home === true ||
+    session.thread_type === 'node_thread'
+  ));
+}
+
+function visibleRootSessions(sessions=[]) {
+  return (sessions || []).filter(session => !isNodeThreadSession(session));
+}
+
+function listNodeThreadSessions(sessions=[]) {
+  return (sessions || [])
+    .filter(isNodeThreadSession)
+    .sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+}
+
 function isSessionPinned(sid) {
   return pinnedSessionIds().includes(String(sid || ''));
 }
@@ -9076,7 +9122,7 @@ function formatSessionTime(ts) {
 async function renderSessionHome() {
   const home = $('#session-home');
   if (!home) return;
-  state.sessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  state.sessions = visibleRootSessions(await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
   if (!state.sessions.length) {
     home.innerHTML = `
       <div class="text-center px-6 py-16">
@@ -10691,6 +10737,115 @@ async function hasPendingNativeBackgroundTurn(sid) {
   ) && (m.meta || {}).kind === 'native_background_pending');
 }
 
+function nodeThreadMentionTitle(session) {
+  return session?.graph_node_title || session?.title || '节点窗口';
+}
+
+function nodeThreadMentionDetail(session) {
+  return graphUniqueClean([
+    session?.parent_title,
+    session?.graph_node_path,
+  ], 2).join(' · ') || '节点子窗口';
+}
+
+function clearNodeThreadMentionContexts() {
+  state.nodeThreadMentionContexts = [];
+}
+
+function insertNodeThreadMentionToken(session) {
+  const input = $('#chat-input');
+  if (!input) return;
+  const token = `@${nodeThreadMentionTitle(session)} `;
+  const value = String(input.value || '');
+  const cursor = Number.isFinite(input.selectionStart) ? input.selectionStart : value.length;
+  const before = value.slice(0, cursor);
+  const after = value.slice(cursor);
+  const at = before.lastIndexOf('@');
+  if (at >= 0 && !/\s/.test(before.slice(at + 1))) {
+    input.value = before.slice(0, at) + token + after;
+  } else {
+    input.value = `${value}${value && !/\s$/.test(value) ? ' ' : ''}${token}`;
+  }
+  resizeChatInput(input, true);
+  input.focus({ preventScroll: true });
+}
+
+async function openNodeThreadMentionSheet() {
+  const sheet = $('#node-thread-mention-sheet');
+  const list = $('[data-node-thread-mention-list]');
+  if (!sheet || !list) return;
+  const threads = listNodeThreadSessions(await DB.all('sessions'));
+  if (!threads.length) {
+    list.innerHTML = '<div class="text-xs text-neutral-500 text-center py-8">还没有节点子窗口。先从图谱节点点“来一题”或“问为什么”。</div>';
+  } else {
+    list.innerHTML = threads.map(thread => `
+      <button type="button" class="choice-row" data-node-thread-mention="${esc(String(thread.id))}">
+        <span class="choice-row-dot"></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-semibold truncate">${esc(nodeThreadMentionTitle(thread))}</span>
+          <span class="block text-xs text-neutral-500 truncate">${esc(nodeThreadMentionDetail(thread))}</span>
+        </span>
+        <span class="choice-row-badge">记忆</span>
+      </button>
+    `).join('');
+  }
+  list.querySelectorAll('[data-node-thread-mention]').forEach(btn => btn.addEventListener('click', async () => {
+    const thread = await DB.get('sessions', btn.dataset.nodeThreadMention);
+    if (!thread) return;
+    if (!state.nodeThreadMentionContexts.some(item => String(item.sid) === String(thread.id))) {
+      state.nodeThreadMentionContexts.push({
+        sid: thread.id,
+        title: nodeThreadMentionTitle(thread),
+        parent_sid: thread.parent_sid || '',
+      });
+    }
+    insertNodeThreadMentionToken(thread);
+    closeNodeThreadMentionSheet();
+  }));
+  sheet.classList.remove('hidden');
+}
+
+function closeNodeThreadMentionSheet() {
+  $('#node-thread-mention-sheet')?.classList.add('hidden');
+}
+
+async function nodeThreadMemoryText(session) {
+  const msgs = (await DB.bySid('messages', session.id))
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .sort(compareChatMessages)
+    .slice(-8);
+  const lines = msgs.map(m => `${m.role === 'user' ? '用户' : '学生AI'}：${String(m.content || '').replace(/\s+/g, ' ').trim().slice(0, 240)}`);
+  return [
+    `节点：${nodeThreadMentionTitle(session)}`,
+    session.parent_title ? `来源会话：${session.parent_title}` : '',
+    session.graph_node_path ? `路径：${session.graph_node_path}` : '',
+    lines.length ? `最近对话：\n${lines.join('\n')}` : '最近对话：还没有形成对话内容',
+  ].filter(Boolean).join('\n');
+}
+
+async function buildNodeThreadMemoryQuote(contexts=state.nodeThreadMentionContexts) {
+  const refs = Array.isArray(contexts) ? contexts : [];
+  const sessions = [];
+  for (const ref of refs) {
+    const sid = typeof ref === 'string' ? ref : ref?.sid;
+    const session = sid ? await DB.get('sessions', sid) : null;
+    if (session && isNodeThreadSession(session)) sessions.push(session);
+  }
+  if (!sessions.length) return null;
+  const content = (await Promise.all(sessions.map(nodeThreadMemoryText))).join('\n\n---\n\n');
+  return {
+    id: `node-thread-memory-${sessions.map(s => s.id).join('-')}`,
+    role: 'assistant',
+    content,
+    node_thread_memory: true,
+    node_thread_memory_sids: sessions.map(s => s.id),
+  };
+}
+
+async function buildSelectedNodeThreadMemoryQuote() {
+  return buildNodeThreadMemoryQuote(state.nodeThreadMentionContexts);
+}
+
 async function sendMessage(opts={}) {
   if (state.chatReadOnlyBrowse) { toast('当前是只读回看，不能发起对话'); return; }
   const activeImageDraft = opts.imageDraft || chatImageDraft || null;
@@ -10707,14 +10862,17 @@ async function sendMessage(opts={}) {
     return openingFor(state.sid);
   }
   if (!state.sid) { toast('先去 设置 创建一个会话'); return; }
+  const mentionQuote = await buildSelectedNodeThreadMemoryQuote();
+  const quoteOptions = { quotedMessage: mentionQuote || state.quotedMessage };
   async function queueForNextTurn({ notifyBusy=true } = {}) {
-    const quotedMessage = state.quotedMessage;
+    const quotedMessage = quoteOptions.quotedMessage;
     const queuedMessage = await ENGINE.queue_pending_user_message(state.sid, txt, quotedMessage, { attachments });
     const queueItem = { text: txt, message: queuedMessage, quotedMessage, queuedAt: queuedMessage.meta?.queued_at || Date.now() };
     state.messageQueue.push(queueItem);
     setChatInputValue('', false);
     if (activeImageDraft) closeImageDraft();
     if (quotedMessage) clearQuotedMessage();
+    if (mentionQuote) clearNodeThreadMentionContexts();
     appendQueuedUserMessageBubble(queuedMessage);
     renderQueueIndicator();
     if (notifyBusy) toast('已进入对话，等待上一条回复完成', 1500);
@@ -10766,6 +10924,13 @@ async function restorePendingMessageQueue(sid=state.sid) {
       await DB.put('messages', m);
     }
     const quotedId = Number(meta.quoted_message_id || 0);
+    const nodeThreadMemoryQuote = meta.node_thread_memory ? {
+      id: meta.quoted_message_id || `node-thread-memory-${m.id}`,
+      role: 'assistant',
+      content: meta.node_thread_memory_context || meta.quoted_preview || '',
+      node_thread_memory: true,
+      node_thread_memory_sids: meta.node_thread_memory_sids || [],
+    } : null;
     const quotedMessage = quotedId
       ? (messageById.get(quotedId) || {
           id: quotedId,
@@ -10773,7 +10938,7 @@ async function restorePendingMessageQueue(sid=state.sid) {
           content: meta.quoted_preview || '',
           meta: { restored_quote_preview: true },
         })
-      : null;
+      : nodeThreadMemoryQuote;
     state.messageQueue.push({ text: String(m.content || ''), message: m, quotedMessage, queuedAt: meta.queued_at || m.created_at || Date.now() });
     restored += 1;
   }
@@ -11086,9 +11251,23 @@ $('#chat-input').addEventListener('compositionend', e => {
   chatInputComposing = false;
   scheduleKeyboardLayout(180);
 });
+$('#chat-input').addEventListener('input', e => {
+  resizeChatInput(e.target);
+  if (chatInputComposing) return;
+  const value = String(e.target.value || '');
+  const cursor = Number.isFinite(e.target.selectionStart) ? e.target.selectionStart : value.length;
+  if (value.slice(0, cursor).endsWith('@')) openNodeThreadMentionSheet();
+});
 $('#chat-input').addEventListener('blur', e => { resizeChatInput(e.target); });
 $('#chat-input').addEventListener('keydown', e => {
+  if (e.key === '@' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    setTimeout(() => openNodeThreadMentionSheet(), 0);
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+});
+$$('[data-node-thread-mention-close]').forEach(btn => btn.addEventListener('click', closeNodeThreadMentionSheet));
+$('#node-thread-mention-sheet')?.addEventListener('click', e => {
+  if (e.target.id === 'node-thread-mention-sheet') closeNodeThreadMentionSheet();
 });
 document.addEventListener('focusin', e => {
   if (editableHasKeyboard(e.target)) {
@@ -13837,8 +14016,8 @@ function graphNodePrimaryActionsHtml(node, digest, pairs) {
   const subsetAction = graphNodeSessionSubsetButtonHtml(node, { primary: true });
   return `<div class="graph-diagnosis-actions">
     ${subsetAction}
-    <button type="button" data-graph-action="practice" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">来一题</button>
-    <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action">${hasWeakPoint ? '追问卡点' : '问为什么'}</button>
+    <button type="button" data-graph-action="practice" class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">来一题</button>
+    <button type="button" data-graph-action="ask-why" class="graph-diagnosis-action">${hasWeakPoint ? '追问卡点' : '问为什么'}</button>
     <button type="button" data-graph-action="review-evidence" ${hasEvidence ? 'data-graph-jump-chat' : 'data-graph-expand-detail'} class="graph-diagnosis-action">回看证据</button>
   </div>`;
 }
@@ -13862,7 +14041,7 @@ function graphStructureActionsHtml(node) {
   const subsetAction = graphNodeSessionSubsetButtonHtml(node, { primary: true });
   return `<div class="graph-diagnosis-actions">
     ${subsetAction}
-    <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">围绕它提问</button>
+    <button type="button" data-graph-action="ask-why" class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">围绕它提问</button>
     ${targets[0] ? `<button type="button" data-graph-action="open-source" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-diagnosis-action">打开来源</button>` : ''}
     <button type="button" data-graph-expand-detail class="graph-diagnosis-action">查看详情</button>
   </div>`;
@@ -13907,7 +14086,7 @@ function graphChatNoteCompactHtml(node, digest, pairs) {
     <div class="graph-diagnosis-actions">
       ${subsetAction}
       <button type="button" data-graph-action="outline-chat-note" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">归入大纲</button>
-      <button type="button" data-graph-action="chat-note-talk" data-graph-expand-detail class="graph-diagnosis-action">围绕它聊</button>
+      <button type="button" data-graph-action="chat-note-talk" class="graph-diagnosis-action">围绕它聊</button>
       <button type="button" data-graph-jump-chat class="graph-diagnosis-action">查看原话</button>
     </div>
   </section>`;
@@ -14643,6 +14822,109 @@ function bindGraphSheetDragHandle(sheet) {
   };
 }
 
+function graphNodeThreadActionSupported(action='') {
+  return ['practice', 'ask-why', 'chat-note-talk'].includes(String(action || ''));
+}
+
+function graphNodeThreadTitle(node) {
+  return graphTrim(`${graphNodeTitle(node)} · 节点窗口`, 24);
+}
+
+function graphNodeThreadKey(node) {
+  const sourceSid = String(node?.sid || node?.sessionId || state.sid || '');
+  const localKey = graphNodeLocalKey(node) || normalizeGraphTopic(graphNodeTitle(node));
+  return `${sourceSid}::${localKey}`;
+}
+
+async function createOrOpenGraphNodeThread(node=state.graphEditingNode) {
+  if (!node) throw new Error('没有选中的节点');
+  const sourceSid = String(node.sid || node.sessionId || state.sid || '');
+  if (!sourceSid) throw new Error('这个节点没有来源会话');
+  const sourceSession = await DB.get('sessions', sourceSid);
+  const title = graphNodeTitle(node);
+  const localKey = graphNodeLocalKey(node) || normalizeGraphTopic(title);
+  const nodeThreadKey = graphNodeThreadKey(node);
+  const existing = listNodeThreadSessions(await DB.all('sessions'))
+    .find(session => String(session.node_thread_key || '') === nodeThreadKey);
+  if (existing) return { thread: existing, created: false };
+  const thread = await ENGINE.create_session({
+    title: graphNodeThreadTitle(node),
+    role: `围绕「${title}」提问的学生 AI`,
+    goal: `只围绕图谱节点「${title}」练习、追问和复盘`,
+    deadline: '',
+    personality: sourceSession?.persona?.personality || '认真、会暴露真实卡点、需要一步步确认',
+    reqs: [
+      `这是来源会话「${sourceSession?.title || '未命名会话'}」里的节点子窗口。`,
+      `不要把它当成首页普通会话；所有对话只服务于节点「${title}」。`,
+      `节点路径：${graphNodeLightPath(node)}。`,
+    ],
+    settings: sourceSession?.settings || {},
+    profile_tags: sourceSession?.profile_tags || [],
+    profile_description: sourceSession?.profile_description || '',
+    profile_long_text: '',
+    avatar_hidden: true,
+  });
+  Object.assign(thread, {
+    node_thread: true,
+    hidden_from_home: true,
+    thread_type: 'node_thread',
+    parent_sid: sourceSid,
+    parent_title: sourceSession?.title || '',
+    graph_node_key: String(node.key || ''),
+    graph_node_local_key: localKey,
+    graph_node_title: title,
+    graph_node_type: node.nodeType || '',
+    graph_node_path: graphNodeLightPath(node),
+    node_thread_key: nodeThreadKey,
+    updated_at: Date.now(),
+  });
+  await DB.put('sessions', thread);
+  return { thread, created: true };
+}
+
+function graphNodeThreadSeedPrompt(action, node=state.graphEditingNode, opts={}) {
+  const title = graphNodeTitle(node);
+  const path = graphNodeLightPath(node);
+  const weak = graphNodeWeakPoint(node, buildKpConversationDigest([], title));
+  if (action === 'practice') {
+    return [
+      `围绕节点「${title}」来一题。`,
+      '题目要能检测我是否真的理解这个节点；先出题，不要直接给答案。',
+      weak ? `优先检查这个卡点：${weak}` : '',
+      `节点路径：${path}`,
+    ].filter(Boolean).join('\n');
+  }
+  if (action === 'ask-why') {
+    return [
+      `围绕节点「${title}」问我一个“为什么”。`,
+      '问题要逼我解释概念边界、原因或推导逻辑；先问问题，不要直接讲解。',
+      weak ? `可以围绕这个卡点追问：${weak}` : '',
+      `节点路径：${path}`,
+    ].filter(Boolean).join('\n');
+  }
+  if (action === 'chat-note-talk') {
+    return [
+      `围绕这张节点便签继续聊：「${title}」。`,
+      node?.content ? `便签内容：${graphPanelPreviewText(node.content, '')}` : '',
+      '先帮我把它说清楚，再判断它是否值得进入学习大纲。',
+    ].filter(Boolean).join('\n');
+  }
+  return `围绕节点「${title}」继续。`;
+}
+
+async function startGraphNodeThreadAction(action, node=state.graphEditingNode) {
+  if (!graphNodeThreadActionSupported(action)) return;
+  try {
+    const { thread } = await createOrOpenGraphNodeThread(node);
+    const prompt = graphNodeThreadSeedPrompt(action, node);
+    hideGraphSheet();
+    await openSessionWindow(thread.id);
+    if (prompt) await submitChatText(prompt, { clearInput: true, quotedMessage: null });
+  } catch (err) {
+    toast(err?.message || '节点子窗口打开失败');
+  }
+}
+
 async function jumpToGraphSheetNode(key) {
   const target = (state.graphDetailNodes || []).find(n => String(n.key) === String(key));
   if (!target) { toast('这个节点不在当前图谱里'); return; }
@@ -14824,6 +15106,9 @@ async function showGraphSheet(node) {
   body.querySelectorAll('[data-graph-jump-chat]').forEach(btn => btn.addEventListener('click', () => jumpToGraphNodeChat(node)));
   body.querySelectorAll('[data-graph-session-subset]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSessionSubset(node, btn.dataset.graphSessionNodeKey || '')));
   body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.addEventListener('click', () => openGraphNodeEditor(node)));
+  body.querySelectorAll('[data-graph-action]').forEach(btn => btn.addEventListener('click', () => {
+    if (graphNodeThreadActionSupported(btn.dataset.graphAction)) startGraphNodeThreadAction(btn.dataset.graphAction, node);
+  }));
   body.querySelectorAll('[data-graph-expand-detail]').forEach(btn => btn.addEventListener('click', expandGraphSheet));
   body.querySelectorAll('[data-graph-node-jump]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSheetNode(btn.dataset.graphNodeJump)));
   body.querySelectorAll('[data-graph-source-anchor]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSourceAnchor(btn.dataset.graphSourceAnchor, btn.dataset.graphSourceSid || state.sid)));
@@ -14927,7 +15212,7 @@ async function openGraphCompletionModal() {
   state.graphCompletionOpen = true;
   state.graphCompletionStep = 'sessions';
   state.graphCompletionPreview = null;
-  state.graphCompletionSessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  state.graphCompletionSessions = visibleRootSessions(await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
   if (!(state.graphCompletionSelectedSids instanceof Set)) state.graphCompletionSelectedSids = new Set();
   renderGraphCompletionModal();
   $('#graph-completion-modal')?.classList.remove('hidden');
@@ -14972,7 +15257,7 @@ async function renderInsights() {
   const sumDiv = $('#insights-summary');
   const mastDiv = $('#insights-mastery');
   const actDiv = $('#insights-actions');
-  const sessions = (await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
+  const sessions = visibleRootSessions(await DB.all('sessions')).sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));
   if (!sessions.length) {
     setActiveGraphDataset([], []);
     ForceGraph.destroy();
@@ -15322,7 +15607,7 @@ function applyLlmProviderPreset(providerId) {
 }
 
 async function renderSettings() {
-  state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
+  state.sessions = visibleRootSessions(await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
   $('#sess-list').innerHTML = state.sessions.length ? state.sessions.map(s => `
     <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-2 space-y-2">
       <div class="flex items-center gap-2">
@@ -16117,7 +16402,7 @@ async function renderSessionDrawer() {
     avatarToggle.checked = globalAvatarsVisible();
     avatarToggle.onchange = e => setGlobalAvatarsVisible(e.target.checked);
   }
-  state.sessions = (await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
+  state.sessions = visibleRootSessions(await DB.all('sessions')).sort((a,b)=>b.updated_at-a.updated_at);
   renderSidebarMemo(list);
   refreshIcons();
 }
@@ -16178,6 +16463,7 @@ function closeTopLayerForBack() {
   if (sPop && !sPop.classList.contains('hidden')) { sPop.classList.add('hidden'); return true; }
   if ($('.session-swipe-row.session-swipe-open')) { closeSessionSwipeRows(); return true; }
   if (isOpenByHiddenClass('#choice-sheet')) { closeChoiceSheet(); return true; }
+  if (isOpenByHiddenClass('#node-thread-mention-sheet')) { closeNodeThreadMentionSheet(); return true; }
   if (isOpenByHiddenClass('#session-rename-sheet')) { closeSessionRenameSheet(); return true; }
   if (isOpenByHiddenClass('#persona-change-warning')) { closePersonaChangeWarning(); return true; }
   if (isOpenByHiddenClass('#essay-note-sheet')) { closeEssayComposer(); return true; }
@@ -16739,7 +17025,7 @@ refreshIcons();
   }
   if (!state.sid) {
     // 没有 session：自动跳到设置 tab 引导创建
-    const allSess = await DB.all('sessions');
+    const allSess = visibleRootSessions(await DB.all('sessions'));
     if (!allSess.length) { switchTab('settings'); }
   }
   if (state.sid) await restorePendingMessageQueue(state.sid);
