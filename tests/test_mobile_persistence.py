@@ -1459,6 +1459,7 @@ def test_mobile_zip_based_formats_use_jszip_and_preserve_structure_for_graph():
 
 def test_mobile_selected_session_graph_completion_builds_preview_without_writes():
     html = mobile_html()
+    pairs_region = html.split("function graphCompletionMessagePairs", 1)[1].split("function graphCompletionHasLearningBehavior", 1)[0]
     preview_region = html.split("async function buildSelectedSessionGraphCompletionPreview", 1)[1].split("async function applySelectedSessionGraphCompletionPreview", 1)[0]
 
     assert "function graphCompletionMessagePairs" in html
@@ -1468,6 +1469,9 @@ def test_mobile_selected_session_graph_completion_builds_preview_without_writes(
     assert "function graphCompletionOutlineFor" in html
     assert "function graphCompletionClassifyPair" in html
     assert "async function buildSelectedSessionGraphCompletionPreview" in html
+    assert "nextUserIndex" in pairs_region
+    assert "m.role === 'user'" in pairs_region
+    assert ".slice(i + 1).find(m => m.role === 'assistant')" not in pairs_region
     assert "extractChatNoteCandidates({" in preview_region
     assert "type: 'learning_node'" in preview_region
     assert "type: 'chat_note'" in preview_region

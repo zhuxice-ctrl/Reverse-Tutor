@@ -7121,7 +7121,9 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     for (let i = 0; i < sorted.length; i++) {
       const user = sorted[i];
       if (user.role !== 'user') continue;
-      const assistant = sorted.slice(i + 1).find(m => m.role === 'assistant');
+      const nextUserIndex = sorted.findIndex((m, idx) => idx > i && m.role === 'user');
+      const boundary = nextUserIndex === -1 ? sorted.length : nextUserIndex;
+      const assistant = sorted.slice(i + 1, boundary).find(m => m.role === 'assistant');
       pairs.push({ user, assistant: assistant || null });
     }
     return pairs;
