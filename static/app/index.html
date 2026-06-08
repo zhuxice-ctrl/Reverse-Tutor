@@ -6935,40 +6935,6 @@ function supportsBackgroundChat(cfg) {
     };
   }
 
-  function inferTurnRoute({ session=null, userInput='', attachments=[], quoted=null, learningContext=null } = {}) {
-    const text = String(userInput || '').trim();
-    const quoteMeta = quoted?.meta || {};
-    const quotedHasImage = messageImageAttachments(quoted || {}).length > 0 || normalizeChatImageAttachments(quoteMeta.attachments || []).length > 0;
-    if ((attachments || []).length || quotedHasImage) {
-      return turnRouteDecision(TURN_ROUTE_SOURCE_OR_IMAGE, 'attachment_or_quoted_image');
-    }
-    if (quoted?.id) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'quoted_reply');
-    if (!text) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'empty_opening');
-
-    const compact = text.replace(/\s+/g, '');
-    const conversationMode = inferConversationMode(session);
-    const pureGreetingPattern = /^(你好|嗨|哈喽|在吗|早|早安|晚安|谢谢|谢了|哈哈|嘿嘿)[。！？!?~～,.，\s]*$/i;
-    if (pureGreetingPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'pure_greeting');
-    const studyControlPattern = /^(继续|下一步|下一题|再来|再讲|接着|继续学|继续讲|往下|开始吧|来一题|出题|考我|复习)$/i;
-    if (studyControlPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'study_control');
-    const metaExperiencePattern = /(说话.*慢|输出.*慢|回复.*慢|生成.*慢|太慢|慢死|卡顿|延迟|等.*久|速度|反应.*慢|加载.*慢|slow|lag|delay)/i;
-    if (compact.length <= 48 && metaExperiencePattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'meta_experience');
-    const ambiguousShortWhyPattern = /^(为什么啊?|为啥啊?|咋了|怎么了|why)[。！？!?~～,.，\s]*$/i;
-    if (compact.length <= 8 && ambiguousShortWhyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'ambiguous_short_why');
-    const studyPattern = /(讲|解释|为什么|怎么做|怎么解|题|公式|概念|定义|证明|推导|错因|纠错|批改|作业|考试|复习|知识点|教材|资料|例题|步骤|答案|算|函数|方程|导数|积分|概率|代码|bug|报错|语法|算法|图像|图片|OCR|识别|懂了|明白了|会了|不会|不懂|没懂|验证|检测|考我|继续学|下一题)/i;
-    if (studyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'explicit_study_request');
-    const sourceRequestPattern = /(资料|文档|文件|PDF|pdf|来源|引用|原文|课本|教材|上传|附件)/i;
-    if (sourceRequestPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_SOURCE_OR_IMAGE, 'source_request');
-    const implicitLearningHandoffPattern = /^(随便|都行|不知道|我也不知道|看看你吧|看你|你安排|按你的来|你决定|从头来|从头开始|先从简单的来|听你的)[。！？!?~～,.，\s]*$/i;
-    if (learningContext?.active && implicitLearningHandoffPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'implicit_learning_handoff');
-
-    const casualPattern = /^(你好|嗨|哈喽|在吗|嗯|哦|好|行|可以|随便|都行|不知道|我也不知道|看看你吧|看你|还好|没事|算了|晚安|早|早安|谢谢|谢了|哈哈|嘿嘿|无聊|有点累|不想学|先聊聊|陪我聊|你说呢|你觉得呢)[。！？!?~～,.，\s]*$/i;
-    if (compact.length <= 28 && casualPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'short_casual');
-    if (compact.length <= 18) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'short_text');
-    if (conversationMode !== 'learning' && compact.length <= 60) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'goal_support_short_text');
-    return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'default_learning_route');
-  }
-
   function buildLightChatSystemPrompt(session, summary_text='') {
     const p = session?.persona || {};
     const mode = inferConversationMode(session);
@@ -7306,6 +7272,40 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
   async function applySelectedSessionGraphCompletionPreview(preview=null) {
     void preview;
     return { learningNodes: 0, chatNotes: 0, relationships: 0, merges: 0 };
+  }
+
+  function inferTurnRoute({ session=null, userInput='', attachments=[], quoted=null, learningContext=null } = {}) {
+    const text = String(userInput || '').trim();
+    const quoteMeta = quoted?.meta || {};
+    const quotedHasImage = messageImageAttachments(quoted || {}).length > 0 || normalizeChatImageAttachments(quoteMeta.attachments || []).length > 0;
+    if ((attachments || []).length || quotedHasImage) {
+      return turnRouteDecision(TURN_ROUTE_SOURCE_OR_IMAGE, 'attachment_or_quoted_image');
+    }
+    if (quoted?.id) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'quoted_reply');
+    if (!text) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'empty_opening');
+
+    const compact = text.replace(/\s+/g, '');
+    const conversationMode = inferConversationMode(session);
+    const pureGreetingPattern = /^(你好|嗨|哈喽|在吗|早|早安|晚安|谢谢|谢了|哈哈|嘿嘿)[。！？!?~～,.，\s]*$/i;
+    if (pureGreetingPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'pure_greeting');
+    const studyControlPattern = /^(继续|下一步|下一题|再来|再讲|接着|继续学|继续讲|往下|开始吧|来一题|出题|考我|复习)$/i;
+    if (studyControlPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'study_control');
+    const metaExperiencePattern = /(说话.*慢|输出.*慢|回复.*慢|生成.*慢|太慢|慢死|卡顿|延迟|等.*久|速度|反应.*慢|加载.*慢|slow|lag|delay)/i;
+    if (compact.length <= 48 && metaExperiencePattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'meta_experience');
+    const ambiguousShortWhyPattern = /^(为什么啊?|为啥啊?|咋了|怎么了|why)[。！？!?~～,.，\s]*$/i;
+    if (compact.length <= 8 && ambiguousShortWhyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'ambiguous_short_why');
+    const studyPattern = /(讲|解释|为什么|怎么做|怎么解|题|公式|概念|定义|证明|推导|错因|纠错|批改|作业|考试|复习|知识点|教材|资料|例题|步骤|答案|算|函数|方程|导数|积分|概率|代码|bug|报错|语法|算法|图像|图片|OCR|识别|懂了|明白了|会了|不会|不懂|没懂|验证|检测|考我|继续学|下一题)/i;
+    if (studyPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'explicit_study_request');
+    const sourceRequestPattern = /(资料|文档|文件|PDF|pdf|来源|引用|原文|课本|教材|上传|附件)/i;
+    if (sourceRequestPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_SOURCE_OR_IMAGE, 'source_request');
+    const implicitLearningHandoffPattern = /^(随便|都行|不知道|我也不知道|看看你吧|看你|你安排|按你的来|你决定|从头来|从头开始|先从简单的来|听你的)[。！？!?~～,.，\s]*$/i;
+    if (learningContext?.active && implicitLearningHandoffPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'implicit_learning_handoff');
+
+    const casualPattern = /^(你好|嗨|哈喽|在吗|嗯|哦|好|行|可以|随便|都行|不知道|我也不知道|看看你吧|看你|还好|没事|算了|晚安|早|早安|谢谢|谢了|哈哈|嘿嘿|无聊|有点累|不想学|先聊聊|陪我聊|你说呢|你觉得呢)[。！？!?~～,.，\s]*$/i;
+    if (compact.length <= 28 && casualPattern.test(compact)) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'short_casual');
+    if (compact.length <= 18) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'short_text');
+    if (conversationMode !== 'learning' && compact.length <= 60) return turnRouteDecision(TURN_ROUTE_CHAT_LIGHT, 'goal_support_short_text');
+    return turnRouteDecision(TURN_ROUTE_STUDY_FULL, 'default_learning_route');
   }
 
   async function runLightChatTurn({

@@ -1463,12 +1463,17 @@ def test_mobile_selected_session_graph_completion_builds_preview_without_writes(
 
     assert "function graphCompletionMessagePairs" in html
     assert "function graphCompletionCandidateKey" in html
+    assert "function graphCompletionText" in html
+    assert "function graphCompletionHasLearningBehavior" in html
+    assert "function graphCompletionOutlineFor" in html
     assert "function graphCompletionClassifyPair" in html
     assert "async function buildSelectedSessionGraphCompletionPreview" in html
     assert "extractChatNoteCandidates({" in preview_region
     assert "type: 'learning_node'" in preview_region
     assert "type: 'chat_note'" in preview_region
     assert "type: 'relationship'" in preview_region
+    assert "duplicateMerges" in preview_region
+    assert "skipped" in preview_region
     assert "existingMasteries" in preview_region
     assert "existingChatNotes" in preview_region
     assert "existingKgNodes" in preview_region
