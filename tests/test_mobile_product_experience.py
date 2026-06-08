@@ -861,12 +861,12 @@ def test_mobile_graph_completion_preview_groups_and_confirm_flow_are_wired():
     controls_fn = html.split("function bindGraphCompletionModalControls", 1)[1].split("async function openGraphCompletionModal", 1)[0]
 
     assert "function graphCompletionPreviewGroupHtml" in html
-    assert "灏嗘柊澧炵殑瀛︿範鑺傜偣" in preview_fn
-    assert "灏嗘洿鏂扮殑宸叉湁瀛︿範鑺傜偣" in preview_fn
-    assert "灏嗚ˉ鍏呯殑瀛愯妭鐐?/ 鍏崇郴" in preview_fn
-    assert "灏嗘柊澧炵殑闂茶亰渚跨" in preview_fn
-    assert "鐤戜技閲嶅锛屽噯澶囧悎骞?" in preview_fn
-    assert "淇濆瓨鍒板浘璋?" in html
+    assert "将新增的学习节点" in preview_fn
+    assert "将更新的已有学习节点" in preview_fn
+    assert "将补充的子节点 / 关系" in preview_fn
+    assert "将新增的闲聊便签" in preview_fn
+    assert "疑似重复，准备合并" in preview_fn
+    assert "保存到图谱" in html
     assert "buildSelectedSessionGraphCompletionPreview(Array.from(state.graphCompletionSelectedSids))" in controls_fn
     assert "applySelectedSessionGraphCompletionPreview(state.graphCompletionPreview)" in controls_fn
     assert "await renderInsights()" in controls_fn

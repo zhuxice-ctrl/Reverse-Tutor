@@ -2855,7 +2855,7 @@
       <button type="button" class="px-3 py-2 rounded border border-neutral-700 text-xs" data-graph-completion-close>取消</button>
       <button type="button" class="px-3 py-2 rounded border border-neutral-700 text-xs hidden" data-graph-completion-back>返回选择</button>
       <button type="button" class="px-3 py-2 rounded bg-neutral-100 text-neutral-950 text-xs font-semibold" data-graph-completion-preview>预览线索</button>
-      <button type="button" class="px-3 py-2 rounded bg-emerald-400 text-neutral-950 text-xs font-semibold hidden" data-graph-completion-save data-graph-completion-save-label="淇濆瓨鍒板浘璋?">保存到图谱</button>
+      <button type="button" class="px-3 py-2 rounded bg-emerald-400 text-neutral-950 text-xs font-semibold hidden" data-graph-completion-save>保存到图谱</button>
     </footer>
   </section>
 </div>
@@ -7431,7 +7431,6 @@ function graphCompletionPreviewGroupHtml(title, items=[]) {
 
 function renderGraphCompletionPreview(preview) {
   if (!preview) return '<div class="text-xs text-neutral-500 text-center py-8">选择会话后先预览线索。</div>';
-  // Legacy encoded label markers for static mobile HTML assertions: 灏嗘柊澧炵殑瀛︿範鑺傜偣 / 灏嗘洿鏂扮殑宸叉湁瀛︿範鑺傜偣 / 灏嗚ˉ鍏呯殑瀛愯妭鐐?/ 鍏崇郴 / 灏嗘柊澧炵殑闂茶亰渚跨 / 鐤戜技閲嶅锛屽噯澶囧悎骞?
   const groups = [
     graphCompletionPreviewGroupHtml('将新增的学习节点', preview.learningNodes || []),
     graphCompletionPreviewGroupHtml('将更新的已有学习节点', preview.updatedLearningNodes || []),
