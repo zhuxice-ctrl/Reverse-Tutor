@@ -12123,7 +12123,7 @@ async function renderContextGraph(renderId=state.contextRenderSeq) {
   const { nodes, links } = buildGraphData(masteries, ai, anchors, kgNodes, kgEdges);
   nodes.forEach(n => { n.sid = state.sid; });
   setActiveGraphDataset(nodes, links);
-  const focused = buildFocusedGraphData(nodes, links, { centerKey: state.graphSelected });
+  const focused = graphFullDataset(nodes, links);
   ForceGraph.init($('#context-knowledge-graph'), node => {
     if (node) { state.graphSelected = node.key; showGraphSheet(node); }
     else { state.graphSelected = ''; hideGraphSheet(); }
