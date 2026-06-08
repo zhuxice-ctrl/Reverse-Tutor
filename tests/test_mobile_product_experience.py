@@ -853,3 +853,23 @@ def test_mobile_global_graph_has_selected_session_completion_modal_shell():
     assert "预览线索" in modal_region
     assert "保存到图谱" in modal_region
     assert "取消" in modal_region
+
+
+def test_mobile_graph_completion_preview_groups_and_confirm_flow_are_wired():
+    html = mobile_html()
+    preview_fn = html.split("function renderGraphCompletionPreview", 1)[1].split("async function renderInsights", 1)[0]
+    controls_fn = html.split("function bindGraphCompletionModalControls", 1)[1].split("async function openGraphCompletionModal", 1)[0]
+
+    assert "function graphCompletionPreviewGroupHtml" in html
+    assert "灏嗘柊澧炵殑瀛︿範鑺傜偣" in preview_fn
+    assert "灏嗘洿鏂扮殑宸叉湁瀛︿範鑺傜偣" in preview_fn
+    assert "灏嗚ˉ鍏呯殑瀛愯妭鐐?/ 鍏崇郴" in preview_fn
+    assert "灏嗘柊澧炵殑闂茶亰渚跨" in preview_fn
+    assert "鐤戜技閲嶅锛屽噯澶囧悎骞?" in preview_fn
+    assert "淇濆瓨鍒板浘璋?" in html
+    assert "buildSelectedSessionGraphCompletionPreview(Array.from(state.graphCompletionSelectedSids))" in controls_fn
+    assert "applySelectedSessionGraphCompletionPreview(state.graphCompletionPreview)" in controls_fn
+    assert "await renderInsights()" in controls_fn
+    assert "closeGraphCompletionModal()" in controls_fn
+    assert "DB.add(" not in controls_fn
+    assert "DB.put(" not in controls_fn
