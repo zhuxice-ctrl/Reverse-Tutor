@@ -1491,7 +1491,9 @@ def test_mobile_selected_session_graph_completion_builds_preview_without_writes(
 def test_mobile_selected_session_graph_completion_applies_merge_only_writes():
     html = mobile_html()
     apply_region = html.split("async function applySelectedSessionGraphCompletionPreview", 1)[1].split("function renderGraphCompletionPreview", 1)[0]
-    existing_chat_note_merge_region = html.split("if (existing) {", 1)[1].split("await DB.put('anchors', existing)", 1)[0]
+    chat_note_merge_region = html.split("async function mergeGraphCompletionChatNote", 1)[1].split("async function mergeGraphCompletionRelationship", 1)[0]
+    learning_merge_region = html.split("async function mergeGraphCompletionLearningNode", 1)[1].split("async function mergeGraphCompletionChatNote", 1)[0]
+    relationship_merge_region = html.split("async function mergeGraphCompletionRelationship", 1)[1].split("function renderGraphCompletionPreview", 1)[0]
 
     assert "async function mergeGraphCompletionLearningNode" in html
     assert "async function mergeGraphCompletionChatNote" in html
@@ -1505,8 +1507,11 @@ def test_mobile_selected_session_graph_completion_applies_merge_only_writes():
     assert "kind: 'chat_note'" in apply_region
     assert "DB.put('anchors', existing)" in apply_region
     assert "DB.add('anchors'" in apply_region
-    assert "existing.user_edited_at" in existing_chat_note_merge_region
-    assert "existing.user_locked_fields" in existing_chat_note_merge_region
+    assert "existing.user_edited_at" in chat_note_merge_region
+    assert "existing.user_locked_fields" in chat_note_merge_region
+    assert "graphCompletionMergeIds(kgProperties(existingNode)" in learning_merge_region
+    assert "graphCompletionMergeIds(existing.graph_completion_evidence_ids" in chat_note_merge_region
+    assert "graphCompletionMergeIds(kgProperties(existingEdge)" in relationship_merge_region
     assert "graph_completion_evidence_ids" in apply_region
     assert "graph_completion_last_merged_at" in apply_region
     assert "user_edited_at" in apply_region

@@ -7313,6 +7313,8 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
 
   async function mergeGraphCompletionLearningNode(candidate) {
     if (!candidate?.sid || !candidate?.title || !isLogicalGraphKp(candidate.title)) return null;
+    const existingNode = await find_kg_node(candidate.sid, 'concept', candidate.title);
+    const evidenceIds = graphCompletionMergeIds(kgProperties(existingNode).graph_completion_evidence_ids || [], candidate.evidenceIds || []);
     await upsert_mastery(candidate.sid, candidate.title,
       Number(candidate.correctness || 0) || 0,
       Number(candidate.depth || 0) || 0,
@@ -7326,12 +7328,12 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
         stuck: candidate.stuck || '',
         next_step: candidate.nextStep || '',
         keywords: candidate.keywords || [],
-        graph_completion_evidence_ids: candidate.evidenceIds || [],
+        graph_completion_evidence_ids: evidenceIds,
         graph_completion_last_merged_at: graphCompletionNow(),
         user_edited_at: null,
         user_locked_fields: [],
       },
-      episodeId: (candidate.evidenceIds || [])[1] || (candidate.evidenceIds || [])[0] || null,
+      episodeId: evidenceIds[1] || evidenceIds[0] || null,
     });
     return concept;
   }
@@ -7387,13 +7389,16 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
       episodeId: (candidate.evidenceIds || [])[1] || (candidate.evidenceIds || [])[0] || null,
     });
     if (!source || !target) return null;
+    const existingEdge = (await list_kg_edges(candidate.sid, { nodeId: source.id, relation: candidate.relation || 'related', status: 'active' }))
+      .find(edge => Number(edge.source_id) === Number(source.id) && Number(edge.target_id) === Number(target.id));
+    const evidenceIds = graphCompletionMergeIds(kgProperties(existingEdge).graph_completion_evidence_ids || [], candidate.evidenceIds || []);
     return upsert_kg_edge(candidate.sid, source.id, target.id, candidate.relation || 'related', {
       weight: Number(candidate.weight || 1.0) || 1.0,
       properties: {
-        graph_completion_evidence_ids: candidate.evidenceIds || [],
+        graph_completion_evidence_ids: evidenceIds,
         graph_completion_last_merged_at: graphCompletionNow(),
       },
-      episodeId: (candidate.evidenceIds || [])[1] || (candidate.evidenceIds || [])[0] || null,
+      episodeId: evidenceIds[1] || evidenceIds[0] || null,
     });
   }
 
