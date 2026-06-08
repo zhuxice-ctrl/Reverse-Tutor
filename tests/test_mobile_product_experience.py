@@ -839,9 +839,14 @@ def test_mobile_global_graph_has_selected_session_completion_modal_shell():
     insights_fn = html.split("async function renderInsights", 1)[1].split("// --- Settings ---", 1)[0]
     populated_actions_region = insights_fn.split("const focused = graphFullDataset(allNodes, allLinks);", 1)[1]
     modal_region = html.split('id="graph-completion-modal"', 1)[1].split("<!--", 1)[0]
+    actions_css = html.split("#insights-actions", 1)[1].split("}", 1)[0]
 
     assert 'data-graph-completion-open' in insights_fn
     assert "整理会话线索" in insights_fn
+    assert "actDiv.classList.remove('hidden')" in insights_fn
+    assert "actDiv.classList.add('hidden')" in insights_fn
+    assert "position: absolute" in actions_css
+    assert "z-index" in actions_css
     assert "$$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);\n  refreshIcons();" in populated_actions_region
     assert 'id="graph-completion-modal"' in html
     assert "function openGraphCompletionModal" in html

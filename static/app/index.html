@@ -1059,6 +1059,8 @@
     display: flex;
     flex-direction: column;
     padding: 0;
+    position: relative;
+    overflow: hidden;
   }
   .insights-graph-canvas,
   .context-graph-body {
@@ -1066,6 +1068,19 @@
     min-height: 0;
     height: 100%;
     padding: 0 !important;
+  }
+  #insights-actions {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+    z-index: 12;
+    padding: 10px;
+    border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    box-shadow: 0 12px 30px rgba(0,0,0,.16);
+    backdrop-filter: blur(10px);
   }
   .insight-kb-strip {
     display: grid;
@@ -14581,8 +14596,10 @@ async function renderInsights() {
     ForceGraph.destroy();
     sumDiv.innerHTML = '<div class="text-neutral-500">先创建会话</div>';
     mastDiv.innerHTML = ''; actDiv.innerHTML = '';
+    actDiv.classList.add('hidden');
     return;
   }
+  actDiv.classList.remove('hidden');
   const allNodes = [], allLinks = [], allAi = [], allMasteries = [], allAnchors = [];
   for (const session of sessions) {
     const sid = session.id;
