@@ -14259,6 +14259,7 @@ async function renderInsights() {
       `<span class="pill pill-${k}">${k} ${v}/${total}</span>`).join('') || '<span class="text-xs text-neutral-500">暂无动作分布</span>'}</div>
   `;
   $$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);
+  refreshIcons();
 }
 
 // --- Settings ---

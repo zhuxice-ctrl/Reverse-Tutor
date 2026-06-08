@@ -837,10 +837,12 @@ def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
 def test_mobile_global_graph_has_selected_session_completion_modal_shell():
     html = mobile_html()
     insights_fn = html.split("async function renderInsights", 1)[1].split("// --- Settings ---", 1)[0]
+    populated_actions_region = insights_fn.split("const focused = graphFullDataset(allNodes, allLinks);", 1)[1]
     modal_region = html.split('id="graph-completion-modal"', 1)[1].split("<!--", 1)[0]
 
     assert 'data-graph-completion-open' in insights_fn
     assert "整理会话线索" in insights_fn
+    assert "$$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);\n  refreshIcons();" in populated_actions_region
     assert 'id="graph-completion-modal"' in html
     assert "function openGraphCompletionModal" in html
     assert "function closeGraphCompletionModal" in html
