@@ -7332,15 +7332,16 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
       || await graphCompletionFindMastery(candidate.sid, candidate.mergeTarget);
     const existingNode = await graphCompletionFindConceptNode(candidate.sid, candidate.title)
       || await graphCompletionFindConceptNode(candidate.sid, candidate.mergeTarget);
-    const targetTitle = existingMastery?.kp || existingNode?.name || candidate.mergeTarget || candidate.title;
+    const masteryTargetTitle = existingMastery?.kp || candidate.mergeTarget || existingNode?.name || candidate.title;
+    const conceptTargetTitle = existingNode?.name || candidate.mergeTarget || existingMastery?.kp || candidate.title;
     const evidenceIds = graphCompletionMergeIds(kgProperties(existingNode).graph_completion_evidence_ids || [], candidate.evidenceIds || []);
-    await upsert_mastery(candidate.sid, targetTitle,
+    await upsert_mastery(candidate.sid, masteryTargetTitle,
       Number(candidate.correctness || 0) || 0,
       Number(candidate.depth || 0) || 0,
       candidate.evidenceType || 'none',
       candidate.verificationStatus || 'none'
     );
-    const concept = await upsert_kg_node(candidate.sid, 'concept', targetTitle, {
+    const concept = await upsert_kg_node(candidate.sid, 'concept', conceptTargetTitle, {
       properties: {
         outline: candidate.outline || '',
         summary: candidate.summary || '',

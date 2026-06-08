@@ -1507,8 +1507,8 @@ def test_mobile_selected_session_graph_completion_applies_merge_only_writes():
     assert html.index("function graphCompletionNow") < html.index("async function applySelectedSessionGraphCompletionPreview")
     learning_candidates_region = apply_region.split("const learningCandidates = [", 1)[1].split("];", 1)[0]
     assert "duplicateMerges" not in learning_candidates_region
-    assert "upsert_mastery(candidate.sid, targetTitle" in apply_region
-    assert "upsert_kg_node(candidate.sid, 'concept', targetTitle" in apply_region
+    assert "upsert_mastery(candidate.sid, masteryTargetTitle" in apply_region
+    assert "upsert_kg_node(candidate.sid, 'concept', conceptTargetTitle" in apply_region
     assert "normalizeGraphTopic(m.kp || m.knowledge_point)" in html
     assert "normalizeGraphTopic(n.name)" in html
     assert "upsert_kg_edge(candidate.sid" in apply_region
@@ -1547,7 +1547,7 @@ const stores = {{
     id: 10,
     sid: 's1',
     kind: 'concept',
-    name: '导数定义',
+    name: '导 数 定 义',
     properties_json: JSON.stringify({{ graph_completion_evidence_ids: [1] }}),
     source_episode_ids: '[]',
     status: 'active'
@@ -1610,7 +1610,7 @@ eval({json.dumps(engine_script)});
     relationships: []
   }});
   const conceptRows = stores.kg_nodes.filter(row => row.sid === 's1' && row.kind === 'concept');
-  const targetConcept = conceptRows.find(row => row.name === '导数定义');
+  const targetConcept = conceptRows.find(row => row.name === '导 数 定 义');
   console.log(JSON.stringify({{
     result,
     masteryRows: stores.mastery,
@@ -1638,5 +1638,5 @@ eval({json.dumps(engine_script)});
     assert len(data["masteryRows"]) == 1
     assert data["masteryRows"][0]["kp"] == "导数定义"
     assert data["masteryRows"][0]["attempts"] == 2
-    assert [row["name"] for row in data["conceptRows"]] == ["导数定义"]
+    assert [row["name"] for row in data["conceptRows"]] == ["导 数 定 义"]
     assert data["targetEvidenceIds"] == [1, 2, 3]
