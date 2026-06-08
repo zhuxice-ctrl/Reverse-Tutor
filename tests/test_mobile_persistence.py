@@ -1486,3 +1486,26 @@ def test_mobile_selected_session_graph_completion_builds_preview_without_writes(
     assert "upsert_mastery(" not in preview_region
     assert "upsert_kg_node(" not in preview_region
     assert "upsert_kg_edge(" not in preview_region
+
+
+def test_mobile_selected_session_graph_completion_applies_merge_only_writes():
+    html = mobile_html()
+    apply_region = html.split("async function applySelectedSessionGraphCompletionPreview", 1)[1].split("function renderGraphCompletionPreview", 1)[0]
+
+    assert "async function mergeGraphCompletionLearningNode" in html
+    assert "async function mergeGraphCompletionChatNote" in html
+    assert "async function mergeGraphCompletionRelationship" in html
+    assert "applySelectedSessionGraphCompletionPreview" in html
+    assert "upsert_mastery(candidate.sid, candidate.title" in apply_region
+    assert "upsert_kg_node(candidate.sid, 'concept', candidate.title" in apply_region
+    assert "upsert_kg_edge(candidate.sid" in apply_region
+    assert "kind: 'chat_note'" in apply_region
+    assert "DB.put('anchors', existing)" in apply_region
+    assert "DB.add('anchors'" in apply_region
+    assert "graph_completion_evidence_ids" in apply_region
+    assert "graph_completion_last_merged_at" in apply_region
+    assert "user_edited_at" in apply_region
+    assert "user_locked_fields" in apply_region
+    assert "DB.del(" not in apply_region
+    assert "invalidate_kg_node(" not in apply_region
+    assert "invalidate_kg_edge(" not in apply_region

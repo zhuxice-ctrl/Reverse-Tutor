@@ -7272,9 +7272,133 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
   }
 
   async function applySelectedSessionGraphCompletionPreview(preview=null) {
-    void preview;
-    return { learningNodes: 0, chatNotes: 0, relationships: 0, merges: 0 };
+    const result = { learningNodes: 0, chatNotes: 0, relationships: 0, merges: 0 };
+    const learningCandidates = [
+      ...(preview?.learningNodes || []),
+      ...(preview?.updatedLearningNodes || []),
+      ...(preview?.duplicateMerges || []).filter(c => c.type === 'learning_node'),
+    ];
+    const chatNoteCandidates = [
+      ...(preview?.chatNotes || []),
+      ...(preview?.duplicateMerges || []).filter(c => c.type === 'chat_note'),
+    ];
+    for (const candidate of learningCandidates) {
+      const merged = await mergeGraphCompletionLearningNode(candidate);
+      if (merged) {
+        result.learningNodes += 1;
+        if (candidate.mergeTarget) result.merges += 1;
+      }
+    }
+    for (const candidate of chatNoteCandidates) {
+      const merged = await mergeGraphCompletionChatNote(candidate);
+      if (merged) {
+        result.chatNotes += 1;
+        if (candidate.mergeTarget) result.merges += 1;
+      }
+    }
+    for (const candidate of preview?.relationships || []) {
+      const merged = await mergeGraphCompletionRelationship(candidate);
+      if (merged) result.relationships += 1;
+    }
+    return result;
   }
+
+  function graphCompletionMergeIds(existing=[], incoming=[]) {
+    return Array.from(new Set([...(existing || []), ...(incoming || [])].filter(Boolean).map(Number).filter(Number.isFinite)));
+  }
+
+  function graphCompletionNow() {
+    return Date.now();
+  }
+
+  async function mergeGraphCompletionLearningNode(candidate) {
+    if (!candidate?.sid || !candidate?.title || !isLogicalGraphKp(candidate.title)) return null;
+    await upsert_mastery(candidate.sid, candidate.title,
+      Number(candidate.correctness || 0) || 0,
+      Number(candidate.depth || 0) || 0,
+      candidate.evidenceType || 'none',
+      candidate.verificationStatus || 'none'
+    );
+    const concept = await upsert_kg_node(candidate.sid, 'concept', candidate.title, {
+      properties: {
+        outline: candidate.outline || '',
+        summary: candidate.summary || '',
+        stuck: candidate.stuck || '',
+        next_step: candidate.nextStep || '',
+        keywords: candidate.keywords || [],
+        graph_completion_evidence_ids: candidate.evidenceIds || [],
+        graph_completion_last_merged_at: graphCompletionNow(),
+        user_edited_at: null,
+        user_locked_fields: [],
+      },
+      episodeId: (candidate.evidenceIds || [])[1] || (candidate.evidenceIds || [])[0] || null,
+    });
+    return concept;
+  }
+
+  async function mergeGraphCompletionChatNote(candidate) {
+    if (!candidate?.sid || !candidate?.title) return null;
+    const now = graphCompletionNow();
+    const existingRows = (await DB.bySid('anchors', candidate.sid)).filter(a => a.kind === 'chat_note');
+    const existing = existingRows.find(a => normalizeGraphTopic(a.chat_note_title || a.content) === normalizeGraphTopic(candidate.title));
+    if (existing) {
+      existing.content = candidate.body || existing.content || candidate.title;
+      existing.chat_note_title = candidate.title;
+      existing.chat_note_body = candidate.body || existing.chat_note_body || existing.content || '';
+      existing.chat_note_outline = candidate.outline || existing.chat_note_outline || '';
+      existing.chat_note_quote = candidate.quote || existing.chat_note_quote || '';
+      existing.chat_note_keywords = graphUniqueClean([...(existing.chat_note_keywords || []), ...(candidate.keywords || [])], 12);
+      existing.graph_completion_evidence_ids = graphCompletionMergeIds(existing.graph_completion_evidence_ids || [], candidate.evidenceIds || []);
+      existing.graph_completion_last_merged_at = now;
+      existing.updated_at = now;
+      await DB.put('anchors', existing);
+      return existing;
+    }
+    const row = {
+      sid: candidate.sid,
+      kind: 'chat_note',
+      content: candidate.body || candidate.title,
+      weight: 1.25,
+      created_at: now,
+      chat_note_title: candidate.title,
+      chat_note_body: candidate.body || '',
+      chat_note_outline: candidate.outline || '',
+      chat_note_quote: candidate.quote || '',
+      chat_note_keywords: candidate.keywords || [],
+      graph_completion_evidence_ids: graphCompletionMergeIds([], candidate.evidenceIds || []),
+      graph_completion_last_merged_at: now,
+      user_edited_at: null,
+      user_locked_fields: [],
+    };
+    row.id = await DB.add('anchors', row);
+    return row;
+  }
+
+  async function mergeGraphCompletionRelationship(candidate) {
+    if (!candidate?.sid || !candidate?.sourceTitle || !candidate?.targetTitle) return null;
+    const source = await upsert_kg_node(candidate.sid, 'concept', candidate.sourceTitle, {
+      properties: { graph_completion_last_merged_at: graphCompletionNow() },
+      episodeId: (candidate.evidenceIds || [])[0] || null,
+    });
+    const target = await upsert_kg_node(candidate.sid, 'concept', candidate.targetTitle, {
+      properties: { graph_completion_last_merged_at: graphCompletionNow() },
+      episodeId: (candidate.evidenceIds || [])[1] || (candidate.evidenceIds || [])[0] || null,
+    });
+    if (!source || !target) return null;
+    return upsert_kg_edge(candidate.sid, source.id, target.id, candidate.relation || 'related', {
+      weight: Number(candidate.weight || 1.0) || 1.0,
+      properties: {
+        graph_completion_evidence_ids: candidate.evidenceIds || [],
+        graph_completion_last_merged_at: graphCompletionNow(),
+      },
+      episodeId: (candidate.evidenceIds || [])[1] || (candidate.evidenceIds || [])[0] || null,
+    });
+  }
+
+function renderGraphCompletionPreview(preview) {
+  if (!preview) return '<div class="text-xs text-neutral-500 text-center py-8">选择会话后先预览线索。</div>';
+  return '<div class="text-xs text-neutral-400">已建立预览容器，扫描结果渲染在后续任务接入。</div>';
+}
 
   function inferTurnRoute({ session=null, userInput='', attachments=[], quoted=null, learningContext=null } = {}) {
     const text = String(userInput || '').trim();
@@ -14332,11 +14456,6 @@ function renderGraphCompletionSessionPicker(sessions=[]) {
       </span>
     </label>
   `).join('')}</div>`;
-}
-
-function renderGraphCompletionPreview(preview) {
-  if (!preview) return '<div class="text-xs text-neutral-500 text-center py-8">选择会话后先预览线索。</div>';
-  return '<div class="text-xs text-neutral-400">已建立预览容器，扫描结果渲染在后续任务接入。</div>';
 }
 
 async function renderInsights() {
