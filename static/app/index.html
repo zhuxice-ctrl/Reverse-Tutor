@@ -3978,12 +3978,19 @@ function createTurnId() {
 const GRAPH_PROCESS_KP_NAMES = new Set([
   '后台回复', '后台生成', '后台生成中', '后台回复生成中',
   '自由回复', '模型自由回复', '当前聊天', '当前窗口', '未知', '?',
+  '师生角色定位', '师生身份确认', '学生身份确认', '老师身份确认', '角色边界确认',
 ]);
+
+const GRAPH_NON_LEARNING_KP_PATTERNS = [
+  /(师生|学生|老师).*(角色|身份|定位|边界|确认)/,
+  /(角色|身份).*(边界|定位|确认)/,
+];
 
 function isLogicalGraphKp(kp) {
   const text = String(kp || '').replace(/\s+/g, ' ').trim();
   if (!text) return false;
   if (GRAPH_PROCESS_KP_NAMES.has(text)) return false;
+  if (GRAPH_NON_LEARNING_KP_PATTERNS.some(pattern => pattern.test(text))) return false;
   if (/^(background_|native_background|foreground_llm|pending|error)$/i.test(text)) return false;
   return true;
 }
@@ -12641,6 +12648,10 @@ function buildFocusedGraphData(nodes=[], links=[], opts={}) {
   return { nodes: focusedNodes, links: focusedLinks, center, focused:true, totalNodes:nodes.length };
 }
 
+function graphFullDataset(nodes=[], links=[]) {
+  return { nodes, links, center: null, focused: false, totalNodes: nodes.length };
+}
+
 function graphFormationStateHtml(nodes=[], links=[], opts={}) {
   const count = Array.isArray(nodes) ? nodes.length : 0;
   const context = opts.context === 'global' ? 'global' : 'session';
@@ -13867,7 +13878,7 @@ async function renderInsights() {
       if (node) { state.graphSelected = node.key; showGraphSheet(node); }
       else { state.graphSelected = ''; hideGraphSheet(); }
     });
-    const focused = buildFocusedGraphData(allNodes, allLinks, { centerKey: state.graphSelected });
+    const focused = graphFullDataset(allNodes, allLinks);
     ForceGraph.setData(focused.nodes, focused.links);
     container.querySelector('.graph-focus-banner')?.remove();
     container.insertAdjacentHTML('beforeend', graphFormationStateHtml(allNodes, allLinks, { context: 'global', focus: focused }));

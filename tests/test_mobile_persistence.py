@@ -1381,8 +1381,9 @@ def test_mobile_graph_view_is_fullscreen_and_filters_process_nodes():
     assert "动作分布（近 12 轮）" not in insights_section
     assert "function isLogicalGraphKp" in html
     assert "GRAPH_PROCESS_KP_NAMES" in html
-    for process_kp in ["后台回复", "后台生成", "自由回复", "模型自由回复", "后台生成中", "后台回复生成中"]:
+    for process_kp in ["后台回复", "后台生成", "自由回复", "模型自由回复", "后台生成中", "后台回复生成中", "师生角色定位"]:
         assert process_kp in html
+    assert "GRAPH_NON_LEARNING_KP_PATTERNS" in html
     assert "!isLogicalGraphKp(kp)" in normalize_action_fn
     assert "if (!isLogicalGraphKp(kp)) return;" in upsert_mastery_fn
     assert "masteries.filter(m => isLogicalGraphKp(m.kp || m.knowledge_point))" in build_graph_fn

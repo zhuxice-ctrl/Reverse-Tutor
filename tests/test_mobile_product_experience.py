@@ -767,8 +767,9 @@ def test_mobile_graph_filters_process_nodes_from_mastery_and_digest_paths():
     upsert_mastery_fn = html.split("async function upsert_mastery", 1)[1].split("async function upsert_error_log", 1)[0]
     build_graph_fn = html.split("function buildGraphData", 1)[1].split("function memoryStatusLabel", 1)[0]
 
-    for name in ["后台回复", "后台生成", "自由回复", "模型自由回复"]:
+    for name in ["后台回复", "后台生成", "自由回复", "模型自由回复", "师生角色定位"]:
         assert name in html
+    assert "GRAPH_NON_LEARNING_KP_PATTERNS" in html
     assert "!isLogicalGraphKp(kp)" in normalize_action_fn
     assert "if (!isLogicalGraphKp(kp)) return;" in upsert_mastery_fn
     assert "masteries.filter(m => isLogicalGraphKp(m.kp || m.knowledge_point))" in build_graph_fn
@@ -802,6 +803,7 @@ def test_mobile_graph_canvas_uses_focus_subset_but_detail_keeps_full_dataset():
     assert "graphFormationStateHtml(nodes, links, { context: 'session', focus: focused })" in context_graph_fn
 
     assert "setActiveGraphDataset(allNodes, allLinks);" in insights_fn
-    assert "const focused = buildFocusedGraphData(allNodes, allLinks, { centerKey: state.graphSelected });" in insights_fn
+    assert "const focused = graphFullDataset(allNodes, allLinks);" in insights_fn
+    assert "buildFocusedGraphData(allNodes, allLinks" not in insights_fn
     assert "ForceGraph.setData(focused.nodes, focused.links);" in insights_fn
     assert "graphFormationStateHtml(allNodes, allLinks, { context: 'global', focus: focused })" in insights_fn
