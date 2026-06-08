@@ -873,3 +873,25 @@ def test_mobile_graph_completion_preview_groups_and_confirm_flow_are_wired():
     assert "closeGraphCompletionModal()" in controls_fn
     assert "DB.add(" not in controls_fn
     assert "DB.put(" not in controls_fn
+
+
+def test_mobile_graph_completion_modal_operations_are_tokenized_and_close_does_not_unlock_busy():
+    html = mobile_html()
+    state_block = html.split("graphCompletionOpen: false,", 1)[1].split("essaySourceMessage: null,", 1)[0]
+    controls_fn = html.split("function bindGraphCompletionModalControls", 1)[1].split("async function openGraphCompletionModal", 1)[0]
+    close_fn = html.split("function closeGraphCompletionModal()", 1)[1].split("function renderGraphCompletionModal()", 1)[0]
+
+    assert "graphCompletionOperationId" in state_block
+    assert "graphCompletionActiveOperationId" in state_block
+    assert "state.graphCompletionBusy = false" not in close_fn
+    assert "state.graphCompletionOperationId += 1;" in close_fn
+    assert controls_fn.count("const opId = ++state.graphCompletionOperationId") >= 2
+    assert "state.graphCompletionActiveOperationId = opId;" in controls_fn
+    assert "const preview = await buildSelectedSessionGraphCompletionPreview(Array.from(state.graphCompletionSelectedSids));" in controls_fn
+    assert "state.graphCompletionPreview = preview;" in controls_fn
+    assert "if (opId !== state.graphCompletionOperationId || !state.graphCompletionOpen) return;" in controls_fn
+    assert controls_fn.index("if (opId !== state.graphCompletionOperationId || !state.graphCompletionOpen) return;") < controls_fn.index("state.graphCompletionPreview = preview;")
+    assert "if (opId === state.graphCompletionOperationId && state.graphCompletionOpen) {" in controls_fn
+    assert "finally" in controls_fn
+    assert "if (state.graphCompletionActiveOperationId === opId)" in controls_fn
+    assert "state.graphCompletionBusy = false;" in controls_fn

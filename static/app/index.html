@@ -2898,6 +2898,8 @@ const state = {
   graphCompletionSelectedSids: new Set(),
   graphCompletionPreview: null,
   graphCompletionBusy: false,
+  graphCompletionOperationId: 0,
+  graphCompletionActiveOperationId: 0,
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
@@ -14455,26 +14457,40 @@ function bindGraphCompletionModalControls() {
       toast('请先勾选至少一个会话');
       return;
     }
+    const opId = ++state.graphCompletionOperationId;
+    state.graphCompletionActiveOperationId = opId;
     state.graphCompletionBusy = true;
     renderGraphCompletionModal();
     try {
-      state.graphCompletionPreview = await buildSelectedSessionGraphCompletionPreview(Array.from(state.graphCompletionSelectedSids));
+      const preview = await buildSelectedSessionGraphCompletionPreview(Array.from(state.graphCompletionSelectedSids));
+      if (opId !== state.graphCompletionOperationId || !state.graphCompletionOpen) return;
+      state.graphCompletionPreview = preview;
       state.graphCompletionStep = 'preview';
       renderGraphCompletionModal();
     } finally {
-      state.graphCompletionBusy = false;
+      if (state.graphCompletionActiveOperationId === opId) {
+        state.graphCompletionBusy = false;
+        state.graphCompletionActiveOperationId = 0;
+      }
     }
   });
   $('[data-graph-completion-save]')?.addEventListener('click', async () => {
     if (state.graphCompletionBusy || !state.graphCompletionPreview) return;
+    const opId = ++state.graphCompletionOperationId;
+    state.graphCompletionActiveOperationId = opId;
     state.graphCompletionBusy = true;
     try {
       const result = await applySelectedSessionGraphCompletionPreview(state.graphCompletionPreview);
-      toast(`已保存：学习节点 ${result.learningNodes}，便签 ${result.chatNotes}，关系 ${result.relationships}`);
-      closeGraphCompletionModal();
+      if (opId === state.graphCompletionOperationId && state.graphCompletionOpen) {
+        toast(`已保存：学习节点 ${result.learningNodes}，便签 ${result.chatNotes}，关系 ${result.relationships}`);
+        closeGraphCompletionModal();
+      }
       await renderInsights();
     } finally {
-      state.graphCompletionBusy = false;
+      if (state.graphCompletionActiveOperationId === opId) {
+        state.graphCompletionBusy = false;
+        state.graphCompletionActiveOperationId = 0;
+      }
     }
   });
   $('#graph-completion-modal')?.addEventListener('change', e => {
@@ -14501,7 +14517,7 @@ async function openGraphCompletionModal() {
 
 function closeGraphCompletionModal() {
   state.graphCompletionOpen = false;
-  state.graphCompletionBusy = false;
+  state.graphCompletionOperationId += 1;
   $('#graph-completion-modal')?.classList.add('hidden');
 }
 
