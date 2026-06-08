@@ -1076,11 +1076,223 @@
     bottom: 14px;
     z-index: 12;
     padding: 10px;
-    border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+    border: 1px solid var(--line);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--card) 90%, transparent);
+    background: var(--card-gradient);
     box-shadow: 0 12px 30px rgba(0,0,0,.16);
     backdrop-filter: blur(10px);
+  }
+  .graph-completion-modal.hidden { display: none !important; }
+  .graph-completion-modal .hidden { display: none !important; }
+  .graph-completion-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    color: var(--text);
+  }
+  .graph-completion-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.58);
+  }
+  .graph-completion-panel {
+    position: absolute;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    max-height: min(86vh, 760px);
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: var(--surface-gradient);
+    box-shadow: 0 18px 48px rgba(0,0,0,.28);
+    display: flex;
+    flex-direction: column;
+  }
+  .graph-completion-header,
+  .graph-completion-footer {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+    border-color: var(--line);
+  }
+  .graph-completion-header {
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px 13px 10px;
+    border-bottom: 1.5px solid var(--line);
+  }
+  .graph-completion-title {
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1.25;
+    color: var(--text);
+  }
+  .graph-completion-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-soft);
+  }
+  .graph-completion-icon-button {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    background: var(--surface-soft-gradient);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .graph-completion-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 11px;
+    background: var(--surface-soft-gradient);
+  }
+  .graph-completion-footer {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    padding: 10px 11px 12px;
+    border-top: 1.5px solid var(--line);
+    background: var(--surface-soft-gradient);
+  }
+  .graph-completion-footer button {
+    min-height: 36px;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .graph-completion-secondary {
+    border: 1px solid var(--line);
+    color: var(--text);
+    background: var(--surface-soft-gradient);
+  }
+  .graph-completion-main {
+    border: 1px solid var(--accent);
+    color: var(--page);
+    background: var(--accent);
+  }
+  .graph-completion-session-row {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    background: var(--card-gradient);
+    color: var(--text);
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.45;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .graph-completion-session-row input {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    accent-color: var(--accent);
+  }
+  .graph-completion-session-text {
+    min-width: 0;
+    flex: 1;
+  }
+  .graph-completion-session-title {
+    display: block;
+    font-weight: 700;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .graph-completion-session-time {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .graph-completion-preview-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .graph-completion-preview-empty {
+    padding: 28px 8px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+  .graph-completion-preview-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .graph-completion-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .graph-completion-preview-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 750;
+  }
+  .graph-completion-preview-count {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .graph-completion-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .graph-completion-preview-card {
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    background: var(--card-gradient);
+    color: var(--text);
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.55;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .graph-completion-preview-title {
+    color: var(--text);
+    font-weight: 750;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .graph-completion-preview-meta {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+  .graph-completion-preview-body {
+    margin-top: 6px;
+    color: var(--text-soft);
+    word-break: break-word;
+  }
+  .graph-completion-preview-body p {
+    margin: 0;
+  }
+  .graph-completion-skipped {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .graph-completion-skipped-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
   .insight-kb-strip {
     display: grid;
@@ -2852,25 +3064,25 @@
   </div>
 </div>
 
-<div id="graph-completion-modal" class="fixed inset-0 z-50 hidden graph-completion-modal">
-  <div class="absolute inset-0 bg-black/70" data-graph-completion-close></div>
-  <section class="absolute left-3 right-3 bottom-3 max-h-[82vh] overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 shadow-2xl flex flex-col">
-    <header class="flex items-start justify-between gap-3 p-3 border-b border-neutral-800">
+<div id="graph-completion-modal" class="graph-completion-modal hidden" role="dialog" aria-modal="true">
+  <div class="graph-completion-scrim" data-graph-completion-close></div>
+  <section class="graph-completion-panel">
+    <header class="graph-completion-header">
       <div>
-        <div class="text-sm font-semibold">整理会话线索</div>
-        <div class="text-[11px] text-neutral-500">只扫描你勾选的历史会话，先预览，确认后再写入图谱。</div>
+        <div class="graph-completion-title">整理会话线索</div>
+        <div class="graph-completion-subtitle">只扫描你勾选的历史会话，先预览，确认后再写入图谱。</div>
       </div>
-      <button type="button" class="icon-only text-neutral-400" data-graph-completion-close aria-label="关闭"><i data-lucide="x"></i></button>
+      <button type="button" class="graph-completion-icon-button" data-graph-completion-close aria-label="关闭"><i data-lucide="x"></i></button>
     </header>
-    <div class="graph-completion-body flex-1 overflow-y-auto p-3">
+    <div class="graph-completion-body">
       <div data-graph-completion-step="sessions"></div>
       <div data-graph-completion-step="preview" class="hidden"></div>
     </div>
-    <footer class="p-3 border-t border-neutral-800 flex gap-2 justify-end">
-      <button type="button" class="px-3 py-2 rounded border border-neutral-700 text-xs" data-graph-completion-close>取消</button>
-      <button type="button" class="px-3 py-2 rounded border border-neutral-700 text-xs hidden" data-graph-completion-back>返回选择</button>
-      <button type="button" class="px-3 py-2 rounded bg-neutral-100 text-neutral-950 text-xs font-semibold" data-graph-completion-preview>预览线索</button>
-      <button type="button" class="px-3 py-2 rounded bg-emerald-400 text-neutral-950 text-xs font-semibold hidden" data-graph-completion-save>保存到图谱</button>
+    <footer class="graph-completion-footer">
+      <button type="button" class="graph-completion-secondary" data-graph-completion-close>取消</button>
+      <button type="button" class="graph-completion-secondary hidden" data-graph-completion-back>返回选择</button>
+      <button type="button" class="graph-completion-main" data-graph-completion-preview>预览线索</button>
+      <button type="button" class="graph-completion-main hidden" data-graph-completion-save>保存到图谱</button>
     </footer>
   </section>
 </div>
@@ -7438,34 +7650,35 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
   }
 
 function graphCompletionPreviewCardHtml(item) {
-  const title = item.title || item.sourceTitle || '未命名线索';
+  const relationTitle = item.sourceTitle && item.targetTitle ? `${item.sourceTitle} → ${item.targetTitle}` : '';
+  const title = relationTitle || item.title || item.sourceTitle || '未命名线索';
   const meta = graphUniqueClean([
     item.sessionTitle,
     item.outline,
     item.mergeTarget ? `合并到：${item.mergeTarget}` : '',
     item.relation ? `关系：${graphLinkKindLabel(item.relation)}` : '',
   ], 4).join(' · ');
-  const body = item.summary || item.body || item.quote || item.evidenceText || item.targetTitle || '';
-  return `<article class="rounded border border-neutral-800 bg-neutral-900 p-2 text-xs">
-    <div class="font-semibold text-neutral-100">${esc(title)}</div>
-    ${meta ? `<div class="mt-0.5 text-[11px] text-neutral-500">${esc(meta)}</div>` : ''}
-    ${body ? `<div class="mt-1 leading-relaxed text-neutral-300">${renderRichText(graphPanelPreviewText(body, ''))}</div>` : ''}
+  const body = item.summary || item.body || item.quote || item.evidenceText || (!relationTitle ? item.targetTitle : '') || '';
+  return `<article class="graph-completion-preview-card">
+    <div class="graph-completion-preview-title">${esc(title)}</div>
+    ${meta ? `<div class="graph-completion-preview-meta">${esc(meta)}</div>` : ''}
+    ${body ? `<div class="graph-completion-preview-body">${renderRichText(graphPanelPreviewText(body, ''))}</div>` : ''}
   </article>`;
 }
 
 function graphCompletionPreviewGroupHtml(title, items=[]) {
   if (!items.length) return '';
-  return `<section class="space-y-2">
-    <div class="flex items-center justify-between">
-      <h3 class="text-xs font-semibold text-neutral-300">${esc(title)}</h3>
-      <span class="text-[11px] text-neutral-500">${items.length} 条</span>
+  return `<section class="graph-completion-preview-group">
+    <div class="graph-completion-preview-heading">
+      <h3>${esc(title)}</h3>
+      <span class="graph-completion-preview-count">${items.length} 条</span>
     </div>
-    <div class="space-y-2">${items.map(graphCompletionPreviewCardHtml).join('')}</div>
+    <div class="graph-completion-preview-list">${items.map(graphCompletionPreviewCardHtml).join('')}</div>
   </section>`;
 }
 
 function renderGraphCompletionPreview(preview) {
-  if (!preview) return '<div class="text-xs text-neutral-500 text-center py-8">选择会话后先预览线索。</div>';
+  if (!preview) return '<div class="graph-completion-preview-empty">选择会话后先预览线索。</div>';
   const groups = [
     graphCompletionPreviewGroupHtml('将新增的学习节点', preview.learningNodes || []),
     graphCompletionPreviewGroupHtml('将更新的已有学习节点', preview.updatedLearningNodes || []),
@@ -7474,10 +7687,10 @@ function renderGraphCompletionPreview(preview) {
     graphCompletionPreviewGroupHtml('疑似重复，准备合并', preview.duplicateMerges || []),
   ].filter(Boolean).join('');
   const skipped = preview.skipped?.length
-    ? `<details class="text-xs text-neutral-500"><summary>已跳过 ${preview.skipped.length} 条无学习含义片段</summary><div class="mt-2 space-y-1">${preview.skipped.slice(0, 8).map(x => `<div>${esc(x.text || x.reason || '')}</div>`).join('')}</div></details>`
+    ? `<details class="graph-completion-skipped"><summary>已跳过 ${preview.skipped.length} 条无学习含义片段</summary><div class="graph-completion-skipped-list">${preview.skipped.slice(0, 8).map(x => `<div>${esc(x.text || x.reason || '')}</div>`).join('')}</div></details>`
     : '';
-  return `<div class="space-y-4">
-    ${groups || '<div class="text-xs text-neutral-500 text-center py-8">没有发现可写入的学习线索。</div>'}
+  return `<div class="graph-completion-preview-stack">
+    ${groups || '<div class="graph-completion-preview-empty">没有发现可写入的学习线索。</div>'}
     ${skipped}
   </div>`;
 }
@@ -11890,14 +12103,16 @@ async function renderLearningContext() {
 async function renderContextGraph(renderId=state.contextRenderSeq) {
   const body = $('#learning-context-body');
   if (!state.sid) { setActiveGraphDataset([], []); body.innerHTML = '<div class="text-xs text-neutral-500 text-center py-10">先打开一个聊天窗口</div>'; return; }
-  const [msgs, masteries, anchors] = await Promise.all([
+  const [msgs, masteries, anchors, kgNodes, kgEdges] = await Promise.all([
     DB.bySid('messages', state.sid),
     DB.bySid('mastery', state.sid),
     DB.bySid('anchors', state.sid),
+    DB.bySid('kg_nodes', state.sid),
+    DB.bySid('kg_edges', state.sid),
   ]);
   if (!isActiveContextRender(renderId, 'graph')) return;
   const ai = msgs.filter(m => m.role === 'assistant');
-  if (!masteries.length && !anchors.length) {
+  if (!masteries.length && !anchors.length && !kgNodes.length) {
     setActiveGraphDataset([], []);
     ForceGraph.destroy();
     body.innerHTML = '<div id="context-knowledge-graph" class="knowledge-graph knowledge-graph-fullscreen">' + graphFormationStateHtml([], [], { context: 'session' }) + '</div>';
@@ -11905,7 +12120,7 @@ async function renderContextGraph(renderId=state.contextRenderSeq) {
   }
   body.innerHTML = `
     <div id="context-knowledge-graph" class="knowledge-graph knowledge-graph-fullscreen"><div class="graph-hint">拖拽平移 · 双指缩放 · 点击节点回顾来源</div></div>`;
-  const { nodes, links } = buildGraphData(masteries, ai, anchors);
+  const { nodes, links } = buildGraphData(masteries, ai, anchors, kgNodes, kgEdges);
   nodes.forEach(n => { n.sid = state.sid; });
   setActiveGraphDataset(nodes, links);
   const focused = buildFocusedGraphData(nodes, links, { centerKey: state.graphSelected });
@@ -12853,6 +13068,7 @@ const ForceGraph = (() => {
         : n.nodeType==='section' ? 12
         : n.nodeType==='diagnostic' ? 11
         : n.nodeType==='latent' ? 10
+        : n.nodeType==='chat_note' ? 8
         : n.nodeType==='insight' ? 9
         : (n.nodeType==='support'?7:5);
       return { ...n, x: cx+Math.cos(a)*r+(Math.random()-.5)*30,
@@ -12969,13 +13185,18 @@ const ForceGraph = (() => {
         ctx.strokeStyle='rgba(235,230,220,.24)'; ctx.lineWidth=.8; ctx.stroke();
       }
       // label
-      if ((n.nodeType==='kp' || n.nodeType==='source' || n.nodeType==='section' || n.nodeType==='diagnostic' || n.nodeType==='latent' || n.nodeType==='note' || n.nodeType==='insight') && !dim) {
+      if ((n.nodeType==='kp' || n.nodeType==='source' || n.nodeType==='section' || n.nodeType==='diagnostic' || n.nodeType==='latent' || n.nodeType==='chat_note' || n.nodeType==='note' || n.nodeType==='insight') && !dim) {
         const fs=Math.max(9,n.radius*.6);
         ctx.font=`${isSel?'bold ':''}${fs}px -apple-system,sans-serif`;
-        ctx.fillStyle=n.nodeType==='latent'?'rgba(235,230,220,.48)':(n.nodeType==='diagnostic'?'rgba(244,181,174,.86)':'rgba(235,230,220,.88)');
         ctx.textAlign='center'; ctx.textBaseline='middle';
         const raw = n.label || n.kp || '';
-        const lb = compactGraphNodeLabel(raw, n.nodeType === 'source' ? 10 : 8);
+        const lb = compactGraphNodeLabel(raw, n.nodeType === 'source' ? 10 : (n.nodeType === 'chat_note' ? 9 : 8));
+        const labelY = n.y+n.radius+11;
+        const labelW = Math.min(Math.max(ctx.measureText(lb).width + 10, 26), 118);
+        const labelH = fs + 6;
+        ctx.fillStyle=graphCanvasLabelBg(n.nodeType);
+        fillGraphRoundRect(n.x - labelW/2, labelY - labelH/2, labelW, labelH, 5);
+        ctx.fillStyle=graphCanvasTextColor(n.nodeType);
         ctx.fillText(lb,n.x,n.y+n.radius+11);
       }
     }
@@ -13006,18 +13227,113 @@ const ForceGraph = (() => {
 
   function destroy() { stopAnim(); if(cvs){cvs.remove();cvs=null;} nodes=[];links=[];particles=[];sel=null;box=null; }
 
+  function graphCanvasColorParts(value) {
+    const text = String(value || '').trim();
+    const hex = text.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (hex) {
+      const raw = hex[1].length === 3 ? hex[1].split('').map(c => c + c).join('') : hex[1];
+      return [parseInt(raw.slice(0,2), 16), parseInt(raw.slice(2,4), 16), parseInt(raw.slice(4,6), 16)];
+    }
+    const rgb = text.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : [32, 34, 32];
+  }
+
+  function graphCanvasIsLightTheme() {
+    const [r,g,b] = graphCanvasColorParts(_thm.page || _thm.panel || '');
+    return ((r * 0.299) + (g * 0.587) + (b * 0.114)) > 150;
+  }
+
+  function graphCanvasTextColor(type='kp') {
+    const light = graphCanvasIsLightTheme();
+    if (type === 'diagnostic') return light ? 'rgba(128,58,52,.92)' : 'rgba(244,181,174,.88)';
+    if (type === 'latent') return light ? 'rgba(74,68,60,.76)' : 'rgba(235,230,220,.58)';
+    return light ? 'rgba(40,36,31,.92)' : 'rgba(235,230,220,.9)';
+  }
+
+  function graphCanvasLabelBg(type='kp') {
+    const light = graphCanvasIsLightTheme();
+    if (type === 'latent') return light ? 'rgba(241,235,226,.72)' : 'rgba(10,12,10,.32)';
+    return light ? 'rgba(248,244,237,.78)' : 'rgba(10,12,10,.42)';
+  }
+
+  function fillGraphRoundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(x, y, w, h, r);
+    } else {
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+    }
+    ctx.fill();
+  }
+
   return { init, setData, destroy, resize, readTheme };
 })();
 
-function buildGraphData(masteries, ai, anchors=[]) {
+function graphKgProperties(row) {
+  try {
+    return JSON.parse(row?.properties_json || '{}') || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function graphEdgeKind(relation='') {
+  const rel = String(relation || '').trim();
+  if (/前置|prereq|foundation|支撑|来源/.test(rel)) return 'foundation';
+  if (/顺序|sequence|下一步|学习顺序/.test(rel)) return 'sequence';
+  if (/错|误解|混淆|易混|diagnostic/.test(rel)) return 'diagnostic';
+  if (/随笔|便签|note/.test(rel)) return 'chat_note';
+  return 'related';
+}
+
+function buildGraphData(masteries, ai, anchors=[], kgNodes=[], kgEdges=[]) {
   const kpRows = masteries.filter(m => isLogicalGraphKp(m.kp || m.knowledge_point)).slice(0,18);
-  const nodes = [], byKp = new Map(), byNorm = new Map();
+  const nodes = [], byKp = new Map(), byNorm = new Map(), kgEdgeNodeById = new Map();
   kpRows.forEach((m,i,arr) => {
     const kp = m.kp || m.knowledge_point;
     nodes.push({ ...m, kp, key:`kp-${i}`, nodeType:'kp' });
     byKp.set(kp, nodes[nodes.length-1]);
     byNorm.set(normalizeGraphTopic(kp), nodes[nodes.length-1]);
   });
+  function ensureKgConceptGraphNode(row, i=0) {
+    const name = String(row?.name || '').trim();
+    if (!row || row.kind !== 'concept' || row.status !== 'active' || !isLogicalGraphKp(name)) return null;
+    const norm = normalizeGraphTopic(name);
+    const existing = byNorm.get(norm);
+    if (existing) {
+      if (row.id != null) kgEdgeNodeById.set(Number(row.id), existing);
+      existing.kgNodeId = existing.kgNodeId || row.id || null;
+      existing.kgProperties = { ...(existing.kgProperties || {}), ...graphKgProperties(row) };
+      return existing;
+    }
+    const props = graphKgProperties(row);
+    const node = {
+      ...row,
+      key: `kg-${row.id || norm || i}`,
+      nodeType: 'kp',
+      kp: name,
+      label: name,
+      level: Number(props.mastery_level || props.level || 0) || 0,
+      kgNodeId: row.id || null,
+      kgProperties: props,
+      sourceName: props.outline || '',
+    };
+    nodes.push(node);
+    byKp.set(name, node);
+    byNorm.set(norm, node);
+    if (row.id != null) kgEdgeNodeById.set(Number(row.id), node);
+    return node;
+  }
+  const kgConcepts = (kgNodes || []).filter(n => n?.kind === 'concept' && n?.status === 'active' && isLogicalGraphKp(n?.name)).slice(0, 48);
+  kgConcepts.forEach(ensureKgConceptGraphNode);
   const links = [];
   const sources = anchors.filter(a => a.kind === 'source');
   sources.slice(0,8).forEach((a,i) => {
@@ -13119,6 +13435,7 @@ function buildGraphData(masteries, ai, anchors=[]) {
     if (source) links.push({ a:source, b:noteNode, weight:1.2, kind:'note' });
   });
   const chatNotes = anchors.filter(a => a.kind === 'chat_note');
+  const chatNoteNodesByOutline = new Map();
   chatNotes.slice(-32).forEach((note, i) => {
     const chatNoteNode = {
       key:`chat-note-${note.id || i}`,
@@ -13142,6 +13459,14 @@ function buildGraphData(masteries, ai, anchors=[]) {
     ], 8).map(normalizeGraphTopic);
     const target = candidates.map(key => byNorm.get(key)).find(Boolean);
     if (target) links.push({ a:target, b:chatNoteNode, weight:1.1, kind:'chat_note' });
+    const outlineKey = normalizeGraphTopic(note.chat_note_outline || '');
+    if (outlineKey) {
+      const outlineNodes = chatNoteNodesByOutline.get(outlineKey) || [];
+      const previous = outlineNodes[outlineNodes.length - 1];
+      if (previous && previous !== chatNoteNode) links.push({ a:previous, b:chatNoteNode, weight:.9, kind:'chat_note' });
+      outlineNodes.push(chatNoteNode);
+      chatNoteNodesByOutline.set(outlineKey, outlineNodes);
+    }
   });
   let prev=null;
   for (const msg of ai) {
@@ -13164,6 +13489,17 @@ function buildGraphData(masteries, ai, anchors=[]) {
       relSet.add(pair);
       links.push({a:src, b:tgt, weight:1.5, kind:'related'});
     }
+  }
+  for (const edge of (kgEdges || []).filter(edge => !edge.status || edge.status === 'active')) {
+    if (edge.status !== 'active' && edge.status) continue;
+    const srcNode = kgEdgeNodeById.get(Number(edge.source_id));
+    const tgtNode = kgEdgeNodeById.get(Number(edge.target_id));
+    if (!srcNode || !tgtNode || srcNode === tgtNode) continue;
+    const kind = graphEdgeKind(edge.relation);
+    const pair = [srcNode.key, tgtNode.key, kind].sort().join(':');
+    if (relSet.has(pair)) continue;
+    relSet.add(pair);
+    links.push({a:srcNode, b:tgtNode, weight:Number(edge.weight || 1.2) || 1.2, kind: graphEdgeKind(edge.relation)});
   }
   return {nodes,links};
 }
@@ -14573,14 +14909,14 @@ function renderGraphCompletionModal() {
 }
 
 function renderGraphCompletionSessionPicker(sessions=[]) {
-  if (!sessions.length) return '<div class="text-xs text-neutral-500 text-center py-8">暂无历史会话。</div>';
+  if (!sessions.length) return '<div class="graph-completion-preview-empty">暂无历史会话。</div>';
   const selected = state.graphCompletionSelectedSids instanceof Set ? state.graphCompletionSelectedSids : new Set();
-  return `<div class="space-y-2">${sessions.map(session => `
-    <label class="graph-completion-session-row flex gap-2 items-start rounded border border-neutral-800 bg-neutral-900 p-2 text-xs">
-      <input type="checkbox" class="mt-0.5" data-graph-completion-session="${esc(String(session.id))}" ${selected.has(String(session.id)) ? 'checked' : ''}>
-      <span class="min-w-0 flex-1">
-        <span class="block font-semibold truncate">${esc(session.title || '未命名会话')}</span>
-        <span class="block text-[11px] text-neutral-500">${esc(graphCompletionSessionTimeLabel(session.updated_at || session.created_at || Date.now()))}</span>
+  return `<div class="graph-completion-preview-list">${sessions.map(session => `
+    <label class="graph-completion-session-row">
+      <input type="checkbox" data-graph-completion-session="${esc(String(session.id))}" ${selected.has(String(session.id)) ? 'checked' : ''}>
+      <span class="graph-completion-session-text">
+        <span class="graph-completion-session-title">${esc(session.title || '未命名会话')}</span>
+        <span class="graph-completion-session-time">${esc(graphCompletionSessionTimeLabel(session.updated_at || session.created_at || Date.now()))}</span>
       </span>
     </label>
   `).join('')}</div>`;
@@ -14606,12 +14942,14 @@ async function renderInsights() {
     const msgs = (await DB.bySid('messages', sid)).sort((a,b)=>a.id-b.id);
     const masteries = (await DB.bySid('mastery', sid)).sort((a,b)=>b.level-a.level);
     const anchors = await DB.bySid('anchors', sid);
+    const kgNodes = await DB.bySid('kg_nodes', sid);
+    const kgEdges = await DB.bySid('kg_edges', sid);
     const ai = msgs.filter(m => m.role === 'assistant');
     allAi.push(...ai.map(m => ({ ...m, sid, sessionTitle: session.title })));
     allMasteries.push(...masteries.map(m => ({ ...m, sid, sessionTitle: session.title })));
     allAnchors.push(...anchors.map(a => ({ ...a, sid, sessionTitle: session.title })));
-    if (!masteries.length && !anchors.length) continue;
-    const { nodes, links } = buildGraphData(masteries, ai, anchors);
+    if (!masteries.length && !anchors.length && !kgNodes.length) continue;
+    const { nodes, links } = buildGraphData(masteries, ai, anchors, kgNodes, kgEdges);
     nodes.forEach(n => {
       n.sid = sid;
       n.sessionTitle = session.title;

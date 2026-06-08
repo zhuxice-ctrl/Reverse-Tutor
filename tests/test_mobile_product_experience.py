@@ -812,6 +812,7 @@ def test_mobile_graph_canvas_uses_focus_subset_but_detail_keeps_full_dataset():
 def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     html = mobile_html()
     build_graph_fn = html.split("function buildGraphData", 1)[1].split("function graphLinkEndpointKey", 1)[0]
+    force_graph_fn = html.split("const ForceGraph = (() => {", 1)[1].split("function buildGraphData", 1)[0]
     sheet_template_fn = html.split("function graphNodeSheetTemplate", 1)[1].split("function graphNodeLightPath", 1)[0]
     compact_region = html.split("function graphChatNoteCompactHtml", 1)[1].split("function graphKnowledgeCompactHtml", 1)[0]
     report_region = html.split("function graphChatNoteReportHtml", 1)[1].split("function graphKnowledgeReportHtml", 1)[0]
@@ -819,6 +820,8 @@ def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     assert "anchors.filter(a => a.kind === 'chat_note')" in build_graph_fn
     assert "nodeType:'chat_note'" in build_graph_fn
     assert "kind:'chat_note'" in build_graph_fn
+    assert "n.nodeType==='chat_note' ? 8" in force_graph_fn
+    assert "n.nodeType==='chat_note'" in force_graph_fn
     assert "type === 'chat_note'" in sheet_template_fn
     assert "return 'chat-note'" in sheet_template_fn
     assert "闲聊便签" in compact_region
@@ -840,6 +843,7 @@ def test_mobile_global_graph_has_selected_session_completion_modal_shell():
     populated_actions_region = insights_fn.split("const focused = graphFullDataset(allNodes, allLinks);", 1)[1]
     modal_region = html.split('id="graph-completion-modal"', 1)[1].split("<!--", 1)[0]
     actions_css = html.split("#insights-actions", 1)[1].split("}", 1)[0]
+    modal_css = html.split(".graph-completion-modal.hidden", 1)[1].split(".graph-completion-session-row input", 1)[0]
 
     assert 'data-graph-completion-open' in insights_fn
     assert "整理会话线索" in insights_fn
@@ -858,14 +862,30 @@ def test_mobile_global_graph_has_selected_session_completion_modal_shell():
     assert "预览线索" in modal_region
     assert "保存到图谱" in modal_region
     assert "取消" in modal_region
+    assert 'class="graph-completion-panel"' in modal_region
+    assert "graph-completion-title" in modal_region
+    assert "graph-completion-subtitle" in modal_region
+    assert "graph-completion-secondary" in modal_region
+    assert "graph-completion-main" in modal_region
+    assert "display: none !important" in modal_css
+    assert "background: var(--surface-gradient)" in modal_css
+    assert "border: 1.5px solid" in modal_css
+    assert "color: var(--text)" in modal_css
+    assert "max-height: min(86vh, 760px)" in modal_css
 
 
 def test_mobile_graph_completion_preview_groups_and_confirm_flow_are_wired():
     html = mobile_html()
-    preview_fn = html.split("function renderGraphCompletionPreview", 1)[1].split("async function renderInsights", 1)[0]
+    preview_fn = html.split("function graphCompletionPreviewCardHtml", 1)[1].split("async function renderInsights", 1)[0]
     controls_fn = html.split("function bindGraphCompletionModalControls", 1)[1].split("async function openGraphCompletionModal", 1)[0]
 
     assert "function graphCompletionPreviewGroupHtml" in html
+    assert "graph-completion-preview-card" in preview_fn
+    assert "graph-completion-preview-title" in preview_fn
+    assert "graph-completion-preview-meta" in preview_fn
+    assert "graph-completion-preview-body" in preview_fn
+    assert "border-neutral-800 bg-neutral-900" not in preview_fn
+    assert "text-neutral-100" not in preview_fn
     assert "将新增的学习节点" in preview_fn
     assert "将更新的已有学习节点" in preview_fn
     assert "将补充的子节点 / 关系" in preview_fn

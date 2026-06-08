@@ -61,6 +61,7 @@ def test_android_manifest_requests_notification_permission_only_for_background_l
 
 def test_mobile_insights_graph_keeps_minimum_canvas_and_slower_gestures():
     html = (ROOT / "static" / "app" / "index.html").read_text(encoding="utf-8")
+    force_graph_fn = html.split("const ForceGraph = (() => {", 1)[1].split("function buildGraphData", 1)[0]
 
     assert "GRAPH_MIN_W" in html
     assert "GRAPH_MIN_H" in html
@@ -69,6 +70,10 @@ def test_mobile_insights_graph_keeps_minimum_canvas_and_slower_gestures():
     assert "Math.max(GRAPH_MIN_W" in html
     assert "dx > 110" in html
     assert "swipeStart.x < 18" in html
+    assert "function graphCanvasTextColor" in force_graph_fn
+    assert "function graphCanvasLabelBg" in force_graph_fn
+    assert "ctx.fillStyle=graphCanvasTextColor" in force_graph_fn
+    assert "ctx.fillStyle=graphCanvasLabelBg" in force_graph_fn
 
 
 def test_mobile_insights_graph_includes_source_grounded_locked_nodes():
@@ -79,7 +84,28 @@ def test_mobile_insights_graph_includes_source_grounded_locked_nodes():
     assert "nodeType:'latent'" in html
     assert "unlockedFromSource" in html
     assert "Glow is reserved for learned nodes" in html
-    assert "buildGraphData(masteries, ai, anchors)" in html
+    assert "buildGraphData(masteries, ai, anchors" in html
+
+
+def test_mobile_graph_completion_saved_kg_edges_are_rendered_as_graph_links():
+    html = mobile_html()
+    build_graph_fn = html.split("function buildGraphData", 1)[1].split("function graphLinkEndpointKey", 1)[0]
+    context_graph_fn = html.split("async function renderContextGraph", 1)[1].split("async function renderContextAnchors", 1)[0]
+    insights_fn = html.split("async function renderInsights", 1)[1].split("// --- Settings ---", 1)[0]
+
+    assert "kgNodes=[]" in build_graph_fn
+    assert "kgEdges=[]" in build_graph_fn
+    assert "kgConcepts" in build_graph_fn
+    assert "kgEdgeNodeById" in build_graph_fn
+    assert "kgEdges || []" in build_graph_fn
+    assert "edge.status !== 'active'" in build_graph_fn
+    assert "links.push({a:srcNode, b:tgtNode" in build_graph_fn
+    assert "kind: graphEdgeKind(edge.relation)" in build_graph_fn
+    assert "DB.bySid('kg_nodes', state.sid)" in context_graph_fn
+    assert "DB.bySid('kg_edges', state.sid)" in context_graph_fn
+    assert "const kgNodes = await DB.bySid('kg_nodes', sid);" in insights_fn
+    assert "const kgEdges = await DB.bySid('kg_edges', sid);" in insights_fn
+    assert "buildGraphData(masteries, ai, anchors, kgNodes, kgEdges)" in html
 
 
 def test_mobile_pdf_sources_are_retrieved_for_each_llm_turn():
