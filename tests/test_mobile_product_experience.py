@@ -838,6 +838,8 @@ def test_mobile_graph_actions_open_hidden_node_threads():
     html = mobile_html()
     create_fn = html.split("async function createOrOpenGraphNodeThread", 1)[1].split("function graphNodeThreadSeedPrompt", 1)[0]
     action_fn = html.split("async function startGraphNodeThreadAction", 1)[1].split("async function jumpToGraphSheetNode", 1)[0]
+    return_fn = html.split("async function returnToNodeThreadSourceContext", 1)[1].split("async function jumpToGraphSheetNode", 1)[0]
+    back_fn = html.split("function navigateBackInApp", 1)[1].split("window.__rtHandleNativeBack", 1)[0]
     home_fn = html.split("async function renderSessionHome", 1)[1].split("async function handleSessionSwipeAction", 1)[0]
     settings_fn = html.split("async function renderSettings", 1)[1].split("// --- PWA", 1)[0]
     sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
@@ -851,8 +853,13 @@ def test_mobile_graph_actions_open_hidden_node_threads():
     assert "graph_node_title: title" in create_fn
     assert "node_thread_key" in create_fn
     assert "await ENGINE.create_session" in create_fn
+    assert "created && prompt" in action_fn
+    assert "state.nodeThreadReturn" in action_fn
     assert "await openSessionWindow(thread.id)" in action_fn
     assert "await submitChatText(prompt" in action_fn
+    assert "returnToNodeThreadSourceContext()" in back_fn
+    assert "showGraphSheet(target)" in return_fn
+    assert "state.graphSelected = localKey;" in return_fn
     assert "body.querySelectorAll('[data-graph-action]')" in sheet_fn
     assert "startGraphNodeThreadAction(btn.dataset.graphAction, node)" in sheet_fn
     assert "visibleRootSessions(await DB.all('sessions'))" in home_fn
@@ -878,6 +885,17 @@ def test_mobile_at_mentions_can_attach_node_thread_memory_context():
     assert "node_thread_memory: true" in run_turn_region
 
 
+def test_mobile_native_background_pending_turn_renders_generation_bubble():
+    html = mobile_html()
+    render_chat_fn = html.split("async function renderChat", 1)[1].split("async function deleteAllSummaries", 1)[0]
+
+    assert "function isNativeBackgroundPendingMessage" in html
+    assert "function nativeBackgroundPendingBubbleHtml" in html
+    assert "isNativeBackgroundPendingMessage(m)" in render_chat_fn
+    assert "学生 AI 正在生成" in html
+    assert "thinking-dots" in html
+
+
 def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     html = mobile_html()
     build_graph_fn = html.split("function buildGraphData", 1)[1].split("function graphLinkEndpointKey", 1)[0]
@@ -896,7 +914,9 @@ def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     assert "闲聊便签" in compact_region
     assert "归入大纲" in compact_region
     assert "围绕它聊" in compact_region
-    assert "查看原话" in compact_region
+    assert "进入子会话窗" in compact_region
+    assert 'data-graph-action="open-thread"' in compact_region
+    assert "查看原话" not in compact_region
     assert "为什么记下它" in report_region
     assert "可能放到哪里" in report_region
     assert "原话" in report_region

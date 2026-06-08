@@ -3141,6 +3141,7 @@ const state = {
   graphCompletionOperationId: 0,
   graphCompletionActiveOperationId: 0,
   nodeThreadMentionContexts: [],
+  nodeThreadReturn: null,
   essaySourceMessage: null,
   selectedActionMessage: null,
   quotedMessage: null,
@@ -10107,9 +10108,10 @@ async function renderChat() {
   }
 
   const html = msgs
-    .filter(m => m.role !== 'system')
+    .filter(m => m.role !== 'system' || isNativeBackgroundPendingMessage(m))
     .filter(m => m.id > cutoff)
     .map(m => {
+      if (isNativeBackgroundPendingMessage(m)) return nativeBackgroundPendingBubbleHtml(m);
       const isUser = m.role === 'user';
       const msgMeta = m.meta || {};
       const hasActionMeta = !!msgMeta.action || msgMeta.native_background || m.source === 'foreground_llm' || m.source === 'native_background';
@@ -10993,6 +10995,26 @@ async function renderPendingQueueMessages() {
   // The queue indicator is already handled by renderQueueIndicator
   if (state.isGenerating) return;
   await renderChat();
+}
+
+function isNativeBackgroundPendingMessage(message) {
+  const meta = message?.meta || {};
+  const status = message?.status || meta.status || '';
+  return message?.role === 'system'
+    && meta.kind === 'native_background_pending'
+    && status === 'pending';
+}
+
+function nativeBackgroundPendingBubbleHtml(message) {
+  const meta = message?.meta || {};
+  const source = meta.reply_to_message_id ? '节点窗口' : '后台回复';
+  return `
+    <div class="flex justify-start" data-native-background-pending="${esc(meta.native_background_job_id || '')}">
+      <div class="max-w-[85%] bg-neutral-900 border border-emerald-800 rounded-2xl px-3 py-2">
+        <div class="text-[10px] text-neutral-500 mb-1">🎓 学生 AI <span class="text-emerald-400">正在生成<span class="thinking-dots"></span></span></div>
+        <div class="text-sm text-neutral-300 leading-relaxed">学生 AI 正在生成回复，完成后会自动显示。${esc(source)}</div>
+      </div>
+    </div>`;
 }
 
 async function retryFailedMessage(id) {
@@ -14087,7 +14109,7 @@ function graphChatNoteCompactHtml(node, digest, pairs) {
       ${subsetAction}
       <button type="button" data-graph-action="outline-chat-note" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">归入大纲</button>
       <button type="button" data-graph-action="chat-note-talk" class="graph-diagnosis-action">围绕它聊</button>
-      <button type="button" data-graph-jump-chat class="graph-diagnosis-action">查看原话</button>
+      <button type="button" data-graph-action="open-thread" class="graph-diagnosis-action">进入子会话窗</button>
     </div>
   </section>`;
 }
@@ -14823,7 +14845,7 @@ function bindGraphSheetDragHandle(sheet) {
 }
 
 function graphNodeThreadActionSupported(action='') {
-  return ['practice', 'ask-why', 'chat-note-talk'].includes(String(action || ''));
+  return ['practice', 'ask-why', 'chat-note-talk', 'open-thread'].includes(String(action || ''));
 }
 
 function graphNodeThreadTitle(node) {
@@ -14909,19 +14931,67 @@ function graphNodeThreadSeedPrompt(action, node=state.graphEditingNode, opts={})
       '先帮我把它说清楚，再判断它是否值得进入学习大纲。',
     ].filter(Boolean).join('\n');
   }
+  if (action === 'open-thread') return '';
   return `围绕节点「${title}」继续。`;
 }
 
 async function startGraphNodeThreadAction(action, node=state.graphEditingNode) {
   if (!graphNodeThreadActionSupported(action)) return;
   try {
-    const { thread } = await createOrOpenGraphNodeThread(node);
+    state.nodeThreadReturn = {
+      tab: state.currentTab,
+      chatScreen: state.chatScreen,
+      contextTab: state.contextTab,
+      sid: state.sid,
+      nodeKey: String(node?.key || ''),
+      localKey: graphNodeLocalKey(node),
+      expanded: state.graphSheetExpanded,
+    };
+    const { thread, created } = await createOrOpenGraphNodeThread(node);
     const prompt = graphNodeThreadSeedPrompt(action, node);
     hideGraphSheet();
     await openSessionWindow(thread.id);
-    if (prompt) await submitChatText(prompt, { clearInput: true, quotedMessage: null });
+    if (created && prompt) await submitChatText(prompt, { clearInput: true, quotedMessage: null });
   } catch (err) {
     toast(err?.message || '节点子窗口打开失败');
+  }
+}
+
+async function returnToNodeThreadSourceContext() {
+  const returnCtx = state.nodeThreadReturn || {};
+  const thread = state.sid ? await DB.get('sessions', state.sid) : null;
+  const sourceSid = returnCtx.sid || thread?.parent_sid || '';
+  const localKey = returnCtx.localKey || thread?.graph_node_local_key || '';
+  const nodeKey = returnCtx.nodeKey || localKey;
+  const expanded = !!returnCtx.expanded;
+  state.nodeThreadReturn = null;
+  hideGraphSheet();
+  if (returnCtx.tab === 'insights') {
+    switchTab('insights');
+    await renderInsights();
+    const target = (state.graphDetailNodes || []).find(n => String(n.key) === String(nodeKey))
+      || (state.graphDetailNodes || []).find(n => graphNodeLocalKey(n) === localKey);
+    if (target) {
+      await showGraphSheet(target);
+      if (expanded) expandGraphSheet();
+    }
+    return;
+  }
+  if (sourceSid) {
+    state.sid = sourceSid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  state.contextTab = 'graph';
+  state.chatScreen = 'context';
+  state.graphSelected = localKey;
+  switchTab('chat');
+  await renderChat();
+  const target = (state.graphDetailNodes || []).find(n => String(n.key) === String(localKey))
+    || (state.graphDetailNodes || []).find(n => String(n.key) === String(nodeKey))
+    || (state.graphDetailNodes || []).find(n => graphNodeLocalKey(n) === localKey);
+  if (target) {
+    await showGraphSheet(target);
+    if (expanded) expandGraphSheet();
   }
 }
 
@@ -16486,6 +16556,10 @@ function navigateBackInApp(opts={}) {
   }
   if (state.chatReadOnlyBrowse && state.currentTab === 'chat' && state.chatScreen === 'thread') {
     returnToGraphBrowseContext();
+    return true;
+  }
+  if (state.nodeThreadReturn && state.currentTab === 'chat' && state.chatScreen === 'thread') {
+    returnToNodeThreadSourceContext();
     return true;
   }
   if (state.currentTab === 'chat' && state.chatScreen === 'context') {
