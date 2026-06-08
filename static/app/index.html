@@ -7271,6 +7271,14 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
     return preview;
   }
 
+  function graphCompletionMergeIds(existing=[], incoming=[]) {
+    return Array.from(new Set([...(existing || []), ...(incoming || [])].filter(Boolean).map(Number).filter(Number.isFinite)));
+  }
+
+  function graphCompletionNow() {
+    return Date.now();
+  }
+
   async function applySelectedSessionGraphCompletionPreview(preview=null) {
     const result = { learningNodes: 0, chatNotes: 0, relationships: 0, merges: 0 };
     const learningCandidates = [
@@ -7301,14 +7309,6 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
       if (merged) result.relationships += 1;
     }
     return result;
-  }
-
-  function graphCompletionMergeIds(existing=[], incoming=[]) {
-    return Array.from(new Set([...(existing || []), ...(incoming || [])].filter(Boolean).map(Number).filter(Number.isFinite)));
-  }
-
-  function graphCompletionNow() {
-    return Date.now();
   }
 
   async function mergeGraphCompletionLearningNode(candidate) {
@@ -7350,6 +7350,8 @@ ${summary_text ? `# 早期对话摘要\n${summary_text}\n` : ''}
       existing.chat_note_keywords = graphUniqueClean([...(existing.chat_note_keywords || []), ...(candidate.keywords || [])], 12);
       existing.graph_completion_evidence_ids = graphCompletionMergeIds(existing.graph_completion_evidence_ids || [], candidate.evidenceIds || []);
       existing.graph_completion_last_merged_at = now;
+      existing.user_edited_at = existing.user_edited_at || null;
+      existing.user_locked_fields = Array.isArray(existing.user_locked_fields) ? existing.user_locked_fields : [];
       existing.updated_at = now;
       await DB.put('anchors', existing);
       return existing;
