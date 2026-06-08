@@ -809,6 +809,30 @@ def test_mobile_graph_canvas_uses_focus_subset_but_detail_keeps_full_dataset():
     assert "graphFormationStateHtml(allNodes, allLinks, { context: 'global', focus: focused })" in insights_fn
 
 
+def test_mobile_global_graph_nodes_can_open_their_session_subset():
+    html = mobile_html()
+    insights_fn = html.split("async function renderInsights", 1)[1].split("// --- Settings ---", 1)[0]
+    subset_fn = html.split("async function jumpToGraphSessionSubset", 1)[1].split("async function jumpToGraphSheetNode", 1)[0]
+    sheet_fn = html.split("async function showGraphSheet", 1)[1].split("function hideGraphSheet", 1)[0]
+    actions_region = html.split("function graphNodeSessionSubsetButtonHtml", 1)[1].split("function graphStructureActionsHtml", 1)[0]
+
+    assert "n.localKey = n.localKey || n.key;" in insights_fn
+    assert "function graphNodeLocalKey" in html
+    assert "function graphNodeSessionSubsetButtonHtml" in html
+    assert "data-graph-session-subset" in actions_region
+    assert "查看本窗口子图" in actions_region
+    assert "state.currentTab !== 'insights'" in actions_region
+    assert "const localKey = preferredLocalKey || graphNodeLocalKey(node);" in subset_fn
+    assert "state.sid = sourceSid;" in subset_fn
+    assert "await DB.kvSet('current_sid', state.sid);" in subset_fn
+    assert "state.contextTab = 'graph';" in subset_fn
+    assert "state.chatScreen = 'context';" in subset_fn
+    assert "state.graphSelected = localKey;" in subset_fn
+    assert "await renderChat();" in subset_fn
+    assert "showGraphSheet(target)" in subset_fn
+    assert "body.querySelectorAll('[data-graph-session-subset]')" in sheet_fn
+
+
 def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     html = mobile_html()
     build_graph_fn = html.split("function buildGraphData", 1)[1].split("function graphLinkEndpointKey", 1)[0]

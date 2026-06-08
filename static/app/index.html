@@ -13623,6 +13623,14 @@ function graphNodeTitle(node) {
   return node?.label || node?.kp || node?.meta?.action?.knowledge_point || '图谱节点';
 }
 
+function graphNodeLocalKey(node) {
+  const key = String(node?.localKey || node?.key || '');
+  if (node?.localKey) return key;
+  const sid = String(node?.sid || node?.sessionId || '');
+  const prefix = sid ? `${sid}::` : '';
+  return prefix && key.startsWith(prefix) ? key.slice(prefix.length) : key;
+}
+
 function graphNodeTypeLabel(node) {
   const type = node?.nodeType || '';
   if (type === 'kp') return '已学习知识点';
@@ -13826,8 +13834,10 @@ function graphNodePrimaryActionsHtml(node, digest, pairs) {
   pairs = pairs || [];
   const hasEvidence = pairs.length || digest?.evidence?.length || node?.chatMessageIds?.length || node?.messageId;
   const hasWeakPoint = (digest?.errors || []).length || node?.meta?.evaluation?.misconception || node?.meta?.evaluation?.error_pattern;
+  const subsetAction = graphNodeSessionSubsetButtonHtml(node, { primary: true });
   return `<div class="graph-diagnosis-actions">
-    <button type="button" data-graph-action="practice" data-graph-expand-detail class="graph-diagnosis-action primary">来一题</button>
+    ${subsetAction}
+    <button type="button" data-graph-action="practice" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">来一题</button>
     <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action">${hasWeakPoint ? '追问卡点' : '问为什么'}</button>
     <button type="button" data-graph-action="review-evidence" ${hasEvidence ? 'data-graph-jump-chat' : 'data-graph-expand-detail'} class="graph-diagnosis-action">回看证据</button>
   </div>`;
@@ -13841,10 +13851,18 @@ function graphSheetCompactHtml(node, digest, pairs) {
   return graphStructureCompactHtml(node, digest, pairs);
 }
 
+function graphNodeSessionSubsetButtonHtml(node, opts={}) {
+  if (state.currentTab !== 'insights' || !node?.sid) return '';
+  const primary = opts.primary ? ' primary' : '';
+  return `<button type="button" data-graph-session-subset="${esc(String(node.sid))}" data-graph-session-node-key="${esc(graphNodeLocalKey(node))}" class="graph-diagnosis-action${primary}">查看本窗口子图</button>`;
+}
+
 function graphStructureActionsHtml(node) {
   const targets = graphNodeSourceTargets(node);
+  const subsetAction = graphNodeSessionSubsetButtonHtml(node, { primary: true });
   return `<div class="graph-diagnosis-actions">
-    <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action primary">围绕它提问</button>
+    ${subsetAction}
+    <button type="button" data-graph-action="ask-why" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">围绕它提问</button>
     ${targets[0] ? `<button type="button" data-graph-action="open-source" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-diagnosis-action">打开来源</button>` : ''}
     <button type="button" data-graph-expand-detail class="graph-diagnosis-action">查看详情</button>
   </div>`;
@@ -13853,8 +13871,10 @@ function graphStructureActionsHtml(node) {
 function graphContextActionsHtml(node) {
   const targets = graphNodeSourceTargets(node);
   const chatIds = [...(node?.chatMessageIds || []), ...(node?.chat_message_ids || []), node?.messageId].filter(Boolean);
+  const subsetAction = graphNodeSessionSubsetButtonHtml(node, { primary: true });
   return `<div class="graph-diagnosis-actions">
-    ${targets[0] ? `<button type="button" data-graph-action="open-source" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-diagnosis-action primary">打开来源</button>` : ''}
+    ${subsetAction}
+    ${targets[0] ? `<button type="button" data-graph-action="open-source" data-graph-source-anchor="${esc(targets[0].sourceId)}" data-graph-open-source="${esc(targets[0].sourceId)}" data-graph-source-sid="${esc(String(targets[0].sid || ''))}" class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">打开来源</button>` : ''}
     ${chatIds.length ? '<button type="button" data-graph-jump-chat class="graph-diagnosis-action">回到聊天</button>' : ''}
     <button type="button" data-graph-expand-detail class="graph-diagnosis-action">查看详情</button>
   </div>`;
@@ -13866,6 +13886,7 @@ function graphChatNoteCompactHtml(node, digest, pairs) {
   const outline = graphPanelPreviewText(node?.outlinePath || node?.sourceName, '');
   const quote = graphPanelPreviewText(node?.quote, '');
   const outlineText = outline ? `这更像是一个可以放进「${outline}」的小线索。` : '它还不是正式学习节点，只是一张提醒你后续可以继续展开的便签。';
+  const subsetAction = graphNodeSessionSubsetButtonHtml(node, { primary: true });
   return `<section class="graph-node-compact" data-graph-panel="node-compact" data-graph-template="chat-note">
     <header class="graph-node-compact-head">
       <div class="min-w-0">
@@ -13884,7 +13905,8 @@ function graphChatNoteCompactHtml(node, digest, pairs) {
     </div>
     ${quote ? `<div class="graph-node-context-box" data-graph-chat-note-quote><div class="graph-node-label">原话</div><p>${renderRichText(quote)}</p></div>` : ''}
     <div class="graph-diagnosis-actions">
-      <button type="button" data-graph-action="outline-chat-note" data-graph-expand-detail class="graph-diagnosis-action primary">归入大纲</button>
+      ${subsetAction}
+      <button type="button" data-graph-action="outline-chat-note" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">归入大纲</button>
       <button type="button" data-graph-action="chat-note-talk" data-graph-expand-detail class="graph-diagnosis-action">围绕它聊</button>
       <button type="button" data-graph-jump-chat class="graph-diagnosis-action">查看原话</button>
     </div>
@@ -14628,6 +14650,29 @@ async function jumpToGraphSheetNode(key) {
   expandGraphSheet();
 }
 
+async function jumpToGraphSessionSubset(node=state.graphEditingNode, preferredLocalKey='') {
+  const sourceSid = node?.sid || node?.sessionId || state.sid;
+  if (!sourceSid) { toast('这个节点没有来源会话'); return; }
+  const localKey = preferredLocalKey || graphNodeLocalKey(node);
+  hideGraphSheet();
+  if (sourceSid !== state.sid) {
+    state.sid = sourceSid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  state.contextTab = 'graph';
+  state.chatScreen = 'context';
+  state.graphSelected = localKey;
+  switchTab('chat');
+  await renderChat();
+  const target = (state.graphDetailNodes || []).find(n => String(n.key) === String(localKey))
+    || (state.graphDetailNodes || []).find(n => normalizeGraphTopic(graphNodeTitle(n)) === normalizeGraphTopic(graphNodeTitle(node)));
+  if (target) {
+    await showGraphSheet(target);
+    return;
+  }
+  toast('已进入来源会话子图');
+}
+
 async function jumpToGraphFragmentChat(idText, sourceSid=state.sid) {
   const ids = String(idText || '').split(',').map(x => x.trim()).filter(Boolean);
   if (!ids.length) { toast('这个语义片段还没有可定位的聊天记录'); return; }
@@ -14777,6 +14822,7 @@ async function showGraphSheet(node) {
     body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.remove());
   }
   body.querySelectorAll('[data-graph-jump-chat]').forEach(btn => btn.addEventListener('click', () => jumpToGraphNodeChat(node)));
+  body.querySelectorAll('[data-graph-session-subset]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSessionSubset(node, btn.dataset.graphSessionNodeKey || '')));
   body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.addEventListener('click', () => openGraphNodeEditor(node)));
   body.querySelectorAll('[data-graph-expand-detail]').forEach(btn => btn.addEventListener('click', expandGraphSheet));
   body.querySelectorAll('[data-graph-node-jump]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSheetNode(btn.dataset.graphNodeJump)));
@@ -14953,6 +14999,7 @@ async function renderInsights() {
     nodes.forEach(n => {
       n.sid = sid;
       n.sessionTitle = session.title;
+      n.localKey = n.localKey || n.key;
       n.key = `${sid}::${n.key}`;
     });
     allNodes.push(...nodes);
