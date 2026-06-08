@@ -8036,6 +8036,10 @@ function renderGraphCompletionPreview(preview) {
     ]);
   }
 
+  window.buildSelectedSessionGraphCompletionPreview = buildSelectedSessionGraphCompletionPreview;
+  window.applySelectedSessionGraphCompletionPreview = applySelectedSessionGraphCompletionPreview;
+  window.renderGraphCompletionPreview = renderGraphCompletionPreview;
+
   return { create_session, delete_session, run_opening_turn, run_turn, run_proactive_turn, maybe_summarize, import_native_background_turns, queue_pending_user_message, normalizeStrategySettings, formatStrategySettings, buildStructuredProfileSummary, buildRuntimeProfileHint, PROFILE_TAG_CATEGORIES, ACTION_TYPES };
 })();
 </script>

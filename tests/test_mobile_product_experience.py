@@ -895,3 +895,22 @@ def test_mobile_graph_completion_modal_operations_are_tokenized_and_close_does_n
     assert "finally" in controls_fn
     assert "if (state.graphCompletionActiveOperationId === opId)" in controls_fn
     assert "state.graphCompletionBusy = false;" in controls_fn
+
+
+def test_mobile_graph_completion_modal_runtime_helpers_cross_script_boundary():
+    html = mobile_html()
+    scripts = re.findall(r"<script[^>]*>([\s\S]*?)</script>", html)
+    preview_script_index = next(i for i, script in enumerate(scripts) if "function renderGraphCompletionPreview" in script)
+    modal_script_index = next(i for i, script in enumerate(scripts) if "function renderGraphCompletionModal" in script)
+    if preview_script_index == modal_script_index:
+        return
+
+    preview_script = scripts[preview_script_index]
+    engine_return = preview_script.index("return { create_session")
+    for export_line in [
+        "window.buildSelectedSessionGraphCompletionPreview = buildSelectedSessionGraphCompletionPreview;",
+        "window.applySelectedSessionGraphCompletionPreview = applySelectedSessionGraphCompletionPreview;",
+        "window.renderGraphCompletionPreview = renderGraphCompletionPreview;",
+    ]:
+        assert export_line in preview_script
+        assert preview_script.index(export_line) < engine_return
