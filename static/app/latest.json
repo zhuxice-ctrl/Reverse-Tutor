@@ -1,18 +1,24 @@
 {
-  "versionCode": 45,
-  "versionName": "0.19.6",
+  "versionCode": 46,
+  "versionName": "0.19.7",
   "name": "Reverse Tutor",
   "displayName": "反转家教",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.7.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.6/Reverse-Tutor-v0.19.6.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.7/Reverse-Tutor-v0.19.7.apk"
   ],
-  "sha256": "d1e2ef22487188f02758b23187b9db94be5ace8e1e769350c1f5374e6e1e9099",
-  "publishedAt": "2026-06-06",
+  "sha256": "c2ca46e6844470155c36120deb1d0ec92f4950bd5328083768ed9669f8382ced",
+  "publishedAt": "2026-06-08",
   "releaseNotes": [
-    "继续修复手机端图谱升级后仍不显示的问题：原生清缓存脚本改为兼容旧 WebView 的 Promise.all + 超时兜底。",
-    "同一原生版本清缓存最多重试 3 次，避免上一次脚本未执行成功后永久跳过。",
-    "仍只清理旧 rt-mobile 缓存和 Service Worker，不删除 IndexedDB 里的聊天、图谱和设置数据。",
-    "补丁 APK 命名为 Reverse-Tutor-v0.19.6.apk。"
+    "新增节点子会话窗口：来一题、问为什么、围绕便签聊会进入跟随节点的独立子窗口，主页会话列表不留痕。",
+    "修复节点子会话返回路径：从子窗口返回时回到原节点弹窗/详情上下文，二次进入不会重复自动发送开场问题。",
+    "新增 @ 节点子窗口记忆引用：在对话输入 @ 可选择已有节点子窗口，把对应节点上下文带入当前回复。",
+    "重做闲聊便签节点：闲聊中冒出的学习线索会显示成清晰便签，不再当成机械诊断面板。",
+    "归入大纲改为真实锚点流程：点击后进入所属会话的锚点页，预填大纲锚点草稿，便于确认后接入学习脉络。",
+    "全局图谱与单会话图谱关系修正：全局图谱是所有会话图谱的全集，单独会话图谱显示各自子集。",
+    "整理会话线索支持勾选历史会话预览后写入图谱，学习节点、闲聊便签和关系会做去重合并与补充。",
+    "优化图谱动作显示：内部动作分布不再暴露 emote/probe/clue/ask 等英文枚举，改为中文标签。",
+    "修复后台生成提示气泡、节点子窗口返回、便签操作按钮等移动端细节问题。",
+    "正式 APK 命名为 Reverse-Tutor-v0.19.7.apk。"
   ]
 }

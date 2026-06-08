@@ -2741,7 +2741,7 @@
       <div class="text-[10px] text-neutral-600 text-center pt-2">
         <div class="text-neutral-500">欢迎入qq群反馈给我更新动力</div>
         <div class="text-neutral-400 font-mono text-[11px] mt-1">QQ群：897804938</div>
-        <div class="mt-3">Reverse Tutor v0.19.6 · 移动 PWA</div>
+        <div class="mt-3">Reverse Tutor v0.19.7 · 移动 PWA</div>
         <div>所有数据保存在本机浏览器（IndexedDB）</div>
       </div>
     </div>
@@ -3121,6 +3121,8 @@ const state = {
   contextTab: 'graph',
   contextRenderSeq: 0,
   contextEditingNoteId: null,
+  contextAnchorPrefill: null,
+  contextAnchorHighlightId: '',
   graphSelected: '',
   graphEditingNode: null,
   graphDetailNodes: [],
@@ -3176,8 +3178,8 @@ function refreshIcons() {
   });
 }
 
-const APP_VERSION_CODE = 45;
-const APP_VERSION_NAME = '0.19.6';
+const APP_VERSION_CODE = 46;
+const APP_VERSION_NAME = '0.19.7';
 const DEFAULT_UPDATE_FEED_URL = 'https://dl.zeroxcore.tech/reverse-tutor/latest.json';
 const GITHUB_UPDATE_FEED_URL = 'https://raw.githubusercontent.com/zhuxice-ctrl/Reverse-Tutor/main/static/app/latest.json';
 const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/zhuxice-ctrl/Reverse-Tutor/releases/latest';
@@ -12338,10 +12340,13 @@ async function renderContextAnchors(renderId=state.contextRenderSeq) {
   const body = $('#learning-context-body');
   const anchors = state.sid ? (await DB.bySid('anchors', state.sid)).sort((a,b)=>b.weight-a.weight) : [];
   if (!isActiveContextRender(renderId, 'anchors')) return;
+  const prefill = state.contextAnchorPrefill || {};
+  const prefillText = prefill.text || '';
+  const statusText = prefill.hint || '文件和图片资料会直接归入锚点，并按类型显示在下方列表。';
   const rows = renderGroupedAnchorsHtml(anchors.filter(a => a.kind !== 'note'), { deleteAttr: 'context-del-anchor' });
   body.innerHTML = `
     <form id="context-anchor-form" class="space-y-2 mb-3">
-      <textarea id="context-anchor-input" rows="3" placeholder="补充当前窗口的学习目标、约束或资料主线..." class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm resize-none"></textarea>
+      <textarea id="context-anchor-input" rows="4" placeholder="补充当前窗口的学习目标、约束或资料主线..." class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm resize-none">${esc(prefillText)}</textarea>
       <div class="grid grid-cols-3 gap-2">
         <button class="bg-emerald-700 active:bg-emerald-800 text-white text-sm py-2 rounded-lg font-medium">保存锚点</button>
         <label class="text-center text-sm py-2 rounded-lg border border-neutral-700 active:bg-neutral-800 cursor-pointer">
@@ -12353,7 +12358,7 @@ async function renderContextAnchors(renderId=state.contextRenderSeq) {
           <input id="context-anchor-image-file" type="file" accept="image/png,image/jpeg,image/webp" multiple class="hidden">
         </label>
       </div>
-      <div id="context-anchor-status" class="text-[11px] text-neutral-500 leading-relaxed">文件和图片资料会直接归入锚点，并按类型显示在下方列表。</div>
+      <div id="context-anchor-status" class="text-[11px] text-neutral-500 leading-relaxed">${esc(statusText)}</div>
     </form>
     <div class="space-y-2">${rows || '<div class="text-xs text-neutral-500 text-center py-8">还没有锚点。保存约束或导入资料后，会进入当前窗口图谱。</div>'}</div>`;
   $('#context-anchor-form')?.addEventListener('submit', async e => {
@@ -12361,6 +12366,7 @@ async function renderContextAnchors(renderId=state.contextRenderSeq) {
     const v = $('#context-anchor-input').value.trim();
     if (!v) return;
     await addLocalAnchor('requirement', v, 1.5);
+    state.contextAnchorPrefill = null;
     toast('已保存锚点');
     await renderContextAnchors();
     if (state.currentTab === 'insights') await renderInsights();
@@ -12380,6 +12386,17 @@ async function renderContextAnchors(renderId=state.contextRenderSeq) {
     await DB.del('anchors', +btn.dataset.contextDelAnchor);
     await renderContextAnchors();
   }));
+  const highlightId = state.contextAnchorHighlightId;
+  if (highlightId) {
+    state.contextAnchorHighlightId = '';
+    requestAnimationFrame(() => {
+      const row = Array.from(document.querySelectorAll('[data-anchor-row]')).find(el => el.dataset.anchorRow === String(highlightId));
+      if (!row) return;
+      row.scrollIntoView({ behavior:'smooth', block:'center' });
+      row.classList.add('graph-source-jump-highlight');
+      setTimeout(() => row.classList.remove('graph-source-jump-highlight'), 2200);
+    });
+  }
   refreshIcons();
 }
 
@@ -12914,10 +12931,19 @@ function actionTypeLabel(type) {
     clue: '线索',
     scaffold_example: '脚手架',
     examiner_verify: '验证',
+    emote: '情绪回应',
+    persuade: '劝导',
     recap: '回顾',
     next: '下一步',
+    pending: '生成中',
+    error: '错误',
   };
-  return map[type] || type || '下一步';
+  return map[type] || (type ? '其他' : '下一步');
+}
+
+function graphActionDistributionPillHtml(type, count, total) {
+  const key = String(type || 'next').replace(/[^\w-]/g, '') || 'next';
+  return `<span class="pill pill-${esc(key)}">${esc(actionTypeLabel(type))} ${count}/${total}</span>`;
 }
 
 function entryStatusLabel(status) {
@@ -14107,9 +14133,8 @@ function graphChatNoteCompactHtml(node, digest, pairs) {
     ${quote ? `<div class="graph-node-context-box" data-graph-chat-note-quote><div class="graph-node-label">原话</div><p>${renderRichText(quote)}</p></div>` : ''}
     <div class="graph-diagnosis-actions">
       ${subsetAction}
-      <button type="button" data-graph-action="outline-chat-note" data-graph-expand-detail class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">归入大纲</button>
+      <button type="button" data-graph-action="outline-chat-note" class="graph-diagnosis-action${subsetAction ? '' : ' primary'}">归入大纲</button>
       <button type="button" data-graph-action="chat-note-talk" class="graph-diagnosis-action">围绕它聊</button>
-      <button type="button" data-graph-action="open-thread" class="graph-diagnosis-action">进入子会话窗</button>
     </div>
   </section>`;
 }
@@ -15076,6 +15101,41 @@ async function jumpToGraphSourceAnchor(sourceId, sourceSid=state.sid) {
   });
 }
 
+function chatNoteOutlineAnchorDraft(node=state.graphEditingNode) {
+  const title = graphNodeTitle(node);
+  const body = graphPanelPreviewText(node?.content || node?.summary, '');
+  const outline = graphPanelPreviewText(node?.outlinePath || node?.sourceName, '');
+  const quote = graphPanelPreviewText(node?.quote, '');
+  return [
+    `大纲锚点：${title}`,
+    outline ? `建议位置：${outline}` : '',
+    body ? `引入理由：${body}` : '',
+    quote ? `原话线索：${quote}` : '',
+    '衔接方式：先作为待展开主题保留，后续对话确认后再补成学习节点和关系。',
+  ].filter(Boolean).join('\n');
+}
+
+async function openChatNoteAnchorInContext(node=state.graphEditingNode) {
+  const sourceSid = node?.sid || node?.sessionId || state.sid;
+  if (!sourceSid) { toast('这张便签没有来源会话'); return; }
+  const anchorId = node?.anchorId || '';
+  state.contextAnchorPrefill = {
+    text: chatNoteOutlineAnchorDraft(node),
+    sourceAnchorId: anchorId,
+    hint: '已带入这张便签的归类草稿。确认后保存为当前会话的学习大纲锚点。',
+  };
+  state.contextAnchorHighlightId = anchorId ? String(anchorId) : '';
+  hideGraphSheet();
+  if (sourceSid && sourceSid !== state.sid) {
+    state.sid = sourceSid;
+    await DB.kvSet('current_sid', state.sid);
+  }
+  state.contextTab = 'anchors';
+  state.chatScreen = 'context';
+  switchTab('chat');
+  await renderChat();
+}
+
 async function jumpToGraphNodeChat(node=state.graphEditingNode) {
   const ids = [
     ...(node?.chatMessageIds || []),
@@ -15176,8 +15236,12 @@ async function showGraphSheet(node) {
   body.querySelectorAll('[data-graph-jump-chat]').forEach(btn => btn.addEventListener('click', () => jumpToGraphNodeChat(node)));
   body.querySelectorAll('[data-graph-session-subset]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSessionSubset(node, btn.dataset.graphSessionNodeKey || '')));
   body.querySelectorAll('[data-graph-edit-node]').forEach(btn => btn.addEventListener('click', () => openGraphNodeEditor(node)));
-  body.querySelectorAll('[data-graph-action]').forEach(btn => btn.addEventListener('click', () => {
-    if (graphNodeThreadActionSupported(btn.dataset.graphAction)) startGraphNodeThreadAction(btn.dataset.graphAction, node);
+  body.querySelectorAll('[data-graph-action]').forEach(btn => btn.addEventListener('click', async () => {
+    if (btn.dataset.graphAction === 'outline-chat-note') {
+      await openChatNoteAnchorInContext(node);
+      return;
+    }
+    if (graphNodeThreadActionSupported(btn.dataset.graphAction)) await startGraphNodeThreadAction(btn.dataset.graphAction, node);
   }));
   body.querySelectorAll('[data-graph-expand-detail]').forEach(btn => btn.addEventListener('click', expandGraphSheet));
   body.querySelectorAll('[data-graph-node-jump]').forEach(btn => btn.addEventListener('click', () => jumpToGraphSheetNode(btn.dataset.graphNodeJump)));
@@ -15414,7 +15478,7 @@ async function renderInsights() {
       <i class="button-icon" data-lucide="scan-search"></i><span>整理会话线索</span>
     </button>
     <div class="flex flex-wrap gap-1 pt-2">${Object.entries(actCount).map(([k,v]) =>
-      `<span class="pill pill-${k}">${k} ${v}/${total}</span>`).join('') || '<span class="text-xs text-neutral-500">暂无动作分布</span>'}</div>
+      graphActionDistributionPillHtml(k, v, total)).join('') || '<span class="text-xs text-neutral-500">暂无动作分布</span>'}</div>
   `;
   $$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);
   refreshIcons();

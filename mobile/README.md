@@ -73,17 +73,17 @@ https://dl.zeroxcore.tech/reverse-tutor/latest.json
 
 ```json
 {
-  "versionCode": 45,
-  "versionName": "0.19.6",
-  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.6.apk",
+  "versionCode": 46,
+  "versionName": "0.19.7",
+  "apkUrl": "https://dl.zeroxcore.tech/reverse-tutor/Reverse-Tutor-v0.19.7.apk",
   "apkMirrors": [
-    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.6/Reverse-Tutor-v0.19.6.apk"
+    "https://github.com/zhuxice-ctrl/Reverse-Tutor/releases/download/v0.19.7/Reverse-Tutor-v0.19.7.apk"
   ],
-  "publishedAt": "2026-06-06",
+  "publishedAt": "2026-06-08",
   "releaseNotes": [
-    "继续修复手机端图谱升级后仍不显示的问题",
-    "清缓存脚本兼容旧 WebView，并加入最多 3 次重试",
-    "仍不删除 IndexedDB 里的聊天、图谱和设置数据"
+    "新增节点子会话窗口，主页会话列表不留痕",
+    "归入大纲会进入所属会话锚点页并预填草稿",
+    "全局图谱是全集，单会话图谱显示各自子集"
   ]
 }
 ```

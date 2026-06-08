@@ -914,8 +914,12 @@ def test_mobile_chat_note_graph_nodes_use_sticky_note_template():
     assert "闲聊便签" in compact_region
     assert "归入大纲" in compact_region
     assert "围绕它聊" in compact_region
-    assert "进入子会话窗" in compact_region
-    assert 'data-graph-action="open-thread"' in compact_region
+    assert "进入子会话窗" not in compact_region
+    assert 'data-graph-action="open-thread"' not in compact_region
+    outline_button = compact_region.split('data-graph-action="outline-chat-note"', 1)[1].split("</button>", 1)[0]
+    assert "data-graph-expand-detail" not in outline_button
+    assert "openChatNoteAnchorInContext" in html
+    assert "await openChatNoteAnchorInContext(node)" in html
     assert "查看原话" not in compact_region
     assert "为什么记下它" in report_region
     assert "可能放到哪里" in report_region
@@ -941,6 +945,9 @@ def test_mobile_global_graph_has_selected_session_completion_modal_shell():
     assert "position: absolute" in actions_css
     assert "z-index" in actions_css
     assert "$$('[data-graph-completion-open]').forEach(btn => btn.onclick = openGraphCompletionModal);\n  refreshIcons();" in populated_actions_region
+    assert "graphActionDistributionPillHtml(k, v, total)" in insights_fn
+    assert '<span class="pill pill-${k}">${k} ${v}/${total}</span>' not in insights_fn
+    assert "actionTypeLabel(type)" in html
     assert 'id="graph-completion-modal"' in html
     assert "function openGraphCompletionModal" in html
     assert "function closeGraphCompletionModal" in html
