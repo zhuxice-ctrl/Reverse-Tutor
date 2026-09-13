@@ -312,3 +312,32 @@ PPTX + EPUB parsing. Shipped on branch `newmp`:
 
 
 
+
+
+## V1-024 — Vector Semantic Retrieval (2026-09-13, commit ee66a37)
+
+Upgrade of the retrieval path from newest-first, first-chunk,
+200-char excerpts to semantic ranking over embedded chunks.
+
+- Storage: DB v12 -> v13, `source_chunks.embedding` BLOB (Room schema
+  `13.json` exported; `ReverseTutorDatabaseMigration12To13Test` covers
+  legacy rows). `SourceEmbeddingCodec` packs float arrays as
+  little-endian bytes.
+- Embedding: `OpenAiCompatibleEmbeddingRuntime` calls the active
+  channel's OpenAI-compatible `/embeddings` endpoint (model pinned to
+  `text-embedding-v3`, batch size 10, index-reordered results). Gated on
+  a non-Anthropic/non-Gemini provider; production runtime wired via
+  `DataModule.productionEmbeddingRuntime`.
+- Indexing: import and reprocess now embed all chunk texts and persist
+  them (AppShell `indexSourceAsync`, SourceRepository/DAO upserts).
+  Existing sources keep serving until reprocessed.
+- Retrieval: `SourceContextPortAdapter` embeds the query, scores every
+  chunk by cosine similarity (floor 0.30, best chunk per source), and
+  falls back to keyword scoring for blank queries, missing embeddings,
+  unsupported channels, or failed calls. `queryText` now flows through
+  the whole preparation chain; excerpt cap 200 -> 900.
+- Privacy note: chunk texts and the question are sent to the configured
+  embedding service; channels without embeddings stay fully local.
+- Tests: new OpenAiCompatibleEmbeddingRuntimeTest (9), SourceEmbeddingCodecTest (4);
+  adapter/wiring tests extended for vector + keyword paths; SchemaPolicyTest
+  updated to v13 chain. Full suite green (BUILD SUCCESSFUL; 0 failures/errors).
