@@ -153,12 +153,19 @@ interface GraphContextPort {
     ): List<String>
 }
 
-/** Returns source evidence references for the session. */
+/**
+ * Returns source evidence references for the session.
+ *
+ * NEWMP-V1-024: [queryText] lets implementations rank sources by semantic or
+ * keyword relevance to the current question; blank keeps the legacy
+ * newest-first behavior. Defaulted so existing callers stay source-compatible.
+ */
 interface SourceContextPort {
     suspend fun listSourceEvidence(
         spaceId: String,
         sessionId: String,
-        limit: Int
+        limit: Int,
+        queryText: String = ""
     ): List<SourceReferenceContract>
 }
 

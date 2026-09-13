@@ -326,7 +326,7 @@ private val MissingCredential = LlmGenerationResult.Failure(
 private const val AnthropicApiVersion = "2023-06-01"
 private const val DefaultProviderTimeoutMillis = 60_000
 
-private object ProviderJson {
+internal object ProviderJson {
     fun stringify(value: Any?): String = buildString { appendValue(value) }
 
     fun parse(json: String): Any? = runCatching { Parser(json).parse() }.getOrNull()

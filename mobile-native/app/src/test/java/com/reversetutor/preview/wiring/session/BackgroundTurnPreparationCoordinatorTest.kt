@@ -22,7 +22,7 @@ class BackgroundTurnPreparationCoordinatorTest {
 
     private val coordinator = BackgroundTurnPreparationCoordinator(
         isSessionDeleted = { false },
-        assembleContext = { _, _ -> ConversationContextContract.empty("space-1", "session-1") },
+        assembleContext = { _, _, _ -> ConversationContextContract.empty("space-1", "session-1") },
         enqueueJob = { input, now ->
             queuedInputs.add(input)
             BackgroundGenerationJob(
@@ -50,7 +50,7 @@ class BackgroundTurnPreparationCoordinatorTest {
 
     private val deletedCoordinator = BackgroundTurnPreparationCoordinator(
         isSessionDeleted = { true },
-        assembleContext = { _, _ -> ConversationContextContract.empty("space-1", "session-1") },
+        assembleContext = { _, _, _ -> ConversationContextContract.empty("space-1", "session-1") },
         enqueueJob = { input, _ ->
             queuedInputs.add(input)
             error("should not enqueue")
@@ -78,7 +78,7 @@ class BackgroundTurnPreparationCoordinatorTest {
         )
         val topologyAwareCoordinator = BackgroundTurnPreparationCoordinator(
             isSessionDeleted = { false },
-            assembleContext = { _, _ -> visibleContext },
+            assembleContext = { _, _, _ -> visibleContext },
             enqueueJob = { input, now ->
                 queuedInputs.add(input)
                 BackgroundGenerationJob(
@@ -198,7 +198,7 @@ class BackgroundTurnPreparationCoordinatorTest {
         queuedInputs.clear()
         val flaky = BackgroundTurnPreparationCoordinator(
             isSessionDeleted = { false },
-            assembleContext = { _, _ -> ConversationContextContract.empty("space-1", "session-1") },
+            assembleContext = { _, _, _ -> ConversationContextContract.empty("space-1", "session-1") },
             enqueueJob = { input, now ->
                 queuedInputs.add(input)
                 BackgroundGenerationJob(
@@ -228,7 +228,7 @@ class BackgroundTurnPreparationCoordinatorTest {
         queuedInputs.clear()
         val withSignals = BackgroundTurnPreparationCoordinator(
             isSessionDeleted = { false },
-            assembleContext = { _, _ -> ConversationContextContract.empty("space-1", "session-1") },
+            assembleContext = { _, _, _ -> ConversationContextContract.empty("space-1", "session-1") },
             enqueueJob = { input, now ->
                 queuedInputs.add(input)
                 BackgroundGenerationJob(
@@ -269,7 +269,7 @@ class BackgroundTurnPreparationCoordinatorTest {
         var sourceRevision = "rev-src-1-100"
         val revisionAware = BackgroundTurnPreparationCoordinator(
             isSessionDeleted = { false },
-            assembleContext = { _, _ ->
+            assembleContext = { _, _, _ ->
                 ConversationContextContract(
                     spaceId = "space-1",
                     sessionId = "session-1",

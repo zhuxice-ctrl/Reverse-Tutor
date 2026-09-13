@@ -154,7 +154,7 @@ class ConversationSessionCoordinator(
     ): SessionTurnResult {
 
         // 1. Read context (partial-failure safe)
-        val context = contextAssembler.assemble(spaceId, sessionId)
+        val context = contextAssembler.assemble(spaceId, sessionId, userText)
 
         // 2. Apply policy (pure, no side effects)
         val policyOutput = SessionTurnPolicy.normalize(policyInput)

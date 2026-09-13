@@ -102,7 +102,7 @@ class ConversationContextEmptyDataTest {
 
     private fun emptySourcePort() = object : SourceContextPort {
         override suspend fun listSourceEvidence(
-            spaceId: String, sessionId: String, limit: Int
+            spaceId: String, sessionId: String, limit: Int, queryText: String
         ): List<SourceReferenceContract> = emptyList()
     }
 }

@@ -4,6 +4,7 @@ import com.reversetutor.core.data.model.ExecutionModelConfiguration
 import com.reversetutor.core.data.model.ExecutionModelResolver
 import com.reversetutor.core.data.message.MessageRepository
 import com.reversetutor.core.domain.TurnPlan
+import com.reversetutor.core.llm.EmbeddingCallResult
 import com.reversetutor.core.llm.LlmCapabilities
 import com.reversetutor.core.llm.LlmGuidedTurnPlan
 import com.reversetutor.core.llm.LlmAssistantReplyEnvelope
@@ -20,6 +21,7 @@ import com.reversetutor.core.llm.LlmGenerationRuntime
 import com.reversetutor.core.llm.LlmGenerationToken
 import com.reversetutor.core.llm.LlmProfileCapabilityResolver
 import com.reversetutor.core.llm.LlmSessionPolicyContext
+import com.reversetutor.core.llm.OpenAiCompatibleEmbeddingRuntime
 import com.reversetutor.core.model.Message
 import com.reversetutor.core.model.MessageAttachment
 import com.reversetutor.core.model.MessageRole
@@ -33,7 +35,10 @@ class ChatGenerationRepository(
     private val runtime: LlmGenerationRuntime,
     private val modelConnectionRepository: ExecutionModelResolver? = null,
     /** NEWMP-V1-018: consulted per generateReply call; summaries deliberately stay offline. */
-    private val webSearchPreference: suspend () -> Boolean = { false }
+    private val webSearchPreference: suspend () -> Boolean = { false },
+    /** NEWMP-V1-024: optional embeddings runtime for semantic source retrieval. */
+    private val embeddingRuntime: OpenAiCompatibleEmbeddingRuntime? = null,
+    private val embeddingModelName: String = "text-embedding-v3"
 ) {
     suspend fun generateReply(
         input: ChatGenerationInput,
@@ -207,6 +212,38 @@ class ChatGenerationRepository(
                 SourceVisionOutcome.ProviderFailed("llm_provider_timeout")
         }
     }
+
+    /**
+     * NEWMP-V1-024: embeds source-chunk texts for semantic retrieval. Null when
+     * no runtime is wired, the active channel cannot serve OpenAI-compatible
+     * embeddings, or the call fails — callers then fall back to keywords.
+     */
+    suspend fun embedSourceTexts(texts: List<String>): List<FloatArray>? = embedTexts(texts)
+
+    /** NEWMP-V1-024: embeds the current user query for semantic retrieval. */
+    suspend fun embedQueryText(text: String): FloatArray? = embedTexts(listOf(text))?.firstOrNull()
+
+    private suspend fun embedTexts(texts: List<String>): List<FloatArray>? {
+        if (texts.isEmpty()) return emptyList()
+        val runtime = embeddingRuntime ?: return null
+        val profile = activeLegacyProfile() ?: return null
+        if (!profileSupportsEmbeddings(profile)) return null
+        return when (
+            val result = runtime.embed(
+                secretRef = profile.secretRef,
+                baseUrl = profile.baseUrl,
+                model = embeddingModelName,
+                texts = texts
+            )
+        ) {
+            is EmbeddingCallResult.Success -> result.vectors
+            EmbeddingCallResult.Failed -> null
+        }
+    }
+
+    private fun profileSupportsEmbeddings(profile: LlmProfile): Boolean =
+        profile.provider != LlmProviderKind.AnthropicCompatible &&
+            profile.provider != LlmProviderKind.Gemini
 
     private suspend fun resolveExecutionProfile(input: ChatGenerationInput): LlmProfile? =
         resolveProfileForSession(

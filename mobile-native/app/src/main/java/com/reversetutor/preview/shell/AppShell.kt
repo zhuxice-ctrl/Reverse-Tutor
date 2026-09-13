@@ -62,6 +62,7 @@ import com.reversetutor.core.data.memory.MemoryRepository
 import com.reversetutor.core.data.message.MessageRepository
 import com.reversetutor.core.data.session.SessionRepository
 import com.reversetutor.core.data.sources.SourceImportInput
+import com.reversetutor.core.data.sources.SourceImportResult
 import com.reversetutor.core.data.sources.SourceRepository
 import com.reversetutor.core.data.preferences.AppPreferences
 import com.reversetutor.core.data.memory.ErrorLogInput
@@ -905,6 +906,18 @@ private fun DestinationContent(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    // NEWMP-V1-024: fire-and-forget semantic indexing of a freshly imported
+    // source. Failures are swallowed: the source stays on keyword retrieval.
+    fun indexSourceAsync(imported: SourceImportResult) {
+        scope.launch {
+            val texts = imported.chunks.map { it.text }
+            if (texts.isEmpty()) return@launch
+            val vectors = chatGenerationRepository.embedSourceTexts(texts)
+            if (vectors == null || vectors.size != imported.chunks.size) return@launch
+            sourceRepository.updateChunkEmbeddings(imported.chunks.map { it.id }, vectors)
+        }
+    }
     val sessionSettingsStore = remember(context) { SharedPreferencesSessionSettingsStore(context) }
     val chatSourceUsagePort = remember(sessionSettingsStore) {
         SharedPreferencesChatSourceUsagePort(sessionSettingsStore)
@@ -1088,6 +1101,7 @@ private fun DestinationContent(
                     if (sessionSettingsPickerActive) {
                         context.tryPersistReadPermission(uri)
                         val imported = sourceRepository.importSource(input, requestId)
+                        indexSourceAsync(imported)
                         val sessionId = activeSessionId
                         if (sessionId != null) {
                             when (val outcome = mapSessionSettingsImport(
@@ -1110,6 +1124,7 @@ private fun DestinationContent(
                     } else if (chatSourcePickerActive) {
                         context.tryPersistReadPermission(uri)
                         val imported = sourceRepository.importSource(input, requestId)
+                        indexSourceAsync(imported)
                         val currentSessionSnapshot = activeSessionId?.let { sessionId ->
                             hybridAppGraph.frontend.newSessionPersistence.loadSessionSnapshot(sessionId)
                         }
@@ -1785,6 +1800,7 @@ private fun DestinationContent(
             SourcesRoute(
                 sourceRepository = sourceRepository,
                 pendingImport = pendingSourceImport,
+                onSourceIndexed = { indexSourceAsync(it) },
                 highlightedSourceId = pendingSourceEvidenceTarget,
                 onPickSource = {
                     sourceFileLauncher.launch(

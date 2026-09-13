@@ -217,7 +217,9 @@ class HybridAppGraph private constructor(
                 HybridLlmRuntimeMode.Production ->
                     DataModule.chatGenerationRepository(
                         context = appContext,
-                        webSearchPreference = webSearchPreference
+                        webSearchPreference = webSearchPreference,
+                        // NEWMP-V1-024: semantic retrieval embedding runtime.
+                        embeddingRuntime = DataModule.productionEmbeddingRuntime(appContext)
                     )
             }
             val backgroundGenerationRepository = when (llmRuntimeMode) {
@@ -265,8 +267,8 @@ class HybridAppGraph private constructor(
                     isSessionDeleted = { sessionId ->
                         conversationRunRepository.isSessionDeleted(sessionId)
                     },
-                    assembleContext = { spaceId, sessionId ->
-                        sessionConversationAssembly.assembleContext(spaceId, sessionId)
+                    assembleContext = { spaceId, sessionId, userText ->
+                        sessionConversationAssembly.assembleContext(spaceId, sessionId, userText)
                     },
                     enqueueJob = { input, now ->
                         backgroundGenerationRepository.enqueueGenerationJob(input, now)

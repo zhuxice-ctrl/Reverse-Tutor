@@ -34,6 +34,7 @@ import com.reversetutor.core.data.wipe.RoomLocalDataWipeStore
 import com.reversetutor.core.data.worldtree.RoomWorldTreeRepository
 import com.reversetutor.core.llm.CompositeLlmGenerationRuntime
 import com.reversetutor.core.llm.LlmGenerationRuntime
+import com.reversetutor.core.llm.OpenAiCompatibleEmbeddingRuntime
 import com.reversetutor.core.llm.LlmSecretResolver
 import com.reversetutor.core.llm.UrlConnectionProviderHttpTransport
 
@@ -92,14 +93,16 @@ object DataModule {
     fun chatGenerationRepository(
         context: Context,
         runtime: LlmGenerationRuntime? = null,
-        webSearchPreference: (suspend () -> Boolean)? = null
+        webSearchPreference: (suspend () -> Boolean)? = null,
+        embeddingRuntime: OpenAiCompatibleEmbeddingRuntime? = null
     ): ChatGenerationRepository =
         ChatGenerationRepository(
             messageRepository = messageRepository(context),
             llmProfileRepository = llmProfileRepository(context),
             runtime = runtime ?: productionGenerationRuntime(context),
             modelConnectionRepository = modelConnectionRepository(context),
-            webSearchPreference = webSearchPreference ?: { false }
+            webSearchPreference = webSearchPreference ?: { false },
+            embeddingRuntime = embeddingRuntime
         )
 
     fun backgroundGenerationRepository(
@@ -125,6 +128,15 @@ object DataModule {
             transport = UrlConnectionProviderHttpTransport(),
             secretResolver = LlmSecretResolver(secretStore::get),
             imagePayloadResolver = AndroidImagePayloadResolver(context.applicationContext)
+        )
+    }
+
+    /** NEWMP-V1-024: embeddings runtime for semantic source retrieval. */
+    fun productionEmbeddingRuntime(context: Context): OpenAiCompatibleEmbeddingRuntime {
+        val secretStore = secretStore(context.applicationContext)
+        return OpenAiCompatibleEmbeddingRuntime(
+            transport = UrlConnectionProviderHttpTransport(),
+            secretResolver = LlmSecretResolver(secretStore::get)
         )
     }
 

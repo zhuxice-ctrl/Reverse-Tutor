@@ -1,0 +1,4375 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 13,
+    "identityHash": "c9c9e6c1e46621d2a9c5bc448426a76e",
+    "entities": [
+      {
+        "tableName": "spaces",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `kind` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `sourceImportId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceImportId",
+            "columnName": "sourceImportId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `title` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `llmProfileId` TEXT, `modelBindingId` TEXT, `settingsId` TEXT, `sourceImportId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pinned",
+            "columnName": "pinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archived",
+            "columnName": "archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "llmProfileId",
+            "columnName": "llmProfileId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "modelBindingId",
+            "columnName": "modelBindingId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "settingsId",
+            "columnName": "settingsId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceImportId",
+            "columnName": "sourceImportId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sessions_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sessions_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_sessions_updatedAtEpochMillis",
+            "unique": false,
+            "columnNames": [
+              "updatedAtEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sessions_updatedAtEpochMillis` ON `${TABLE_NAME}` (`updatedAtEpochMillis`)"
+          },
+          {
+            "name": "index_sessions_modelBindingId",
+            "unique": false,
+            "columnNames": [
+              "modelBindingId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sessions_modelBindingId` ON `${TABLE_NAME}` (`modelBindingId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `role` TEXT NOT NULL, `text` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `parentMessageId` TEXT, `sourceImportId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentMessageId",
+            "columnName": "parentMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceImportId",
+            "columnName": "sourceImportId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_messages_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_messages_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "message_attachments",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `messageId` TEXT NOT NULL, `name` TEXT NOT NULL, `mimeType` TEXT, `uri` TEXT, `sourceId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageId",
+            "columnName": "messageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "uri",
+            "columnName": "uri",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_message_attachments_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_attachments_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_message_attachments_messageId",
+            "unique": false,
+            "columnNames": [
+              "messageId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_attachments_messageId` ON `${TABLE_NAME}` (`messageId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "message_quotes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `messageId` TEXT NOT NULL, `quotedMessageId` TEXT NOT NULL, `excerpt` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageId",
+            "columnName": "messageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quotedMessageId",
+            "columnName": "quotedMessageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "excerpt",
+            "columnName": "excerpt",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_message_quotes_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_quotes_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_message_quotes_messageId",
+            "unique": false,
+            "columnNames": [
+              "messageId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_quotes_messageId` ON `${TABLE_NAME}` (`messageId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "llm_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `name` TEXT NOT NULL, `provider` TEXT NOT NULL, `model` TEXT NOT NULL, `secretRef` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `baseUrl` TEXT, `enabled` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provider",
+            "columnName": "provider",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secretRef",
+            "columnName": "secretRef",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseUrl",
+            "columnName": "baseUrl",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_llm_profiles_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_llm_profiles_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "session_settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `llmProfileId` TEXT, `modelBindingId` TEXT, `systemPrompt` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "llmProfileId",
+            "columnName": "llmProfileId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "modelBindingId",
+            "columnName": "modelBindingId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "systemPrompt",
+            "columnName": "systemPrompt",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_settings_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_settings_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_session_settings_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_settings_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_session_settings_modelBindingId",
+            "unique": false,
+            "columnNames": [
+              "modelBindingId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_settings_modelBindingId` ON `${TABLE_NAME}` (`modelBindingId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "anchors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `title` TEXT NOT NULL, `body` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `sourceMessageId` TEXT, `sourceId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMessageId",
+            "columnName": "sourceMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_anchors_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_anchors_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "notes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `title` TEXT NOT NULL, `body` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `sourceMessageId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMessageId",
+            "columnName": "sourceMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notes_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "error_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `title` TEXT NOT NULL, `detail` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `sourceMessageId` TEXT, `resolved` INTEGER NOT NULL, `origin` TEXT NOT NULL, `code` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detail",
+            "columnName": "detail",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMessageId",
+            "columnName": "sourceMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "resolved",
+            "columnName": "resolved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "code",
+            "columnName": "code",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_error_logs_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_logs_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_error_logs_spaceId_origin_createdAtEpochMillis",
+            "unique": false,
+            "columnNames": [
+              "spaceId",
+              "origin",
+              "createdAtEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_logs_spaceId_origin_createdAtEpochMillis` ON `${TABLE_NAME}` (`spaceId`, `origin`, `createdAtEpochMillis`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "memory_items",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `kind` TEXT NOT NULL, `title` TEXT NOT NULL, `body` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `sourceMessageId` TEXT, `sourceId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMessageId",
+            "columnName": "sourceMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_memory_items_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_memory_items_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "graph_nodes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `label` TEXT NOT NULL, `kind` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `status` TEXT NOT NULL, `sourceMemoryId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMemoryId",
+            "columnName": "sourceMemoryId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_graph_nodes_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_graph_nodes_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "graph_edges",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `fromNodeId` TEXT NOT NULL, `toNodeId` TEXT NOT NULL, `relation` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `sourceMemoryId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromNodeId",
+            "columnName": "fromNodeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toNodeId",
+            "columnName": "toNodeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relation",
+            "columnName": "relation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceMemoryId",
+            "columnName": "sourceMemoryId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_graph_edges_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_graph_edges_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_graph_edges_fromNodeId",
+            "unique": false,
+            "columnNames": [
+              "fromNodeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_graph_edges_fromNodeId` ON `${TABLE_NAME}` (`fromNodeId`)"
+          },
+          {
+            "name": "index_graph_edges_toNodeId",
+            "unique": false,
+            "columnNames": [
+              "toNodeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_graph_edges_toNodeId` ON `${TABLE_NAME}` (`toNodeId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sources",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `title` TEXT NOT NULL, `type` TEXT NOT NULL, `parserStatus` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `uri` TEXT, `extractedText` TEXT, `importBatchId` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parserStatus",
+            "columnName": "parserStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uri",
+            "columnName": "uri",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "extractedText",
+            "columnName": "extractedText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "importBatchId",
+            "columnName": "importBatchId",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sources_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sources_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_sources_type",
+            "unique": false,
+            "columnNames": [
+              "type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sources_type` ON `${TABLE_NAME}` (`type`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "source_chunks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sourceId` TEXT NOT NULL, `chunkIndex` INTEGER NOT NULL, `text` TEXT NOT NULL, `tokenEstimate` INTEGER, `embedding` BLOB, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chunkIndex",
+            "columnName": "chunkIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tokenEstimate",
+            "columnName": "tokenEstimate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "embedding",
+            "columnName": "embedding",
+            "affinity": "BLOB",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_source_chunks_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_source_chunks_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_source_chunks_sourceId",
+            "unique": false,
+            "columnNames": [
+              "sourceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_source_chunks_sourceId` ON `${TABLE_NAME}` (`sourceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "background_jobs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `kind` TEXT NOT NULL, `status` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `sessionId` TEXT, `startedAtEpochMillis` INTEGER, `completedAtEpochMillis` INTEGER, `errorMessage` TEXT, `userMessageId` TEXT, `userText` TEXT, `generationToken` TEXT, `modelBindingId` TEXT, `quoteExcerpt` TEXT, `imageAttachmentsPayload` TEXT, `contextEvidencePayload` TEXT, `sessionPolicyPayload` TEXT, `assistantTurnEnvelopePayload` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "startedAtEpochMillis",
+            "columnName": "startedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "errorMessage",
+            "columnName": "errorMessage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "userMessageId",
+            "columnName": "userMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "userText",
+            "columnName": "userText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "generationToken",
+            "columnName": "generationToken",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "modelBindingId",
+            "columnName": "modelBindingId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "quoteExcerpt",
+            "columnName": "quoteExcerpt",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "imageAttachmentsPayload",
+            "columnName": "imageAttachmentsPayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "contextEvidencePayload",
+            "columnName": "contextEvidencePayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sessionPolicyPayload",
+            "columnName": "sessionPolicyPayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "assistantTurnEnvelopePayload",
+            "columnName": "assistantTurnEnvelopePayload",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_background_jobs_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_background_jobs_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_background_jobs_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_background_jobs_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_background_jobs_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_background_jobs_status` ON `${TABLE_NAME}` (`status`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "import_batches",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sourceFileName` TEXT NOT NULL, `sourceSchema` TEXT NOT NULL, `mode` TEXT NOT NULL, `status` TEXT NOT NULL, `startedAtEpochMillis` INTEGER NOT NULL, `completedAtEpochMillis` INTEGER, `insertedCountsJson` TEXT NOT NULL, `skippedCountsJson` TEXT NOT NULL, `warningsJson` TEXT NOT NULL, `errorsJson` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceFileName",
+            "columnName": "sourceFileName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceSchema",
+            "columnName": "sourceSchema",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtEpochMillis",
+            "columnName": "startedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "insertedCountsJson",
+            "columnName": "insertedCountsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "skippedCountsJson",
+            "columnName": "skippedCountsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "warningsJson",
+            "columnName": "warningsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorsJson",
+            "columnName": "errorsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_import_batches_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_import_batches_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_import_batches_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_import_batches_status` ON `${TABLE_NAME}` (`status`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "export_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `schema` TEXT NOT NULL, `targetFileName` TEXT NOT NULL, `status` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `completedAtEpochMillis` INTEGER, `warningsJson` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schema",
+            "columnName": "schema",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetFileName",
+            "columnName": "targetFileName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "warningsJson",
+            "columnName": "warningsJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_export_records_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_export_records_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_export_records_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_export_records_status` ON `${TABLE_NAME}` (`status`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "provider_connections",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `name` TEXT NOT NULL, `protocol` TEXT NOT NULL, `providerName` TEXT, `baseUrl` TEXT, `secretRef` TEXT, `enabled` INTEGER NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "protocol",
+            "columnName": "protocol",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "providerName",
+            "columnName": "providerName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "baseUrl",
+            "columnName": "baseUrl",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "secretRef",
+            "columnName": "secretRef",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_provider_connections_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_provider_connections_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_provider_connections_protocol",
+            "unique": false,
+            "columnNames": [
+              "protocol"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_provider_connections_protocol` ON `${TABLE_NAME}` (`protocol`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "model_bindings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `connectionId` TEXT NOT NULL, `modelId` TEXT NOT NULL, `displayName` TEXT NOT NULL, `availability` TEXT NOT NULL, `isDefault` INTEGER NOT NULL, `enabled` INTEGER NOT NULL, `lastCheckedAtEpochMillis` INTEGER, `lastUsedAtEpochMillis` INTEGER, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`connectionId`) REFERENCES `provider_connections`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionId",
+            "columnName": "connectionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelId",
+            "columnName": "modelId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "availability",
+            "columnName": "availability",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastCheckedAtEpochMillis",
+            "columnName": "lastCheckedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastUsedAtEpochMillis",
+            "columnName": "lastUsedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_model_bindings_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_model_bindings_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_model_bindings_connectionId",
+            "unique": false,
+            "columnNames": [
+              "connectionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_model_bindings_connectionId` ON `${TABLE_NAME}` (`connectionId`)"
+          },
+          {
+            "name": "index_model_bindings_availability",
+            "unique": false,
+            "columnNames": [
+              "availability"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_model_bindings_availability` ON `${TABLE_NAME}` (`availability`)"
+          },
+          {
+            "name": "index_model_bindings_spaceId_isDefault",
+            "unique": false,
+            "columnNames": [
+              "spaceId",
+              "isDefault"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_model_bindings_spaceId_isDefault` ON `${TABLE_NAME}` (`spaceId`, `isDefault`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "provider_connections",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "connectionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "context_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `turnId` TEXT NOT NULL, `version` INTEGER NOT NULL, `messageIdsPayload` TEXT NOT NULL, `parentTurnId` TEXT, `maxSequence` INTEGER NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "turnId",
+            "columnName": "turnId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageIdsPayload",
+            "columnName": "messageIdsPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentTurnId",
+            "columnName": "parentTurnId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "maxSequence",
+            "columnName": "maxSequence",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_context_snapshots_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_context_snapshots_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_context_snapshots_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_context_snapshots_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_context_snapshots_turnId_version",
+            "unique": true,
+            "columnNames": [
+              "turnId",
+              "version"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_context_snapshots_turnId_version` ON `${TABLE_NAME}` (`turnId`, `version`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "turn_runs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `turnId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `userMessageId` TEXT NOT NULL, `sequence` INTEGER NOT NULL, `contextVersion` INTEGER NOT NULL, `modelBindingId` TEXT NOT NULL, `parentTurnId` TEXT, `contextSnapshotId` TEXT, `attempt` INTEGER NOT NULL, `state` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `startedAtEpochMillis` INTEGER, `completedAtEpochMillis` INTEGER, `resultMessageId` TEXT, `errorCode` TEXT, `errorRetryable` INTEGER, `errorSafeMessage` TEXT, `errorUserAction` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`modelBindingId`) REFERENCES `model_bindings`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "turnId",
+            "columnName": "turnId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userMessageId",
+            "columnName": "userMessageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sequence",
+            "columnName": "sequence",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contextVersion",
+            "columnName": "contextVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelBindingId",
+            "columnName": "modelBindingId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentTurnId",
+            "columnName": "parentTurnId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "contextSnapshotId",
+            "columnName": "contextSnapshotId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "attempt",
+            "columnName": "attempt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtEpochMillis",
+            "columnName": "startedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "resultMessageId",
+            "columnName": "resultMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "errorCode",
+            "columnName": "errorCode",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "errorRetryable",
+            "columnName": "errorRetryable",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "errorSafeMessage",
+            "columnName": "errorSafeMessage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "errorUserAction",
+            "columnName": "errorUserAction",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_turn_runs_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_turn_runs_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_turn_runs_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_turn_runs_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_turn_runs_state",
+            "unique": false,
+            "columnNames": [
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_turn_runs_state` ON `${TABLE_NAME}` (`state`)"
+          },
+          {
+            "name": "index_turn_runs_modelBindingId",
+            "unique": false,
+            "columnNames": [
+              "modelBindingId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_turn_runs_modelBindingId` ON `${TABLE_NAME}` (`modelBindingId`)"
+          },
+          {
+            "name": "index_turn_runs_turnId_attempt",
+            "unique": true,
+            "columnNames": [
+              "turnId",
+              "attempt"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_turn_runs_turnId_attempt` ON `${TABLE_NAME}` (`turnId`, `attempt`)"
+          },
+          {
+            "name": "index_turn_runs_sessionId_sequence",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "sequence"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_turn_runs_sessionId_sequence` ON `${TABLE_NAME}` (`sessionId`, `sequence`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "model_bindings",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "modelBindingId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "study_plan_tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `title` TEXT NOT NULL, `detail` TEXT, `state` TEXT NOT NULL, `dueAtEpochMillis` INTEGER, `completedAtEpochMillis` INTEGER, `sourceSessionId` TEXT, `sourceMessageId` TEXT, `revision` INTEGER NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detail",
+            "columnName": "detail",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dueAtEpochMillis",
+            "columnName": "dueAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceSessionId",
+            "columnName": "sourceSessionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceMessageId",
+            "columnName": "sourceMessageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_study_plan_tasks_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_study_plan_tasks_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_study_plan_tasks_state",
+            "unique": false,
+            "columnNames": [
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_study_plan_tasks_state` ON `${TABLE_NAME}` (`state`)"
+          },
+          {
+            "name": "index_study_plan_tasks_sourceSessionId",
+            "unique": false,
+            "columnNames": [
+              "sourceSessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_study_plan_tasks_sourceSessionId` ON `${TABLE_NAME}` (`sourceSessionId`)"
+          },
+          {
+            "name": "index_study_plan_tasks_updatedAtEpochMillis",
+            "unique": false,
+            "columnNames": [
+              "updatedAtEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_study_plan_tasks_updatedAtEpochMillis` ON `${TABLE_NAME}` (`updatedAtEpochMillis`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "weekly_summaries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `weekStartEpochMillis` INTEGER NOT NULL, `weekEndEpochMillis` INTEGER NOT NULL, `sourceRevision` INTEGER NOT NULL, `generatorVersion` TEXT NOT NULL, `summary` TEXT NOT NULL, `generatedAtEpochMillis` INTEGER NOT NULL, `stale` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weekStartEpochMillis",
+            "columnName": "weekStartEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weekEndEpochMillis",
+            "columnName": "weekEndEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRevision",
+            "columnName": "sourceRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatorVersion",
+            "columnName": "generatorVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "summary",
+            "columnName": "summary",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatedAtEpochMillis",
+            "columnName": "generatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stale",
+            "columnName": "stale",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_weekly_summaries_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_weekly_summaries_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_weekly_summaries_spaceId_weekStartEpochMillis_sourceRevision_generatorVersion",
+            "unique": true,
+            "columnNames": [
+              "spaceId",
+              "weekStartEpochMillis",
+              "sourceRevision",
+              "generatorVersion"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_weekly_summaries_spaceId_weekStartEpochMillis_sourceRevision_generatorVersion` ON `${TABLE_NAME}` (`spaceId`, `weekStartEpochMillis`, `sourceRevision`, `generatorVersion`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "token_usage_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `turnId` TEXT NOT NULL, `attempt` INTEGER NOT NULL, `modelBindingId` TEXT, `providerUsageId` TEXT, `inputTokens` INTEGER NOT NULL, `outputTokens` INTEGER NOT NULL, `cachedTokens` INTEGER NOT NULL, `reasoningTokens` INTEGER NOT NULL, `totalTokens` INTEGER NOT NULL, `estimated` INTEGER NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "turnId",
+            "columnName": "turnId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempt",
+            "columnName": "attempt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelBindingId",
+            "columnName": "modelBindingId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "providerUsageId",
+            "columnName": "providerUsageId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "inputTokens",
+            "columnName": "inputTokens",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outputTokens",
+            "columnName": "outputTokens",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cachedTokens",
+            "columnName": "cachedTokens",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reasoningTokens",
+            "columnName": "reasoningTokens",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalTokens",
+            "columnName": "totalTokens",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estimated",
+            "columnName": "estimated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_token_usage_records_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_token_usage_records_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_token_usage_records_modelBindingId",
+            "unique": false,
+            "columnNames": [
+              "modelBindingId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_token_usage_records_modelBindingId` ON `${TABLE_NAME}` (`modelBindingId`)"
+          },
+          {
+            "name": "index_token_usage_records_turnId_attempt",
+            "unique": true,
+            "columnNames": [
+              "turnId",
+              "attempt"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_token_usage_records_turnId_attempt` ON `${TABLE_NAME}` (`turnId`, `attempt`)"
+          },
+          {
+            "name": "index_token_usage_records_createdAtEpochMillis",
+            "unique": false,
+            "columnNames": [
+              "createdAtEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_token_usage_records_createdAtEpochMillis` ON `${TABLE_NAME}` (`createdAtEpochMillis`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "widget_layout_preferences",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`spaceId` TEXT NOT NULL, `widgetId` TEXT NOT NULL, `order` INTEGER NOT NULL, `hidden` INTEGER NOT NULL, `size` TEXT NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`spaceId`, `widgetId`))",
+        "fields": [
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "widgetId",
+            "columnName": "widgetId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "order",
+            "columnName": "order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hidden",
+            "columnName": "hidden",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "size",
+            "columnName": "size",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "spaceId",
+            "widgetId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_widget_layout_preferences_spaceId_order",
+            "unique": false,
+            "columnNames": [
+              "spaceId",
+              "order"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_widget_layout_preferences_spaceId_order` ON `${TABLE_NAME}` (`spaceId`, `order`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "search_documents",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `entityType` TEXT NOT NULL, `entityId` TEXT NOT NULL, `sessionId` TEXT, `parentEntityId` TEXT, `title` TEXT NOT NULL, `body` TEXT NOT NULL, `normalizedText` TEXT NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, `rebuildRequired` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entityType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityId",
+            "columnName": "entityId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "parentEntityId",
+            "columnName": "parentEntityId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedText",
+            "columnName": "normalizedText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rebuildRequired",
+            "columnName": "rebuildRequired",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_search_documents_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_search_documents_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_search_documents_entityType",
+            "unique": false,
+            "columnNames": [
+              "entityType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_search_documents_entityType` ON `${TABLE_NAME}` (`entityType`)"
+          },
+          {
+            "name": "index_search_documents_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_search_documents_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_search_documents_entityType_entityId",
+            "unique": true,
+            "columnNames": [
+              "entityType",
+              "entityId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_search_documents_entityType_entityId` ON `${TABLE_NAME}` (`entityType`, `entityId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sync_outbox",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `entityId` TEXT NOT NULL, `entityType` TEXT NOT NULL, `ownerId` TEXT NOT NULL, `deviceId` TEXT NOT NULL, `revision` INTEGER NOT NULL, `idempotencyKey` TEXT NOT NULL, `ownership` TEXT NOT NULL, `operation` TEXT NOT NULL, `payload` TEXT, `updatedAtEpochMillis` INTEGER NOT NULL, `deletedAtEpochMillis` INTEGER, `retryCount` INTEGER NOT NULL, `nextAttemptAtEpochMillis` INTEGER NOT NULL, `status` TEXT NOT NULL, `lastError` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityId",
+            "columnName": "entityId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entityType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerId",
+            "columnName": "ownerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idempotencyKey",
+            "columnName": "idempotencyKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownership",
+            "columnName": "ownership",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operation",
+            "columnName": "operation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payload",
+            "columnName": "payload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtEpochMillis",
+            "columnName": "deletedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "retryCount",
+            "columnName": "retryCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextAttemptAtEpochMillis",
+            "columnName": "nextAttemptAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "lastError",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_outbox_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_outbox_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_sync_outbox_entityType",
+            "unique": false,
+            "columnNames": [
+              "entityType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_outbox_entityType` ON `${TABLE_NAME}` (`entityType`)"
+          },
+          {
+            "name": "index_sync_outbox_nextAttemptAtEpochMillis",
+            "unique": false,
+            "columnNames": [
+              "nextAttemptAtEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_outbox_nextAttemptAtEpochMillis` ON `${TABLE_NAME}` (`nextAttemptAtEpochMillis`)"
+          },
+          {
+            "name": "index_sync_outbox_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_outbox_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_sync_outbox_idempotencyKey",
+            "unique": true,
+            "columnNames": [
+              "idempotencyKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_outbox_idempotencyKey` ON `${TABLE_NAME}` (`idempotencyKey`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sync_cursors",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `entityType` TEXT NOT NULL, `cursor` TEXT, `revision` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entityType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cursor",
+            "columnName": "cursor",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_cursors_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_cursors_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_sync_cursors_spaceId_entityType",
+            "unique": true,
+            "columnNames": [
+              "spaceId",
+              "entityType"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_cursors_spaceId_entityType` ON `${TABLE_NAME}` (`spaceId`, `entityType`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sync_conflicts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `entityId` TEXT NOT NULL, `entityType` TEXT NOT NULL, `localRevision` INTEGER NOT NULL, `remoteRevision` INTEGER NOT NULL, `localPayload` TEXT, `remotePayload` TEXT, `state` TEXT NOT NULL, `resolution` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `resolvedAtEpochMillis` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityId",
+            "columnName": "entityId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entityType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localRevision",
+            "columnName": "localRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteRevision",
+            "columnName": "remoteRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localPayload",
+            "columnName": "localPayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "remotePayload",
+            "columnName": "remotePayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resolution",
+            "columnName": "resolution",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resolvedAtEpochMillis",
+            "columnName": "resolvedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_conflicts_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_conflicts_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_sync_conflicts_entityType",
+            "unique": false,
+            "columnNames": [
+              "entityType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_conflicts_entityType` ON `${TABLE_NAME}` (`entityType`)"
+          },
+          {
+            "name": "index_sync_conflicts_state",
+            "unique": false,
+            "columnNames": [
+              "state"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_conflicts_state` ON `${TABLE_NAME}` (`state`)"
+          },
+          {
+            "name": "index_sync_conflicts_entityId",
+            "unique": false,
+            "columnNames": [
+              "entityId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_conflicts_entityId` ON `${TABLE_NAME}` (`entityId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "entity_tombstones",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `entityType` TEXT NOT NULL, `entityId` TEXT NOT NULL, `revision` INTEGER NOT NULL, `deletedAtEpochMillis` INTEGER NOT NULL, `idempotencyKey` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entityType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityId",
+            "columnName": "entityId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtEpochMillis",
+            "columnName": "deletedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idempotencyKey",
+            "columnName": "idempotencyKey",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_entity_tombstones_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_entity_tombstones_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_entity_tombstones_entityType",
+            "unique": false,
+            "columnNames": [
+              "entityType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_entity_tombstones_entityType` ON `${TABLE_NAME}` (`entityType`)"
+          },
+          {
+            "name": "index_entity_tombstones_entityId",
+            "unique": false,
+            "columnNames": [
+              "entityId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_entity_tombstones_entityId` ON `${TABLE_NAME}` (`entityId`)"
+          },
+          {
+            "name": "index_entity_tombstones_deletedAtEpochMillis",
+            "unique": false,
+            "columnNames": [
+              "deletedAtEpochMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_entity_tombstones_deletedAtEpochMillis` ON `${TABLE_NAME}` (`deletedAtEpochMillis`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "world_tree_drafts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sessionId` TEXT, `templateId` TEXT, `title` TEXT NOT NULL, `mode` TEXT NOT NULL, `schemaVersion` INTEGER NOT NULL, `state` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`spaceId`) REFERENCES `spaces`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "templateId",
+            "columnName": "templateId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_world_tree_drafts_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_world_tree_drafts_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_world_tree_drafts_sessionId",
+            "unique": true,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_world_tree_drafts_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "spaces",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "spaceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "sessions",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "world_tree_sections",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `draftId` TEXT NOT NULL, `type` TEXT NOT NULL, `title` TEXT NOT NULL, `orderIndex` INTEGER NOT NULL, `payloadJson` TEXT NOT NULL, `required` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`draftId`) REFERENCES `world_tree_drafts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "draftId",
+            "columnName": "draftId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderIndex",
+            "columnName": "orderIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payloadJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "required",
+            "columnName": "required",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completed",
+            "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_world_tree_sections_draftId",
+            "unique": false,
+            "columnNames": [
+              "draftId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_world_tree_sections_draftId` ON `${TABLE_NAME}` (`draftId`)"
+          },
+          {
+            "name": "index_world_tree_sections_draftId_orderIndex",
+            "unique": true,
+            "columnNames": [
+              "draftId",
+              "orderIndex"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_world_tree_sections_draftId_orderIndex` ON `${TABLE_NAME}` (`draftId`, `orderIndex`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "world_tree_drafts",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "draftId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "world_tree_source_cross_ref",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`draftId` TEXT NOT NULL, `sourceId` TEXT NOT NULL, `orderIndex` INTEGER NOT NULL, PRIMARY KEY(`draftId`, `sourceId`), FOREIGN KEY(`draftId`) REFERENCES `world_tree_drafts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`sourceId`) REFERENCES `sources`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "draftId",
+            "columnName": "draftId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderIndex",
+            "columnName": "orderIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "draftId",
+            "sourceId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_world_tree_source_cross_ref_sourceId",
+            "unique": false,
+            "columnNames": [
+              "sourceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_world_tree_source_cross_ref_sourceId` ON `${TABLE_NAME}` (`sourceId`)"
+          },
+          {
+            "name": "index_world_tree_source_cross_ref_draftId_orderIndex",
+            "unique": true,
+            "columnNames": [
+              "draftId",
+              "orderIndex"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_world_tree_source_cross_ref_draftId_orderIndex` ON `${TABLE_NAME}` (`draftId`, `orderIndex`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "world_tree_drafts",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "draftId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "sources",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sourceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "windows",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `rootId` TEXT NOT NULL, `parentId` TEXT, `kind` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`sessionId`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rootId",
+            "columnName": "rootId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentId",
+            "columnName": "parentId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_windows_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_windows_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_windows_rootId",
+            "unique": false,
+            "columnNames": [
+              "rootId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_windows_rootId` ON `${TABLE_NAME}` (`rootId`)"
+          },
+          {
+            "name": "index_windows_parentId",
+            "unique": false,
+            "columnNames": [
+              "parentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_windows_parentId` ON `${TABLE_NAME}` (`parentId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "window_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`windowId` TEXT NOT NULL, `ancestorRevision` INTEGER NOT NULL, `forkedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`windowId`))",
+        "fields": [
+          {
+            "fieldPath": "windowId",
+            "columnName": "windowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ancestorRevision",
+            "columnName": "ancestorRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "forkedAtEpochMillis",
+            "columnName": "forkedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "windowId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_window_snapshots_windowId",
+            "unique": false,
+            "columnNames": [
+              "windowId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_window_snapshots_windowId` ON `${TABLE_NAME}` (`windowId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "window_deltas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `windowId` TEXT NOT NULL, `deltaId` TEXT NOT NULL, `payloadHandle` TEXT NOT NULL, `sourceRevision` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowId",
+            "columnName": "windowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deltaId",
+            "columnName": "deltaId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadHandle",
+            "columnName": "payloadHandle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRevision",
+            "columnName": "sourceRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_window_deltas_windowId",
+            "unique": false,
+            "columnNames": [
+              "windowId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_window_deltas_windowId` ON `${TABLE_NAME}` (`windowId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "merge_commits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `childId` TEXT NOT NULL, `parentId` TEXT NOT NULL, `deltaId` TEXT NOT NULL, `sourceRevision` INTEGER NOT NULL, `spaceId` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "childId",
+            "columnName": "childId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentId",
+            "columnName": "parentId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deltaId",
+            "columnName": "deltaId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceRevision",
+            "columnName": "sourceRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_merge_commits_childId",
+            "unique": false,
+            "columnNames": [
+              "childId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_merge_commits_childId` ON `${TABLE_NAME}` (`childId`)"
+          },
+          {
+            "name": "index_merge_commits_parentId",
+            "unique": false,
+            "columnNames": [
+              "parentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_merge_commits_parentId` ON `${TABLE_NAME}` (`parentId`)"
+          },
+          {
+            "name": "index_merge_commits_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_merge_commits_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "learning_fact_receipts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `knowledgePoint` TEXT NOT NULL, `evidenceType` TEXT NOT NULL, `result` TEXT NOT NULL, `confidence` REAL NOT NULL, `sourceWindowId` TEXT NOT NULL, `sourceTurnId` TEXT NOT NULL, `occurredAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "knowledgePoint",
+            "columnName": "knowledgePoint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evidenceType",
+            "columnName": "evidenceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "result",
+            "columnName": "result",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceWindowId",
+            "columnName": "sourceWindowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceTurnId",
+            "columnName": "sourceTurnId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAtEpochMillis",
+            "columnName": "occurredAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_learning_fact_receipts_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_learning_fact_receipts_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_learning_fact_receipts_knowledgePoint",
+            "unique": false,
+            "columnNames": [
+              "knowledgePoint"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_learning_fact_receipts_knowledgePoint` ON `${TABLE_NAME}` (`knowledgePoint`)"
+          },
+          {
+            "name": "index_learning_fact_receipts_sourceWindowId",
+            "unique": false,
+            "columnNames": [
+              "sourceWindowId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_learning_fact_receipts_sourceWindowId` ON `${TABLE_NAME}` (`sourceWindowId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scope_signals",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `windowId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `category` TEXT NOT NULL, `count` INTEGER NOT NULL, `sourceTurnId` TEXT NOT NULL, `occurredAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowId",
+            "columnName": "windowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "count",
+            "columnName": "count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceTurnId",
+            "columnName": "sourceTurnId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAtEpochMillis",
+            "columnName": "occurredAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scope_signals_windowId",
+            "unique": false,
+            "columnNames": [
+              "windowId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scope_signals_windowId` ON `${TABLE_NAME}` (`windowId`)"
+          },
+          {
+            "name": "index_scope_signals_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scope_signals_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "companion_memory_versions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `windowId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `partition` TEXT NOT NULL, `value` TEXT NOT NULL, `origin` TEXT NOT NULL, `promotedAtEpochMillis` INTEGER NOT NULL, `revision` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowId",
+            "columnName": "windowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "partition",
+            "columnName": "partition",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "promotedAtEpochMillis",
+            "columnName": "promotedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_companion_memory_versions_windowId",
+            "unique": false,
+            "columnNames": [
+              "windowId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_companion_memory_versions_windowId` ON `${TABLE_NAME}` (`windowId`)"
+          },
+          {
+            "name": "index_companion_memory_versions_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_companion_memory_versions_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "memory_observations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `windowId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `domain` TEXT NOT NULL, `partition` TEXT, `normalizedValue` TEXT NOT NULL, `sourceClass` TEXT NOT NULL, `observedAtEpochMillis` INTEGER NOT NULL, `confidence` REAL NOT NULL, `provenanceHandle` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowId",
+            "columnName": "windowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "domain",
+            "columnName": "domain",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "partition",
+            "columnName": "partition",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "normalizedValue",
+            "columnName": "normalizedValue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceClass",
+            "columnName": "sourceClass",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observedAtEpochMillis",
+            "columnName": "observedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provenanceHandle",
+            "columnName": "provenanceHandle",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_memory_observations_windowId",
+            "unique": false,
+            "columnNames": [
+              "windowId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_memory_observations_windowId` ON `${TABLE_NAME}` (`windowId`)"
+          },
+          {
+            "name": "index_memory_observations_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_memory_observations_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "window_heartbeats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`windowId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `enabled` INTEGER NOT NULL, `minCooldownMillis` INTEGER NOT NULL, `cooldownUntilEpochMillis` INTEGER NOT NULL, `pendingJobId` TEXT, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`windowId`))",
+        "fields": [
+          {
+            "fieldPath": "windowId",
+            "columnName": "windowId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enabled",
+            "columnName": "enabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minCooldownMillis",
+            "columnName": "minCooldownMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cooldownUntilEpochMillis",
+            "columnName": "cooldownUntilEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pendingJobId",
+            "columnName": "pendingJobId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "windowId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_window_heartbeats_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_window_heartbeats_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "assistant_reply_artifacts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`assistantMessageId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `blocksPayload` TEXT NOT NULL, `evidenceReferencesPayload` TEXT NOT NULL, `toolResultsPayload` TEXT NOT NULL, `checkPlanPayload` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`assistantMessageId`))",
+        "fields": [
+          {
+            "fieldPath": "assistantMessageId",
+            "columnName": "assistantMessageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blocksPayload",
+            "columnName": "blocksPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evidenceReferencesPayload",
+            "columnName": "evidenceReferencesPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toolResultsPayload",
+            "columnName": "toolResultsPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "checkPlanPayload",
+            "columnName": "checkPlanPayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "assistantMessageId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_assistant_reply_artifacts_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_assistant_reply_artifacts_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "session_documents",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_documents_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_documents_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_session_documents_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_documents_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "session_document_blocks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `documentId` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `kind` TEXT NOT NULL, `payload` TEXT NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentId",
+            "columnName": "documentId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordinal",
+            "columnName": "ordinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payload",
+            "columnName": "payload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_document_blocks_documentId",
+            "unique": false,
+            "columnNames": [
+              "documentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_document_blocks_documentId` ON `${TABLE_NAME}` (`documentId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "session_tables",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `documentId` TEXT NOT NULL, `title` TEXT NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentId",
+            "columnName": "documentId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "createdAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_tables_documentId",
+            "unique": false,
+            "columnNames": [
+              "documentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_tables_documentId` ON `${TABLE_NAME}` (`documentId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "session_table_columns",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `tableId` TEXT NOT NULL, `ordinal` INTEGER NOT NULL, `name` TEXT NOT NULL, `valueType` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tableId",
+            "columnName": "tableId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordinal",
+            "columnName": "ordinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valueType",
+            "columnName": "valueType",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_table_columns_tableId",
+            "unique": false,
+            "columnNames": [
+              "tableId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_table_columns_tableId` ON `${TABLE_NAME}` (`tableId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "session_table_rows",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `tableId` TEXT NOT NULL, `rowKey` TEXT NOT NULL, `cellsPayload` TEXT NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tableId",
+            "columnName": "tableId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rowKey",
+            "columnName": "rowKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cellsPayload",
+            "columnName": "cellsPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updatedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_table_rows_tableId",
+            "unique": false,
+            "columnNames": [
+              "tableId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_session_table_rows_tableId` ON `${TABLE_NAME}` (`tableId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "tool_call_receipts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`callId` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `toolName` TEXT NOT NULL, `status` TEXT NOT NULL, `safeResultPayload` TEXT NOT NULL, `completedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`callId`))",
+        "fields": [
+          {
+            "fieldPath": "callId",
+            "columnName": "callId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toolName",
+            "columnName": "toolName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "safeResultPayload",
+            "columnName": "safeResultPayload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "callId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tool_call_receipts_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tool_call_receipts_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_tool_call_receipts_toolName",
+            "unique": false,
+            "columnNames": [
+              "toolName"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tool_call_receipts_toolName` ON `${TABLE_NAME}` (`toolName`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c9c9e6c1e46621d2a9c5bc448426a76e')"
+    ]
+  }
+}

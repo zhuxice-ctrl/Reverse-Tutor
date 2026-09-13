@@ -202,7 +202,9 @@ data class SourceChunkEntity(
     val sourceId: String,
     val chunkIndex: Int,
     val text: String,
-    val tokenEstimate: Int? = null
+    val tokenEstimate: Int? = null,
+    /** NEWMP-V1-024: optional local embedding vector for semantic retrieval. */
+    val embedding: ByteArray? = null
 )
 
 @Entity(tableName = "background_jobs", indices = [Index("spaceId"), Index("sessionId"), Index("status")])

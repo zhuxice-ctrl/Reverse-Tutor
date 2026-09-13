@@ -68,7 +68,7 @@ class ConversationContextAssemblerTest {
         val items: List<SourceReferenceContract> = emptyList(),
         val shouldFail: Boolean = false
     ) : SourceContextPort {
-        override suspend fun listSourceEvidence(spaceId: String, sessionId: String, limit: Int): List<SourceReferenceContract> {
+        override suspend fun listSourceEvidence(spaceId: String, sessionId: String, limit: Int, queryText: String): List<SourceReferenceContract> {
             if (shouldFail) throw RuntimeException("network down")
             return items.take(limit)
         }

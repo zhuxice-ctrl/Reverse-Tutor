@@ -250,7 +250,19 @@ interface SourceDao {
 
     @Query("DELETE FROM source_chunks WHERE sourceId = :sourceId")
     suspend fun deleteChunksForSource(sourceId: String): Int
+
+    @Query("UPDATE source_chunks SET embedding = :embedding WHERE id = :chunkId")
+    suspend fun updateChunkEmbedding(chunkId: String, embedding: ByteArray)
+
+    @Query("SELECT id, embedding FROM source_chunks WHERE spaceId = :spaceId AND embedding IS NOT NULL")
+    suspend fun listChunkEmbeddingRows(spaceId: String): List<SourceChunkEmbeddingRow>
 }
+
+/** NEWMP-V1-024: lightweight projection of a stored chunk embedding. */
+data class SourceChunkEmbeddingRow(
+    val id: String,
+    val embedding: ByteArray
+)
 
 @Dao
 interface BackgroundJobDao {

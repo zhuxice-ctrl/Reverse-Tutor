@@ -80,7 +80,7 @@ class ConversationSessionCoordinatorTest {
                 override suspend fun listPendingReviewPoints(spaceId: String, sessionId: String, limit: Int) = listOf("review1")
             },
             sourcePort = object : SourceContextPort {
-                override suspend fun listSourceEvidence(spaceId: String, sessionId: String, limit: Int) = emptyList<SourceReferenceContract>()
+                override suspend fun listSourceEvidence(spaceId: String, sessionId: String, limit: Int, queryText: String) = emptyList<SourceReferenceContract>()
             }
         )
         return ConversationSessionCoordinator(

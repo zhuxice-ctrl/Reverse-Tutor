@@ -105,7 +105,11 @@ class SessionConversationAssembly(
             learningLedgerRepository,
             nowEpochMillis
         ),
-        sourcePort = SourceContextPortAdapter(sourceRepository),
+        sourcePort = SourceContextPortAdapter(
+            sourceRepository,
+            // NEWMP-V1-024: query embedding for semantic source ranking.
+            chatGenerationRepository::embedQueryText
+        ),
         masteryFactPort = learningLedgerRepository?.let { MasteryFactContextPortAdapter(it) },
         digestPort = sessionSummaryStore
     )
@@ -142,14 +146,15 @@ class SessionConversationAssembly(
      */
     suspend fun assembleContext(
         spaceId: String,
-        sessionId: String
+        sessionId: String,
+        queryText: String = ""
     ): ConversationContextContract {
         // NEWMP-V1-017: compress early history first so this very turn's
         // assembled contract — and the evidence built from it — already
         // carries the fresh digest. Failures are swallowed inside and
         // retried on the next turn (old-parity behavior).
         sessionSummarizer?.maybeSummarize(sessionId)
-        return contextAssembler.assemble(spaceId, sessionId)
+        return contextAssembler.assemble(spaceId, sessionId, queryText)
     }
 
     /**

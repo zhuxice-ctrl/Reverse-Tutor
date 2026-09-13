@@ -30,10 +30,16 @@ class ConversationContextAssembler(
     private val masteryFactLimit: Int = 200,
     private val masterySnapshotLimit: Int = 10,
     private val textCap: Int = 200,
+    /** NEWMP-V1-024: source excerpts carry more context than other categories. */
+    private val sourceTextCap: Int = 900,
     private val digestCap: Int = 1200
 ) {
 
-    suspend fun assemble(spaceId: String, sessionId: String): ConversationContextContract {
+    suspend fun assemble(
+        spaceId: String,
+        sessionId: String,
+        queryText: String = ""
+    ): ConversationContextContract {
         val warnings = mutableListOf<ContextWarning>()
 
         // Each source is read independently; failure degrades only that category.
@@ -80,13 +86,13 @@ class ConversationContextAssembler(
         }
 
         val sources = safeRead("source", warnings) {
-            sourcePort.listSourceEvidence(spaceId, sessionId, sourceLimit)
+            sourcePort.listSourceEvidence(spaceId, sessionId, sourceLimit, queryText)
                 .sortedWith(compareByDescending<SourceReferenceContract> { it.relevanceScore }
                     .thenBy { it.id })
                 .map {
                     it.copy(
                         title = SessionTurnContracts.sanitizeContractText(it.title, textCap),
-                        excerpt = SessionTurnContracts.sanitizeContractText(it.excerpt, textCap)
+                        excerpt = SessionTurnContracts.sanitizeContractText(it.excerpt, sourceTextCap)
                     )
                 }
         }

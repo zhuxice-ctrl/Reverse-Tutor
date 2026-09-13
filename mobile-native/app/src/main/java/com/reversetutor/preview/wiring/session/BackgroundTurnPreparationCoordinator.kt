@@ -29,7 +29,7 @@ import kotlinx.coroutines.CancellationException
  */
 internal class BackgroundTurnPreparationCoordinator(
     private val isSessionDeleted: suspend (String) -> Boolean,
-    private val assembleContext: suspend (String, String) -> ConversationContextContract,
+    private val assembleContext: suspend (String, String, String) -> ConversationContextContract,
     private val enqueueJob: suspend (BackgroundGenerationInput, Long) -> BackgroundGenerationJob,
     private val loadRecentTurnSignals: suspend (String, String) -> RecentTurnSignals = { _, _ -> RecentTurnSignals() },
     private val nowEpochMillis: () -> Long = System::currentTimeMillis,
@@ -48,7 +48,7 @@ internal class BackgroundTurnPreparationCoordinator(
                 return BackgroundTurnPreparationResult.SessionUnavailable
             }
 
-            val context = assembleContext(request.spaceId, request.sessionId)
+            val context = assembleContext(request.spaceId, request.sessionId, request.userText)
             val baseGuidedInput = request.sessionSnapshot.toGuidedLearningTurnInput(
                 spaceId = request.spaceId,
                 sessionId = request.sessionId,

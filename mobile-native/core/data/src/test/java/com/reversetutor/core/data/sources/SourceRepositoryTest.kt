@@ -1,5 +1,6 @@
 package com.reversetutor.core.data.sources
 
+import com.reversetutor.core.data.local.dao.SourceChunkEmbeddingRow
 import com.reversetutor.core.data.local.dao.SourceDao
 import com.reversetutor.core.data.local.entity.SourceChunkEntity
 import com.reversetutor.core.data.local.entity.SourceEntity
@@ -338,4 +339,13 @@ private class FakeSourceDao : SourceDao {
         ids.forEach { chunks.remove(it) }
         return ids.size
     }
+
+    override suspend fun updateChunkEmbedding(chunkId: String, embedding: ByteArray) {
+        chunks[chunkId]?.let { chunks[chunkId] = it.copy(embedding = embedding) }
+    }
+
+    override suspend fun listChunkEmbeddingRows(spaceId: String): List<SourceChunkEmbeddingRow> =
+        chunks.values
+            .filter { it.spaceId == spaceId && it.embedding != null }
+            .map { SourceChunkEmbeddingRow(it.id, it.embedding!!) }
 }

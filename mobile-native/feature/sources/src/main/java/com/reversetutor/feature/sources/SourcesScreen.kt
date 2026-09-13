@@ -46,6 +46,7 @@ fun SourcesRoute(
     pendingImport: SourceImportInput?,
     highlightedSourceId: String? = null,
     onPickSource: () -> Unit,
+    onSourceIndexed: (SourceImportResult) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -63,10 +64,13 @@ fun SourcesRoute(
 
     LaunchedEffect(pendingImport?.requestId) {
         val import = pendingImport ?: return@LaunchedEffect
-        lastImport = sourceRepository.importSource(
+        val imported = sourceRepository.importSource(
             input = import,
             nowEpochMillis = System.currentTimeMillis()
         )
+        lastImport = imported
+        // NEWMP-V1-024: kick off background semantic indexing.
+        onSourceIndexed(imported)
         reload()
     }
 
@@ -76,10 +80,13 @@ fun SourcesRoute(
         onPickSource = onPickSource,
         onReprocess = { sourceId ->
             scope.launch {
-                lastImport = sourceRepository.reprocessSource(
+                val reprocessed = sourceRepository.reprocessSource(
                     sourceId = sourceId,
                     nowEpochMillis = System.currentTimeMillis()
                 )
+                lastImport = reprocessed
+                // NEWMP-V1-024: re-index embeddings for the fresh chunks.
+                reprocessed?.let(onSourceIndexed)
                 reload()
             }
         },

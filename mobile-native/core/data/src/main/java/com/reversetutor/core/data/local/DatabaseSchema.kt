@@ -4,7 +4,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object DatabaseSchema {
-    const val version = 12
+    const val version = 13
     const val exportSchema = true
 
     val migration1To2: Migration = object : Migration(1, 2) {
@@ -107,6 +107,13 @@ object DatabaseSchema {
         }
     }
 
+    /** NEWMP-V1-024: optional per-chunk embedding vectors for semantic retrieval. */
+    val migration12To13: Migration = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE source_chunks ADD COLUMN embedding BLOB")
+        }
+    }
+
     val migrations: Array<Migration> = arrayOf(
         migration1To2,
         migration2To3,
@@ -118,7 +125,8 @@ object DatabaseSchema {
         migration8To9,
         migration9To10,
         migration10To11,
-        migration11To12
+        migration11To12,
+        migration12To13
     )
 
     private fun createHybridTables(db: SupportSQLiteDatabase) {
